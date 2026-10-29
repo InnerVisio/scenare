@@ -14,10 +14,13 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.4.6",
     "diff": "^9.0.0",
     "diff-match-patch": "^1.0.5",
+    "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.64.0",
     "next": "~15.5",
+    "postgres": "^3.4.9",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
@@ -29,6 +32,7 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
     "eslint-config-next": "~15.5",
     "postcss": "^8.5.32",
