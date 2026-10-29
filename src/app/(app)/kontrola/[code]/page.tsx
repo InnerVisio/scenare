@@ -24,7 +24,8 @@ export default async function ReviewPage({
   try {
     data = await loadReview(db, actor, decodeURIComponent(code).toUpperCase(), { cycleId }, new Date());
   } catch (error) {
-    if (error instanceof DomainError && error.code === 'NOT_FOUND') notFound();
+    // A malformed %-escape in the URL (URIError) is just a script that does not exist.
+    if (error instanceof URIError || (error instanceof DomainError && error.code === 'NOT_FOUND')) notFound();
     throw error;
   }
 

@@ -100,3 +100,15 @@ export function mentionedIds(text: string, users: { id: string; name: string }[]
     })
     .map((u) => u.id);
 }
+
+/**
+ * A newer version appeared while an older one is on screen. The screen keeps showing (and deciding
+ * on) the version the reviewer was reading; this describes the banner offering the switch.
+ */
+export function newVersionNotice(
+  shownNo: number | null,
+  latestNo: number | null,
+): { versionNo: number; compareFrom: number } | null {
+  if (shownNo === null || latestNo === null || latestNo <= shownNo) return null;
+  return { versionNo: latestNo, compareFrom: shownNo };
+}

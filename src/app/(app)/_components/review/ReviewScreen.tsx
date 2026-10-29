@@ -20,6 +20,7 @@ import {
 import { formatDayMonth } from '@/domain/format/date';
 import type { ActionResult } from '@/server/actionResult';
 import type { ReviewData } from '@/server/review';
+import { Button } from '@/ui/Button';
 import { Tabs } from '@/ui/Tabs';
 import { cn, focusRing } from '@/ui/cn';
 import { ScriptView } from '../script-view/ScriptView';
@@ -41,6 +42,7 @@ import {
   checkSummary,
   decisionToast,
   defaultCenterView,
+  newVersionNotice,
   nextUndecidedCode,
   unresolvedCount,
 } from './model';
@@ -58,7 +60,13 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   const toast = useReviewToast();
   const desktop = useIsDesktop();
 
-  const { video, latest, perms } = data;
+  const { video, perms } = data;
+  // The version on screen. A newer one that shows up later does not replace it until the reviewer
+  // chooses to look (see the banner); approve / return / comments always refer to this one.
+  const [pinned, setPinned] = useState(data.latest);
+  const latest = pinned ?? data.latest;
+  const notice = newVersionNotice(latest?.no ?? null, data.latest?.no ?? null);
+  const body = latest ? (data.bodies[latest.no] ?? data.body) : data.body;
   const now = useMemo(() => new Date(data.nowIso), [data.nowIso]);
   const latestNo = latest?.no ?? null;
 
@@ -127,7 +135,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   // ---- remember what was seen ------------------------------------------------------------------
   const latestId = latest?.id;
   useEffect(() => {
-    if (latestId) void markSeenAction({ videoId: video.id, versionId: latestId });
+    if (latestId) markSeenAction({ videoId: video.id, versionId: latestId }).catch(() => {});
   }, [video.id, latestId]);
 
   // ---- auto refresh ----------------------------------------------------------------------------
@@ -170,7 +178,6 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
     } else {
       setBlockers(null);
       toast(result.message, 'error');
-      if (result.code === 'STALE') router.refresh();
     }
   }
 
@@ -259,7 +266,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
     address: async (commentId) => (await perform(markAddressedAction({ commentId }))).ok,
     accept: async (commentId) => {
       const result = await perform(decideSuggestionAction({ commentId, accept: true }));
-      if (result.ok) toast('Návrh přijat, text je upravený');
+      if (result.ok) toast('Návrh přijat · zapracuje se do další verze');
       return result.ok;
     },
     reject: async (commentId, reason) => (await perform(decideSuggestionAction({ commentId, accept: false, reason }))).ok,
@@ -319,7 +326,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   const { passed, total } = checkSummary(data.checks);
   const peekThread = data.threads.find((t) => t.id === activeId) ?? data.threads.find((t) => t.status === 'open') ?? data.threads[0];
   const nextHref = data.nextCode ? `/kontrola/${data.nextCode}${query}` : null;
-  const selectable = perms.comment && mode === 'read';
+  const selectable = perms.comment && mode === 'read' && !notice;
 
   const decideBar = (variant: 'inline' | 'fixed') => (
     <ActionBar
@@ -337,7 +344,23 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   const cycleDate = data.cycle?.shootDate ? formatDayMonth(new Date(`${data.cycle.shootDate}T12:00:00Z`)) : null;
 
   return (
-    <div className="flex flex-col gap-4 pb-[300px] lg:pb-0">
+    // The layout's own bottom padding is cancelled so the total is exactly what the sheet and bar cover.
+    <div className="-mb-28 flex flex-col gap-4 pb-[calc(288px+env(safe-area-inset-bottom))] md:-mb-10 lg:mb-0 lg:pb-0">
+      {notice && (
+        <div role="status" className="flex flex-wrap items-center gap-3 rounded-inner bg-apricot-soft px-4 py-3 text-apricot-ink">
+          <p className="min-w-0 flex-1 font-semibold">Mezitím vznikla nová verze v{notice.versionNo}</p>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setPinned(data.latest);
+              setCompareBase(notice.compareFrom);
+              setView('diff');
+            }}
+          >
+            Zobrazit změny
+          </Button>
+        </div>
+      )}
       {/* Phone header: back, position, checks badge, progress. */}
       <header className="flex flex-col gap-3 lg:hidden">
         <div className="flex items-center gap-3">
@@ -410,11 +433,12 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
             {decideBar('inline')}
           </div>
           <ScriptView
-            body={data.body}
+            body={body}
             meta={data.meta}
             mode={mode}
             diffAgainst={diffBase !== null ? data.bodies[diffBase] : undefined}
-            threads={anchored}
+            // Anchors belong to the newest text; on an older version they would point at the wrong words.
+            threads={notice ? [] : anchored}
             hookTypeLabels={data.hookTypeLabels}
             activeCommentId={activeId}
             onSelectAnchor={selectable ? (anchor, rect) => setSelection({ anchor, rect }) : undefined}
@@ -430,6 +454,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
           onExpandedChange={setSheetOpen}
           commentCount={data.threads.length}
           unresolved={unresolved}
+          approvalLineShown={line.text !== null}
           scrollTo={scrollTo}
           peek={
             peekThread ? (
@@ -441,7 +466,13 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
                 }}
               />
             ) : (
-              <p className="rounded-inner bg-nest p-4 text-text2">Zatím žádné komentáře. Označ text a napiš první.</p>
+              <button
+                type="button"
+                onClick={() => (perms.comment ? openComposer({ kind: 'general' }) : setSheetOpen(true))}
+                className={cn('min-h-12 w-full rounded-inner bg-nest p-4 text-left text-text2', focusRing)}
+              >
+                Zatím žádné komentáře.{perms.comment ? ' Klepni a napiš první.' : ''}
+              </button>
             )
           }
           composer={

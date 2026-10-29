@@ -8,7 +8,9 @@ import { unresolvedLabel } from './model';
 
 export type SidebarTab = 'comments' | 'checks' | 'versions';
 
+// Space the collapsed sheet needs above the fixed action bar; the approval line adds one row to the bar.
 const PEEK_HEIGHT = 'h-[calc(244px+env(safe-area-inset-bottom))]';
+const PEEK_HEIGHT_WITH_LINE = 'h-[calc(272px+env(safe-area-inset-bottom))]';
 const DRAG_THRESHOLD = 36;
 
 /**
@@ -22,6 +24,7 @@ export function ReviewSidebar({
   onExpandedChange,
   commentCount,
   unresolved,
+  approvalLineShown,
   peek,
   scrollTo,
   composer,
@@ -33,6 +36,8 @@ export function ReviewSidebar({
   onExpandedChange: (expanded: boolean) => void;
   commentCount: number;
   unresolved: number;
+  /** The action bar shows „Schváleno 1/2 · …“ above its buttons, so the peek must sit higher. */
+  approvalLineShown: boolean;
   /** One-comment summary shown in the collapsed phone sheet. */
   peek: ReactNode;
   /** Comment id to bring into view; a new object re-triggers it. */
@@ -93,10 +98,11 @@ export function ReviewSidebar({
         aria-label="Komentáře a kontrola"
         className={cn(
           'fixed inset-x-0 bottom-0 z-40 flex flex-col rounded-t-card bg-card shadow-[0_-8px_32px_rgba(23,21,31,0.14)] transition-[height] duration-200 md:left-[100px]',
-          expanded ? 'z-[60] h-[85dvh]' : PEEK_HEIGHT,
+          expanded ? 'z-[60] h-[85dvh]' : approvalLineShown ? PEEK_HEIGHT_WITH_LINE : PEEK_HEIGHT,
           'lg:sticky lg:top-8 lg:z-auto lg:h-[calc(100dvh-4rem)] lg:rounded-none lg:bg-transparent lg:shadow-none',
         )}
       >
+        {/* Phone: handle and title row together are one big target to tap or drag. */}
         <div
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
@@ -115,21 +121,22 @@ export function ReviewSidebar({
               onExpandedChange(!expanded);
             }
           }}
-          className={cn('flex touch-none justify-center pt-3 pb-2 lg:hidden', focusRing)}
+          className={cn('min-h-12 touch-none select-none lg:hidden', focusRing)}
         >
-          <span aria-hidden className="h-1.5 w-10 rounded-full bg-lavender" />
-        </div>
-
-        {expanded ? null : (
-          <div className="flex items-center justify-between gap-3 px-5 pb-2 lg:hidden">
-            <h2 className="text-h2">Komentáře · {commentCount}</h2>
-            {unresolved > 0 && (
-              <span className="rounded-pill bg-apricot-soft px-3 py-1.5 text-sm font-semibold text-apricot-ink">
-                {unresolvedLabel(unresolved)}
-              </span>
-            )}
+          <div className="flex justify-center pt-3 pb-2">
+            <span aria-hidden className="h-1.5 w-10 rounded-full bg-lavender" />
           </div>
-        )}
+          {!expanded && (
+            <div className="flex items-center justify-between gap-3 px-5 pb-2">
+              <h2 className="text-h2">Komentáře · {commentCount}</h2>
+              {unresolved > 0 && (
+                <span className="rounded-pill bg-apricot-soft px-3 py-1.5 text-sm font-semibold text-apricot-ink">
+                  {unresolvedLabel(unresolved)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className={cn('items-center gap-2 px-4 pb-3 lg:flex lg:px-0 lg:pt-0 lg:pb-4', expanded ? 'flex' : 'hidden')}>
           <Tabs
@@ -150,7 +157,11 @@ export function ReviewSidebar({
           </button>
         </div>
 
-        {!expanded && <div className="px-4 lg:hidden">{peek}</div>}
+        {!expanded && (
+          <div data-testid="comment-peek" className="px-4 lg:hidden">
+            {peek}
+          </div>
+        )}
 
         <div
           ref={scroller}

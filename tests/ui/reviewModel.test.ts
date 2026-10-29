@@ -7,6 +7,7 @@ import {
   defaultCenterView,
   groupThreads,
   matchMentionUsers,
+  newVersionNotice,
   mentionedIds,
   nextUndecidedCode,
   unresolvedLabel,
@@ -128,5 +129,18 @@ describe('mentions', () => {
     expect(mentionedIds('@Honza mrkni na to, díky @Radek', users)).toEqual(['u1', 'u2']);
     expect(mentionedIds('@Honzaa není Honza, e-mail a@Radek', users)).toEqual([]);
     expect(mentionedIds('bez zmínky', users)).toEqual([]);
+  });
+});
+
+describe('newVersionNotice', () => {
+  it('offers a diff against the version that was on screen', () => {
+    expect(newVersionNotice(2, 3)).toEqual({ versionNo: 3, compareFrom: 2 });
+    expect(newVersionNotice(1, 4)).toEqual({ versionNo: 4, compareFrom: 1 });
+  });
+  it('stays silent when nothing newer exists or versions are unknown', () => {
+    expect(newVersionNotice(2, 2)).toBeNull();
+    expect(newVersionNotice(3, 2)).toBeNull();
+    expect(newVersionNotice(null, 2)).toBeNull();
+    expect(newVersionNotice(2, null)).toBeNull();
   });
 });

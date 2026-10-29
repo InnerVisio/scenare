@@ -74,7 +74,8 @@ test.describe('review queue', () => {
       await expect(page.getByRole('button', { name: 'Vrátit' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Schválit' })).toBeVisible();
       await page.screenshot({ path: 'test-results/review-item-mobile.png' });
-      await page.getByRole('button', { name: 'Rozbalit komentáře' }).click();
+      // The whole header row (not just the little handle) opens the sheet.
+      await page.locator('aside h2', { hasText: 'Komentáře · 3' }).click();
       await expect(page.getByRole('tab', { name: /Komentáře · 3/ })).toBeVisible();
       await expect(page.getByText('Radek nemusí křičet')).toBeVisible();
       await expectNoHorizontalScroll(page);
@@ -97,6 +98,19 @@ test.describe('review queue', () => {
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
     }
+  });
+
+  test('phone: tapping the empty peek opens the composer', async ({ page }, info) => {
+    test.skip(info.project.name !== 'mobile', 'the bottom sheet exists on phones only');
+    await loginAs(page, 'Radek');
+    // V028 never receives comments in these tests.
+    await page.goto('/kontrola/V028');
+    await expect(page.getByRole('heading', { level: 1, name: 'Den za 15 sekund' })).toBeVisible();
+    await page.getByTestId('comment-peek').getByRole('button', { name: /Zatím žádné komentáře/ }).click();
+    const box = page.getByRole('textbox', { name: 'Komentář', exact: true });
+    await expect(box).toBeVisible();
+    await expect(box).toBeFocused();
+    await expectNoHorizontalScroll(page);
   });
 
   test('versions tab compares an older version with the current one', async ({ page }) => {
@@ -234,7 +248,15 @@ test.describe('review queue', () => {
 
     // Honza has done his part: the button is disabled and says so.
     await page.goto(`/kontrola/${code}`);
-    await expect(page.getByText('Schválil jsi · čeká na Radka').filter({ visible: true })).toBeVisible();
+    const line = page.getByText('Schválil jsi · čeká na Radka').filter({ visible: true });
+    await expect(line).toBeVisible();
+    if (info.project.name === 'mobile') {
+      // The approval line sits above the buttons and must not overlap the peeking sheet content.
+      const peek = await page.getByTestId('comment-peek').boundingBox();
+      const text = await line.boundingBox();
+      expect(text!.y).toBeGreaterThanOrEqual(peek!.y + peek!.height);
+    }
+    await page.screenshot({ path: `test-results/review-pending-${info.project.name}.png` });
     await expect(page.getByRole('button', { name: 'Schváleno' })).toBeDisabled();
 
     await loginAs(page, 'Radek');

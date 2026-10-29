@@ -381,6 +381,17 @@ describe('setManualCheck', () => {
     await expectDomainError(setManualCheck(w.db, w.radek, { videoId, versionId, code: 'XYZ', checked: true }, NOW), 'VALIDATION');
   });
 
+  it('rejects a manual rule that is switched off', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    const [rule] = await w.db.select().from(s.lookupItems).where(eq(s.lookupItems.key, 'PILLAR'));
+    await w.db.update(s.lookupItems).set({ data: { ...rule.data, enabled: false } }).where(eq(s.lookupItems.id, rule.id));
+    try {
+      await expectDomainError(setManualCheck(w.db, w.radek, { videoId, versionId, code: 'PILLAR', checked: true }, NOW), 'VALIDATION');
+    } finally {
+      await w.db.update(s.lookupItems).set({ data: rule.data }).where(eq(s.lookupItems.id, rule.id));
+    }
+  });
+
   it('feeds the check results', async () => {
     const { videoId, versionId } = await createSubmitted(w);
     await setManualCheck(w.db, w.radek, { videoId, versionId, code: 'GDPR', checked: true }, NOW);

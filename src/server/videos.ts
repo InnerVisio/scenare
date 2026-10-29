@@ -385,7 +385,7 @@ export async function setManualCheck(
     if (!version) throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
     if ((await latestVersion(tx, video.id))?.id !== version.id) throw new DomainError('STALE', 'Mezitím vznikla nová verze.');
 
-    const rule = (await loadRules(tx)).find((r) => r.code === input.code && r.mode === 'manual');
+    const rule = (await loadRules(tx)).find((r) => r.code === input.code && r.mode === 'manual' && r.enabled);
     if (!rule) throw new DomainError('VALIDATION', 'Tuto kontrolu nejde odškrtnout ručně.');
 
     const forVersion = { ...video.manualChecks?.[version.id], [rule.code]: input.checked };

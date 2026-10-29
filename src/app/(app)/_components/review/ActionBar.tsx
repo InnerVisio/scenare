@@ -72,7 +72,7 @@ export function ActionBar({
   if (fixed) {
     return (
       <div className="fixed inset-x-0 bottom-0 z-[45] flex flex-col gap-1.5 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] md:left-[100px] lg:hidden">
-        {line.text && <p className="text-center text-sm font-semibold text-text2">{line.text}</p>}
+        {line.text && <p className="truncate text-center text-sm font-semibold text-text2">{line.text}</p>}
         <div className="flex items-center gap-3">
           {buttons}
           <span className="ml-auto" />
