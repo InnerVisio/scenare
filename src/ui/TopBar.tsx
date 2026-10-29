@@ -1,9 +1,10 @@
 'use client';
 
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
+import { NotificationBell } from '@/app/(app)/_components/NotificationBell';
 import { logout } from '@/app/login/actions';
 import { Avatar } from './Avatar';
 import { cn, focusRing } from './cn';
@@ -218,14 +219,7 @@ export function TopBar({
         <Link href="/scenare" aria-label="Hledat" className={ICON_BUTTON}>
           <Search aria-hidden className="size-5" strokeWidth={1.75} />
         </Link>
-        <Link
-          href="/notifikace"
-          aria-label={shell.unread > 0 ? `Upozornění, ${shell.unread} nepřečtených` : 'Upozornění'}
-          className={ICON_BUTTON}
-        >
-          <Bell aria-hidden className="size-5" strokeWidth={1.75} />
-          {shell.unread > 0 && <span aria-hidden className="absolute top-3 right-3 size-2.5 rounded-full bg-coral ring-2 ring-card" />}
-        </Link>
+        <NotificationBell />
         <UserMenu />
       </div>
     </header>

@@ -2,9 +2,20 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 
+export interface BellItem {
+  id: string;
+  text: string;
+  href: string;
+  read: boolean;
+  /** Ready-made relative time, e.g. "dnes 7:12". */
+  when: string;
+}
+
 export interface ShellState {
   user: { name: string; initials: string; roleLabel: string };
   unread: number;
+  /** Latest notifications for the bell dropdown. */
+  notifications?: BellItem[];
   cycleIds: string[];
   defaultCycleId: string | null;
   /** Current month in Prague, `YYYY-MM`. */

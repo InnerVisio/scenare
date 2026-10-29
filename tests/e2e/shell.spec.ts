@@ -25,7 +25,7 @@ test.describe('app shell', () => {
 
   test('/ shows the shell without horizontal scroll', async ({ page }, info) => {
     await page.goto('/');
-    await expect(page.getByText('Přehled se připravuje')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Dobr/);
     await expect(page.getByRole('button', { name: /Měsíc/ })).toContainText(/\d{4}/);
     await expectNoHorizontalScroll(page);
     await page.screenshot({ path: `test-results/home-${info.project.name}.png` });
@@ -49,7 +49,7 @@ test.describe('app shell', () => {
   test('invalid month parameter falls back instead of failing', async ({ page }) => {
     const response = await page.goto('/?mesic=abc&cyklus=zzz');
     expect(response?.status()).toBe(200);
-    await expect(page.getByText('Přehled se připravuje')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Dobr/);
     await expect(page.getByRole('button', { name: /Měsíc/ })).toContainText(/\d{4}/);
     await expect(page.getByRole('button', { name: /Cyklus/ })).toContainText('Cyklus 2026–11');
   });
