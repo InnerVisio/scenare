@@ -26,4 +26,6 @@ Vercel místo `build` spouští skript `vercel-build`:
 2. `node scripts/maybe-seed.mjs` – při `SEED_DEMO=1` nahraje ukázková data,
 3. `next build`.
 
+Migrace i seed používají přednostně `DATABASE_URL_UNPOOLED` (přímé připojení bez pgbouncer, které nastavuje integrace Neon; vhodnější pro DDL a transakce). Když chybí, použije se `DATABASE_URL`. Aplikace za běhu používá pooled `DATABASE_URL`.
+
 Za běhu na Vercelu se migrace už nespouštějí. Lokálně: `npm run db:migrate` (vyžaduje Postgres URL).

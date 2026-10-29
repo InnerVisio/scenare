@@ -3,9 +3,9 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
-const url = process.env.DATABASE_URL?.trim();
+const url = (process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL?.trim()) ?? '';
 if (!url || url.startsWith('pglite:')) {
-  console.error('Migrace: DATABASE_URL musí ukazovat na Postgres (postgres://…).');
+  console.error('Migrace: DATABASE_URL (nebo DATABASE_URL_UNPOOLED) musí ukazovat na Postgres (postgres://…).');
   process.exit(1);
 }
 
