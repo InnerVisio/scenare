@@ -45,3 +45,12 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+@theme {
+  --color-danger-bg: #ffd9e1;
+  --color-danger-text: #b3264f;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
