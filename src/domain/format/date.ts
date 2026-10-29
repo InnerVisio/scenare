@@ -43,3 +43,37 @@ export function daysUntil(target: Date, now: Date): number {
   const nowDay = Date.UTC(Number(n.year), Number(n.month) - 1, Number(n.day));
   return Math.round((targetDay - nowDay) / 86_400_000);
 }
+
+const dayMonthFormatter = new Intl.DateTimeFormat('cs-CZ', { timeZone: TIME_ZONE, day: 'numeric', month: 'numeric' });
+const timeFormatter = new Intl.DateTimeFormat('cs-CZ', {
+  timeZone: TIME_ZONE,
+  hour: 'numeric',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** "20. 11." in Europe/Prague. */
+export function formatDayMonth(d: Date): string {
+  const p = parts(dayMonthFormatter, d);
+  return `${p.day}. ${p.month}.`;
+}
+
+/** "7:12" (24h, hour without a leading zero) in Europe/Prague. */
+export function formatTime(d: Date): string {
+  const p = parts(timeFormatter, d);
+  return `${p.hour}:${p.minute}`;
+}
+
+/**
+ * Comment timestamps: "dnes 7:12", "včera 21:40", otherwise "28. 10. 21:40" (with the year when it
+ * is not the current one). `now` is passed in so server and client render the same text.
+ */
+export function formatRelative(d: Date, now: Date): string {
+  const days = daysUntil(now, d);
+  const time = formatTime(d);
+  if (days === 0) return `dnes ${time}`;
+  if (days === 1) return `včera ${time}`;
+  const p = parts(dateFormatter, d);
+  const sameYear = p.year === parts(dateFormatter, now).year;
+  return `${p.day}. ${p.month}. ${sameYear ? '' : `${p.year} `}${time}`;
+}

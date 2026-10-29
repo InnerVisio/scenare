@@ -16,6 +16,7 @@ export function Tabs({
   onChange,
   label,
   className,
+  variant = 'dark',
 }: {
   items: TabItem[];
   value?: string;
@@ -23,6 +24,8 @@ export function Tabs({
   onChange?: (id: string) => void;
   label: string;
   className?: string;
+  /** `light`: white track with a soft active segment (used on the lavender background). */
+  variant?: 'dark' | 'light';
 }) {
   const [inner, setInner] = useState(defaultValue ?? items[0]?.id);
   const current = value ?? inner;
@@ -34,7 +37,7 @@ export function Tabs({
   }
 
   return (
-    <div role="tablist" aria-label={label} className={cn('inline-flex max-w-full gap-1 overflow-x-auto rounded-pill bg-nest p-1', className)}>
+    <div role="tablist" aria-label={label} className={cn('inline-flex max-w-full gap-1 overflow-x-auto rounded-pill p-1', variant === 'light' ? 'bg-card' : 'bg-nest', className)}>
       {items.map((item) => {
         const active = item.id === current;
         return (
@@ -56,7 +59,7 @@ export function Tabs({
             className={cn(
               'min-h-12 rounded-pill px-4 text-sm font-semibold whitespace-nowrap transition-colors',
               focusRing,
-              active ? 'bg-ink text-card' : 'text-text2 hover:text-ink',
+              active ? (variant === 'light' ? 'bg-nest text-ink' : 'bg-ink text-card') : 'text-text2 hover:text-ink',
             )}
           >
             {item.label}

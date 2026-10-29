@@ -28,13 +28,19 @@ export function ScriptHeader({ meta }: { meta: ScriptMeta }) {
       <div className="flex flex-wrap gap-2">
         <CategoryTag categoryKey={meta.categoryTag.key} label={meta.categoryTag.label} colors={meta.categoryTag.colors} />
         {meta.formatLabel && (
-          <span className="inline-flex items-center rounded-pill bg-nest px-3 py-1.5 text-sm leading-none font-semibold text-ink">
+          <span className="hidden items-center rounded-pill bg-nest px-3 py-1.5 text-sm leading-none font-semibold text-ink md:inline-flex">
             {meta.formatLabel}
           </span>
         )}
         {meta.isTrialReel && <FormatTag kind="test">Nový test · Trial Reel</FormatTag>}
+        {/* On phones the tiles below are left out; the goal stays visible as a chip. */}
+        {meta.goalLabel && (
+          <span className="inline-flex items-center rounded-pill bg-lime-soft px-3 py-1.5 text-sm leading-none font-semibold text-lime-ink md:hidden">
+            Cíl: {meta.goalLabel.toLocaleLowerCase('cs')}
+          </span>
+        )}
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="hidden grid-cols-3 gap-3 md:grid">
         <Tile label="Délka" value={duration} />
         <Tile label="Cíl videa" value={meta.goalLabel ?? '—'} />
         <Tile label="Profil" value={meta.profileLabel ?? '—'} />
