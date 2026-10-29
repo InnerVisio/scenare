@@ -50,8 +50,8 @@ const MORE_ITEMS: NavItem[] = [
 export const isActivePath = (pathname: string, href: string) =>
   href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 
-/** The review screen (`/kontrola/[code]`) brings its own action bar, so the tab bar stays out of the way. */
-export const hidesTabBar = (pathname: string) => /^\/kontrola\/[^/]+/.test(pathname);
+/** The review screen and the script editor bring their own bottom bar, so the tab bar stays out of the way. */
+export const hidesTabBar = (pathname: string) => /^\/(kontrola\/[^/]+|scenare\/[^/]+\/upravit)/.test(pathname);
 
 function CountBadge({ count, className }: { count: number; className?: string }) {
   if (count <= 0) return null;

@@ -77,3 +77,10 @@ export function formatRelative(d: Date, now: Date): string {
   const sameYear = p.year === parts(dateFormatter, now).year;
   return `${p.day}. ${p.month}. ${sameYear ? '' : `${p.year} `}${time}`;
 }
+
+const isoDayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** "2026-10-29": the Prague calendar day of `d`, comparable with `YYYY-MM-DD` database dates. */
+export function pragueDay(d: Date): string {
+  return isoDayFormatter.format(d);
+}

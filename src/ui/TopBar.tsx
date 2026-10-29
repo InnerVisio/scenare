@@ -161,11 +161,14 @@ export function TopBar({
   title,
   subtitle,
   size = 'h1',
+  hidePeriod = false,
 }: {
   title: string;
   subtitle?: string;
   /** `display` (48 px) is for the greeting on the dashboard. */
   size?: 'h1' | 'display';
+  /** Leaves out the month and cycle pickers, for screens that filter by them in their own way. */
+  hidePeriod?: boolean;
 }) {
   const shell = useShell();
   const router = useRouter();
@@ -192,22 +195,24 @@ export function TopBar({
         {subtitle && <p className="mt-1 text-text2">{subtitle}</p>}
       </div>
 
-      <div className="order-3 flex w-full items-center gap-1 rounded-pill bg-ink/[0.06] p-1 md:order-none md:w-auto">
-        <Segment
-          label="Měsíc"
-          align="left"
-          value={month}
-          options={months.map((m) => ({ value: m, label: monthLabel(m) }))}
-          onSelect={(v) => update('mesic', v)}
-        />
-        <Segment
-          label="Cyklus"
-          align="right"
-          value={cycle ?? ''}
-          options={cycleIds.map((id) => ({ value: id, label: cycleLabel(id) }))}
-          onSelect={(v) => update('cyklus', v)}
-        />
-      </div>
+      {!hidePeriod && (
+        <div className="order-3 flex w-full items-center gap-1 rounded-pill bg-ink/[0.06] p-1 md:order-none md:w-auto">
+          <Segment
+            label="Měsíc"
+            align="left"
+            value={month}
+            options={months.map((m) => ({ value: m, label: monthLabel(m) }))}
+            onSelect={(v) => update('mesic', v)}
+          />
+          <Segment
+            label="Cyklus"
+            align="right"
+            value={cycle ?? ''}
+            options={cycleIds.map((id) => ({ value: id, label: cycleLabel(id) }))}
+            onSelect={(v) => update('cyklus', v)}
+          />
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Link href="/scenare" aria-label="Hledat" className={ICON_BUTTON}>

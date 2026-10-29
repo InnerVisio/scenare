@@ -43,12 +43,15 @@ export function ChecksPanel({
   perms,
   onToggleManual,
   onConfirmNumber,
+  hideEmptyNumbers = false,
 }: {
   checks: ReviewData['checks'];
   numberChecks: ReviewData['numberChecks'];
   perms: ReviewData['perms'];
   onToggleManual: (code: string, checked: boolean) => Promise<boolean>;
   onConfirmNumber: (id: string) => Promise<boolean>;
+  /** The editor has nothing to say about numbers until someone flags one. */
+  hideEmptyNumbers?: boolean;
 }) {
   const [shown, setOptimistic] = useOptimistic(checks, (current, change: { code: string; checked: boolean }) =>
     current.map((c) => (c.code === change.code ? { ...c, status: change.checked ? ('manual_done' as const) : ('manual_pending' as const) } : c)),
@@ -112,39 +115,41 @@ export function ChecksPanel({
         </ul>
       </section>
 
-      <section aria-label="Čísla k potvrzení" className="rounded-card bg-card p-5 max-lg:bg-nest">
-        <h3 className="text-h2 mb-3">Čísla k potvrzení</h3>
-        {numberChecks.length === 0 ? (
-          <p className="text-text2">Žádná označená čísla. Označ číslo ve scénáři a zvol „Číslo“.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {numberChecks.map((n) => (
-              <li key={n.id} className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">„{n.quotedText}“</p>
-                  <p className="text-sm text-text2">
-                    {n.status === 'confirmed'
-                      ? `Potvrdil ${n.confirmedByName ?? ''}`.trim()
-                      : `Označil ${n.flaggedByName ?? ''}`.trim()}
-                  </p>
-                </div>
-                {n.status === 'confirmed' ? (
-                  <span className="rounded-pill bg-lime-soft px-3 py-1.5 text-sm font-semibold text-lime-ink">Potvrzeno</span>
-                ) : (
-                  <>
-                    <span className="rounded-pill bg-apricot-soft px-3 py-1.5 text-sm font-semibold text-apricot-ink">Čeká</span>
-                    {perms.confirmNumber && (
-                      <Button variant="primary" onClick={() => void onConfirmNumber(n.id)}>
-                        Potvrdit
-                      </Button>
-                    )}
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {!(hideEmptyNumbers && numberChecks.length === 0) && (
+        <section aria-label="Čísla k potvrzení" className="rounded-card bg-card p-5 max-lg:bg-nest">
+          <h3 className="text-h2 mb-3">Čísla k potvrzení</h3>
+          {numberChecks.length === 0 ? (
+            <p className="text-text2">Žádná označená čísla. Označ číslo ve scénáři a zvol „Číslo“.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {numberChecks.map((n) => (
+                <li key={n.id} className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">„{n.quotedText}“</p>
+                    <p className="text-sm text-text2">
+                      {n.status === 'confirmed'
+                        ? `Potvrdil ${n.confirmedByName ?? ''}`.trim()
+                        : `Označil ${n.flaggedByName ?? ''}`.trim()}
+                    </p>
+                  </div>
+                  {n.status === 'confirmed' ? (
+                    <span className="rounded-pill bg-lime-soft px-3 py-1.5 text-sm font-semibold text-lime-ink">Potvrzeno</span>
+                  ) : (
+                    <>
+                      <span className="rounded-pill bg-apricot-soft px-3 py-1.5 text-sm font-semibold text-apricot-ink">Čeká</span>
+                      {perms.confirmNumber && (
+                        <Button variant="primary" onClick={() => void onConfirmNumber(n.id)}>
+                          Potvrdit
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
 }

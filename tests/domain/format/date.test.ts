@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysUntil, formatDate, formatDateTime, formatDayMonth, formatRelative, formatTime } from '@/domain/format/date';
+import { daysUntil, formatDate, pragueDay, formatDateTime, formatDayMonth, formatRelative, formatTime } from '@/domain/format/date';
 import { newId } from '@/domain/ids';
 
 describe('formatDate', () => {
@@ -78,5 +78,12 @@ describe('formatRelative', () => {
   it('falls back to a short date, with the year only when it differs', () => {
     expect(formatRelative(new Date('2026-10-20T09:05:00+02:00'), now)).toBe('20. 10. 9:05');
     expect(formatRelative(new Date('2025-12-24T09:05:00+01:00'), now)).toBe('24. 12. 2025 9:05');
+  });
+});
+
+describe('pragueDay', () => {
+  it('is the Prague calendar day as YYYY-MM-DD', () => {
+    expect(pragueDay(new Date('2026-10-29T10:00:00Z'))).toBe('2026-10-29');
+    expect(pragueDay(new Date('2026-10-29T23:30:00Z'))).toBe('2026-10-30');
   });
 });
