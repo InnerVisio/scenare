@@ -9,6 +9,7 @@ import type { ScriptBody } from '@/domain/script/types';
 import { canSubmit, statusAfterSubmit } from '@/domain/workflow/approval';
 import { logActivity } from './activity';
 import type { Actor } from './actor';
+import { loadRules } from './checkContext';
 import { DomainError } from './errors';
 import { latestVersion, loadVideo, statusOf, type Tx, type VideoRow } from './loaders';
 
@@ -360,5 +361,37 @@ export async function setLifecycle(
       },
       now,
     );
+  });
+}
+
+/**
+ * Ticks or unticks a manual check (e.g. „Logický dialog“) for the latest version. Writes no activity:
+ * it is a working checklist, not a decision. Allowed for approvers and for whoever may edit the script.
+ */
+export async function setManualCheck(
+  db: Db,
+  actor: Actor,
+  input: { videoId: string; versionId: string; code: string; checked: boolean },
+  now: Date,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const video = await loadVideo(tx, input.videoId, { lock: true });
+    if (!can(actor, 'approval.decide') && !can(actor, 'script.edit', { ownerId: video.ownerId })) throw forbidden();
+
+    const [version] = await tx
+      .select({ id: s.scriptVersions.id })
+      .from(s.scriptVersions)
+      .where(and(eq(s.scriptVersions.id, input.versionId), eq(s.scriptVersions.videoId, video.id)));
+    if (!version) throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
+    if ((await latestVersion(tx, video.id))?.id !== version.id) throw new DomainError('STALE', 'Mezitím vznikla nová verze.');
+
+    const rule = (await loadRules(tx)).find((r) => r.code === input.code && r.mode === 'manual');
+    if (!rule) throw new DomainError('VALIDATION', 'Tuto kontrolu nejde odškrtnout ručně.');
+
+    const forVersion = { ...video.manualChecks?.[version.id], [rule.code]: input.checked };
+    await tx
+      .update(s.videos)
+      .set({ manualChecks: { ...video.manualChecks, [version.id]: forVersion }, updatedAt: now })
+      .where(eq(s.videos.id, video.id));
   });
 }

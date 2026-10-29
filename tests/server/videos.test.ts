@@ -1,12 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as s from '@/db/schema';
+import { getVideoDetail } from '@/server/queries';
 import { emptyScript } from '@/domain/script/template';
 import type { ScriptBody } from '@/domain/script/types';
 import {
   createVideo,
   saveDraft,
   setLifecycle,
+  setManualCheck,
   submitForReview,
   unlockForEdit,
   updateVideoMeta,
@@ -323,5 +325,66 @@ describe('setLifecycle', () => {
     await expectDomainError(setLifecycle(w.db, w.admin, id, { action: 'postpone', reason: 'y' }, NOW), 'INVALID_TRANSITION');
     // postponed → cancelled directly is fine
     await setLifecycle(w.db, w.admin, id, { action: 'cancel', reason: 'z' }, NOW);
+  });
+});
+
+describe('setManualCheck', () => {
+  it('lets leadership tick and untick a manual check on the latest version, without activity', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    const before = (await activityFor(w.db, videoId)).length;
+
+    await setManualCheck(w.db, w.radek, { videoId, versionId, code: 'LOGICAL_DIALOG', checked: true }, minutesLater(1));
+    expect((await getVideo(w.db, videoId)).manualChecks).toEqual({ [versionId]: { LOGICAL_DIALOG: true } });
+
+    await setManualCheck(w.db, w.honza, { videoId, versionId, code: 'GDPR', checked: true }, minutesLater(2));
+    await setManualCheck(w.db, w.radek, { videoId, versionId, code: 'LOGICAL_DIALOG', checked: false }, minutesLater(3));
+    expect((await getVideo(w.db, videoId)).manualChecks[versionId]).toEqual({ LOGICAL_DIALOG: false, GDPR: true });
+    expect((await activityFor(w.db, videoId)).length).toBe(before);
+  });
+
+  it('lets the owner (admin) tick a manual check', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    await setManualCheck(w.db, w.admin, { videoId, versionId, code: 'PILLAR', checked: true }, NOW);
+    expect((await getVideo(w.db, videoId)).manualChecks[versionId]).toEqual({ PILLAR: true });
+  });
+
+  it('refuses users who neither decide nor own the script', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    const production = { id: 'u-production', role: 'production' as const, name: 'Produkce' };
+    const stranger = { id: 'u-marketer', role: 'marketer' as const, name: 'Marketér' };
+    for (const actor of [production, stranger]) {
+      await expectDomainError(
+        setManualCheck(w.db, actor, { videoId, versionId, code: 'GDPR', checked: true }, NOW),
+        'FORBIDDEN',
+      );
+    }
+    expect((await getVideo(w.db, videoId)).manualChecks).toEqual({});
+  });
+
+  it('only accepts the latest version', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    await w.db.update(s.videos).set({ approvalStatus: 'returned' }).where(eq(s.videos.id, videoId));
+    await submitForReview(w.db, w.admin, videoId, {}, minutesLater(5));
+    await expectDomainError(
+      setManualCheck(w.db, w.radek, { videoId, versionId, code: 'GDPR', checked: true }, minutesLater(6)),
+      'STALE',
+    );
+    await expectDomainError(
+      setManualCheck(w.db, w.radek, { videoId, versionId: 'nope', code: 'GDPR', checked: true }, minutesLater(6)),
+      'NOT_FOUND',
+    );
+  });
+
+  it('rejects codes that are not manual rules', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    await expectDomainError(setManualCheck(w.db, w.radek, { videoId, versionId, code: 'HOOK', checked: true }, NOW), 'VALIDATION');
+    await expectDomainError(setManualCheck(w.db, w.radek, { videoId, versionId, code: 'XYZ', checked: true }, NOW), 'VALIDATION');
+  });
+
+  it('feeds the check results', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    await setManualCheck(w.db, w.radek, { videoId, versionId, code: 'GDPR', checked: true }, NOW);
+    const detail = await getVideoDetail(w.db, w.radek, videoId);
+    expect(detail.checks.find((c) => c.code === 'GDPR')?.status).toBe('manual_done');
   });
 });
