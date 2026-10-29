@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { count, eq, type SQL } from 'drizzle-orm';
+import { and, count, eq, type SQL } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { createTestDb, type Db } from '@/db/client';
 import { runSeed } from '@/db/seed';
@@ -83,5 +83,27 @@ describe('runSeed', () => {
     expect(await n(fresh, s.videos)).toBe(0);
     expect(await n(fresh, s.users)).toBe(0);
     expect(await n(fresh, s.settings)).toBe(1);
+  }, 60_000);
+
+  it('never overwrites existing lookups or users, but re-adds missing keys', async () => {
+    const fresh = await createTestDb();
+    await runSeed(fresh, { demo: true });
+    const cat = and(eq(s.lookupItems.kind, 'category'), eq(s.lookupItems.key, 'nabor'));
+    const rule = and(eq(s.lookupItems.kind, 'check_rule'), eq(s.lookupItems.key, 'HOOK'));
+    await fresh.update(s.lookupItems).set({ label: 'Upravený nábor', data: { share: 0.5 }, archived: true }).where(cat);
+    await fresh.update(s.lookupItems).set({ data: { enabled: false } }).where(rule);
+    await fresh.update(s.users).set({ name: 'Jiný Admin', role: 'marketer' }).where(eq(s.users.email, 'admin@gta.local'));
+    await fresh.delete(s.lookupItems).where(and(eq(s.lookupItems.kind, 'hook_type'), eq(s.lookupItems.key, 'cislo')));
+
+    await runSeed(fresh, { demo: true });
+
+    const [c] = await fresh.select().from(s.lookupItems).where(cat);
+    expect(c).toMatchObject({ label: 'Upravený nábor', data: { share: 0.5 }, archived: true });
+    const [r] = await fresh.select().from(s.lookupItems).where(rule);
+    expect(r.data).toEqual({ enabled: false });
+    const [u] = await fresh.select().from(s.users).where(eq(s.users.email, 'admin@gta.local'));
+    expect(u).toMatchObject({ name: 'Jiný Admin', role: 'marketer' });
+    expect(await n(fresh, s.lookupItems, eq(s.lookupItems.kind, 'hook_type'))).toBe(9);
+    expect(await n(fresh, s.users)).toBe(3);
   }, 60_000);
 });

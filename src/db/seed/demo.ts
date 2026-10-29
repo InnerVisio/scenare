@@ -433,14 +433,11 @@ function anchorIn(body: ScriptBody, lineId: string, quote: string): Anchor {
 
 export async function seedDemo(db: Db): Promise<void> {
   await db.transaction(async (tx) => {
-    // Users: upsert by e-mail; keep whatever id already exists.
+    // Users: insert only missing e-mails; existing users (and their ids) are left untouched.
     await tx
       .insert(s.users)
       .values(DEMO_USERS.map((u) => ({ ...u, createdAt: at('10-26', '09:00') })))
-      .onConflictDoUpdate({
-        target: s.users.email,
-        set: { name: sql`excluded.name`, role: sql`excluded.role`, initials: sql`excluded.initials` },
-      });
+      .onConflictDoNothing({ target: s.users.email });
     const userRows = await tx.select().from(s.users);
     const uid = (email: string) => {
       const user = userRows.find((u) => u.email === email);
