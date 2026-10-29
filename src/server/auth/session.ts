@@ -13,7 +13,7 @@ export async function createSession(userId: string): Promise<void> {
   store.set(SESSION_COOKIE, jwt, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: (process.env.APP_URL ?? '').startsWith('https:'),
     path: '/',
     maxAge: SESSION_MAX_AGE_SECONDS,
   });

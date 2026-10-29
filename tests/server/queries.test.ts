@@ -248,9 +248,16 @@ describe('describeActivity', () => {
     expect(describeActivity(row('video.postponed', 'a'), names).text).toBe('Admin odložil V031');
   });
 
-  it('understands the action names used by the demo seed and omits an unknown version number', () => {
-    expect(describeActivity(row('script.submitted', 'a', { versionNo: 1 }), names).text).toBe('Admin odeslal V031 v1 ke kontrole');
-    expect(describeActivity(row('script.returned', 'r', { note: 'x' }), names).text).toBe('Radek vrátil V031 k dopracování');
+  it('describes the activity rows written by the demo seed', async () => {
+    const detail = await getVideoDetail(w.db, w.admin, await idOf('V031'));
+    const texts = detail.activity.map((a) => a.text);
+    expect(texts).toContain('Admin odeslal V031 v2 ke kontrole');
+    expect(texts).toContain('Radek vrátil V031 v1 k dopracování');
+    expect(texts.some((t) => t.startsWith('Změna'))).toBe(false);
+  });
+
+  it('omits an unknown version number', () => {
+    expect(describeActivity(row('approval.returned', 'r', { note: 'x' }), names).text).toBe('Radek vrátil V031 k dopracování');
   });
 
   it('links leadership to the review screen and everyone else to the script, with comment anchors', () => {

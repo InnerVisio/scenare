@@ -2,9 +2,10 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as s from '@/db/schema';
-import { consumeLoginToken, requestLoginLink } from '@/server/auth/magicLink';
+import { authSecret } from '@/server/auth/jwt';
+import { consumeLoginToken, requestLoginLink, safeNextPath } from '@/server/auth/magicLink';
 import { generateToken, hashToken, signSession, verifySession } from '@/server/auth/token';
 import { minutesLater, NOW, setupWorld, type World } from './helpers';
 
@@ -39,6 +40,58 @@ describe('token primitives', () => {
     const day = 24 * 60;
     expect(await verifySession(jwt, SECRET, minutesLater(29 * day))).toEqual({ userId: 'user-1' });
     expect(await verifySession(jwt, SECRET, minutesLater(31 * day))).toBeNull();
+  });
+});
+
+describe('safeNextPath', () => {
+  it.each([
+    '/\t/evil.com',
+    '/\n/evil.com',
+    '/\r/evil.com',
+    '/\\evil.com',
+    '/%5Cevil.com',
+    '//evil.com',
+    '/%09/evil.com',
+    '/%2f/evil.com',
+    '/ /evil.com',
+    '/\u00a0/evil.com',
+    '/\u0000x',
+    '/\u007fx',
+    'https://evil.com',
+    'http://localhost:3000/x',
+    'evil.com',
+    '',
+    '/%zz',
+  ])('rejects %j', (value) => {
+    expect(safeNextPath(value)).toBeNull();
+  });
+
+  it('accepts and normalises same-site paths', () => {
+    expect(safeNextPath('/kontrola/V031?x=1#k')).toBe('/kontrola/V031?x=1#k');
+    expect(safeNextPath('/')).toBe('/');
+    expect(safeNextPath('/a/../b')).toBe('/b');
+    expect(safeNextPath(null)).toBeNull();
+    expect(safeNextPath(undefined)).toBeNull();
+  });
+});
+
+describe('authSecret', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('requires at least 32 characters in production', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('AUTH_SECRET', '');
+    expect(() => authSecret()).toThrow(/AUTH_SECRET/);
+    vi.stubEnv('AUTH_SECRET', 'short-secret');
+    expect(() => authSecret()).toThrow(/AUTH_SECRET/);
+    vi.stubEnv('AUTH_SECRET', 'x'.repeat(32));
+    expect(authSecret()).toBe('x'.repeat(32));
+  });
+
+  it('falls back to a dev secret outside production', () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('AUTH_SECRET', '');
+    expect(authSecret().length).toBeGreaterThanOrEqual(32);
   });
 });
 
@@ -123,6 +176,21 @@ describe('magic link', () => {
     expect(mails()).toHaveLength(1);
   });
 
+  it('throttles: no second token or mail within 60 seconds, allowed again after', async () => {
+    await requestLoginLink(w.db, 'honza@gta.local', NOW);
+    await expect(requestLoginLink(w.db, 'honza@gta.local', new Date(NOW.getTime() + 30_000))).resolves.toBeUndefined();
+    expect(mails()).toHaveLength(1);
+    expect(await w.db.select().from(s.loginTokens)).toHaveLength(1);
+
+    // Another user is not affected.
+    await requestLoginLink(w.db, 'radek@gta.local', new Date(NOW.getTime() + 30_000));
+    expect(mails()).toHaveLength(2);
+
+    await requestLoginLink(w.db, 'honza@gta.local', new Date(NOW.getTime() + 61_000));
+    expect(mails()).toHaveLength(3);
+    expect(await w.db.select().from(s.loginTokens)).toHaveLength(3);
+  });
+
   it('rejects unknown and empty tokens', async () => {
     expect(await consumeLoginToken(w.db, 'nonsense', NOW)).toBeNull();
     expect(await consumeLoginToken(w.db, '', NOW)).toBeNull();
@@ -135,7 +203,7 @@ describe('magic link', () => {
     rmSync(outbox, { recursive: true, force: true });
     outbox = mkdtempSync(path.join(tmpdir(), 'scenare-outbox-'));
     process.env.MAIL_OUTBOX_DIR = outbox;
-    await requestLoginLink(w.db, 'honza@gta.local', NOW, { next: 'https://evil.example' });
+    await requestLoginLink(w.db, 'honza@gta.local', minutesLater(5), { next: 'https://evil.example' });
     expect(mails()[0].text).not.toContain('dalsi');
   });
 });

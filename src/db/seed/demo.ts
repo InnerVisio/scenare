@@ -533,9 +533,9 @@ export async function seedDemo(db: Db): Promise<void> {
             videoId: vid,
             entity: 'script_version',
             entityId: `${videoId}-v${versionNo}`,
-            action: 'script.submitted',
-            before: { approvalStatus: versionNo === 1 ? 'draft' : 'returned' },
-            after: { approvalStatus: versionNo === 1 ? 'in_review' : 'final_review', versionNo },
+            action: 'version.submitted',
+            before: { status: versionNo === 1 ? 'draft' : 'returned' },
+            after: { status: versionNo === 1 ? 'in_review' : 'final_review', versionNo },
             createdAt: version.createdAt,
           })
           .onConflictDoNothing();
@@ -569,9 +569,9 @@ export async function seedDemo(db: Db): Promise<void> {
           videoId: video.id,
           entity: 'approval_decision',
           entityId: `sample-${r.key}-decision-return`,
-          action: 'script.returned',
-          before: { approvalStatus: 'in_review' },
-          after: { approvalStatus: 'returned', note: r.note },
+          action: 'approval.returned',
+          before: { status: 'in_review' },
+          after: { status: 'returned', decision: 'return', note: r.note, versionNo: 1 },
           createdAt: r.at,
         })
         .onConflictDoNothing();

@@ -7,16 +7,22 @@ export const SESSION_COOKIE = 'gta_session';
 export const SESSION_DAYS = 30;
 export const SESSION_MAX_AGE_SECONDS = SESSION_DAYS * 24 * 60 * 60;
 
+const MIN_PRODUCTION_SECRET_LENGTH = 32;
 const DEV_SECRET = 'dev-only-secret-dev-only-secret-0123456789';
 let warnedAboutDevSecret = false;
 
 /** `AUTH_SECRET` is mandatory in production; dev and test fall back to a fixed secret (with one warning). */
 export function authSecret(): string {
   const secret = process.env.AUTH_SECRET;
-  if (secret) return secret;
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('AUTH_SECRET není nastavený. Nastav ho v prostředí aplikace (alespoň 32 znaků).');
+    if (!secret || secret.length < MIN_PRODUCTION_SECRET_LENGTH) {
+      throw new Error(
+        `AUTH_SECRET chybí nebo je příliš krátký. Nastav ho v prostředí aplikace (alespoň ${MIN_PRODUCTION_SECRET_LENGTH} znaků).`,
+      );
+    }
+    return secret;
   }
+  if (secret) return secret;
   if (!warnedAboutDevSecret && process.env.NODE_ENV !== 'test') {
     warnedAboutDevSecret = true;
     console.warn('AUTH_SECRET není nastavený, používám vývojový klíč. V produkci to není povolené.');

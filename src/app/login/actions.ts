@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/db/client';
 import { requestLoginLink, safeNextPath } from '@/server/auth/magicLink';
@@ -18,12 +19,16 @@ export async function requestLink(_previous: LoginState, formData: FormData): Pr
   if (!parsed.success) return { status: 'error', message: 'Zadej platný e-mail.' };
 
   const next = safeNextPath(String(formData.get('dalsi') ?? ''));
-  try {
-    await requestLoginLink(await getDb(), parsed.data, new Date(), { next });
-  } catch (error) {
-    // Never reveal whether the address exists: a failure is logged, the person sees the same message.
-    console.error('Odeslání přihlašovacího odkazu selhalo', error);
-  }
+  const email = parsed.data;
+  // Run after the response is sent so known and unknown addresses answer in the same time.
+  after(async () => {
+    try {
+      await requestLoginLink(await getDb(), email, new Date(), { next });
+    } catch (error) {
+      // Never reveal whether the address exists: a failure is only logged.
+      console.error('Odeslání přihlašovacího odkazu selhalo', error);
+    }
+  });
   return { status: 'sent', message: 'Zkontroluj e-mail. Odkaz platí 15 minut.' };
 }
 

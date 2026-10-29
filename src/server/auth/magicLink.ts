@@ -6,10 +6,30 @@ import { generateToken, hashToken } from './token';
 
 export const LOGIN_LINK_MINUTES = 15;
 
-/** Only same-site relative paths ("/kontrola/V031") are accepted as a return target. */
+const UNSAFE_CHARS = /[\u0000-\u001f\u007f\u0085\u00a0\u2028\u2029\s\\]/;
+const THROTTLE_SECONDS = 60;
+
+/**
+ * Only same-site relative paths ("/kontrola/V031") are accepted as a return target. The value is
+ * checked structurally (no control characters, whitespace or backslashes, raw or percent-decoded,
+ * never protocol-relative) and returned normalised, so browsers cannot read it as another origin.
+ */
 export function safeNextPath(value: string | null | undefined): string | null {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return null;
-  return value;
+  if (!value || !value.startsWith('/') || value.startsWith('//') || UNSAFE_CHARS.test(value)) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+  if (decoded.startsWith('//') || UNSAFE_CHARS.test(decoded)) return null;
+  try {
+    const url = new URL(value, 'http://x');
+    if (url.origin !== 'http://x') return null;
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return null;
+  }
 }
 
 function loginMail(link: string) {
@@ -43,6 +63,15 @@ export async function requestLoginLink(
     .from(s.users)
     .where(sql`lower(${s.users.email}) = ${normalized}`);
   if (!user) return;
+
+  // Throttle: the table has no created_at, but a token's age is expiresAt - 15 min.
+  const recentFrom = new Date(now.getTime() + (LOGIN_LINK_MINUTES * 60 - THROTTLE_SECONDS) * 1000);
+  const [recent] = await db
+    .select({ tokenHash: s.loginTokens.tokenHash })
+    .from(s.loginTokens)
+    .where(and(eq(s.loginTokens.userId, user.id), gt(s.loginTokens.expiresAt, recentFrom)))
+    .limit(1);
+  if (recent) return;
 
   const token = generateToken();
   await db.insert(s.loginTokens).values({

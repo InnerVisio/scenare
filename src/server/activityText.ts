@@ -19,7 +19,7 @@ const COMMENT_ACTIONS = new Set([
   'suggestion.accepted',
   'suggestion.rejected',
 ]);
-const LEADERSHIP_REVIEW_ACTIONS = new Set(['version.submitted', 'script.submitted']);
+const LEADERSHIP_REVIEW_ACTIONS = new Set(['version.submitted']);
 
 function versionSuffix(after: Record<string, unknown> | null): string {
   const no = after?.versionNo;
@@ -50,11 +50,9 @@ export function describeActivity(
       text = `${who} upravil údaje scénáře ${code}`;
       break;
     case 'version.submitted':
-    case 'script.submitted':
       text = `${who} odeslal ${code}${v} ke kontrole`;
       break;
     case 'approval.returned':
-    case 'script.returned':
       text = `${who} vrátil ${code}${v} k dopracování`;
       break;
     case 'approval.approved':
