@@ -103,6 +103,46 @@ function nextCode(codes: string[]): string {
   return `V${String(max + 1).padStart(3, '0')}`;
 }
 
+/** Inserts a draft owned by `actor` under the next free code; the caller has already checked permissions. */
+async function insertDraft(
+  tx: Tx,
+  actor: Actor,
+  values: Omit<typeof s.videos.$inferInsert, 'id' | 'code' | 'ownerId' | 'draft' | 'approvalStatus' | 'productionStatus'>,
+  draft: ScriptBody,
+  logExtra: Record<string, unknown>,
+  now: Date,
+): Promise<{ id: string; code: string }> {
+  // Serialise code allocation across concurrent creators.
+  await tx.execute(sql`select pg_advisory_xact_lock(${7_100_001})`);
+  const codes = (await tx.select({ code: s.videos.code }).from(s.videos)).map((r) => r.code);
+  const code = nextCode(codes);
+  const id = newId();
+  await tx.insert(s.videos).values({
+    ...values,
+    id,
+    code,
+    approvalStatus: 'draft',
+    productionStatus: 'waiting',
+    ownerId: actor.id,
+    draft,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await logActivity(
+    tx,
+    {
+      actorId: actor.id,
+      videoId: id,
+      entity: 'video',
+      entityId: id,
+      action: 'video.created',
+      after: { code, status: 'draft', title: values.title, ...logExtra },
+    },
+    now,
+  );
+  return { id, code };
+}
+
 export async function createVideo(
   db: Db,
   actor: Actor,
@@ -112,29 +152,64 @@ export async function createVideo(
   return db.transaction(async (tx) => {
     if (!can(actor, 'script.create')) throw forbidden();
     const title = requireTitle(input.title);
-    // Serialise code allocation across concurrent creators.
-    await tx.execute(sql`select pg_advisory_xact_lock(${7_100_001})`);
-    const codes = (await tx.select({ code: s.videos.code }).from(s.videos)).map((r) => r.code);
-    const code = nextCode(codes);
-    const id = newId();
-    await tx.insert(s.videos).values({
-      ...pickMeta(input),
-      title,
-      id,
-      code,
-      approvalStatus: 'draft',
-      productionStatus: 'waiting',
-      ownerId: actor.id,
-      draft: emptyScript(),
-      createdAt: now,
-      updatedAt: now,
-    });
-    await logActivity(
-      tx,
-      { actorId: actor.id, videoId: id, entity: 'video', entityId: id, action: 'video.created', after: { code, status: 'draft', title } },
-      now,
-    );
-    return { id, code };
+    return insertDraft(tx, actor, { ...pickMeta(input), title }, emptyScript(), {}, now);
+  });
+}
+
+/** The same script with fresh scene and line ids; the call to action follows its line. */
+function withFreshIds(body: ScriptBody): ScriptBody {
+  const lineIds = new Map<string, string>();
+  const scenes = body.scenes.map((scene) => ({
+    ...scene,
+    id: newId(),
+    lines: scene.lines.map((line) => {
+      const id = newId();
+      lineIds.set(line.id, id);
+      return { ...line, id };
+    }),
+  }));
+  const cta = body.cta && lineIds.has(body.cta.lineId) ? { ...body.cta, lineId: lineIds.get(body.cta.lineId)! } : null;
+  return { ...structuredClone(body), scenes, cta };
+}
+
+/** Copy meta needed to carry on a series; approval, production state, due date and comments start fresh. */
+const EPISODE_COPY_KEYS = [
+  'seriesId',
+  'cycleId',
+  'plannedMonth',
+  'categoryKey',
+  'treatmentKey',
+  'profileKey',
+  'characterKey',
+  'contentType',
+  'intent',
+  'goalMetric',
+  'mainIdea',
+  'formatKey',
+  'isTrialReel',
+  'locationKeys',
+  'cast',
+  'props',
+] as const satisfies readonly (keyof VideoRow)[];
+
+/**
+ * „Duplikovat jako nový díl série“: a new draft with the same meta and script (new ids) and the next
+ * episode number. A video outside any series gets „ (díl N)“ in the title so the copy is told apart.
+ */
+export async function duplicateAsEpisode(
+  db: Db,
+  actor: Actor,
+  videoId: string,
+  now: Date,
+): Promise<{ id: string; code: string }> {
+  return db.transaction(async (tx) => {
+    if (!can(actor, 'script.create')) throw forbidden();
+    const source = await loadVideo(tx, videoId);
+    const body = source.draft ?? (await latestVersion(tx, videoId))?.body ?? emptyScript();
+    const episodeNo = (source.episodeNo ?? 0) + 1;
+    const title = source.seriesId ? source.title : `${source.title} (díl ${episodeNo})`;
+    const meta = Object.fromEntries(EPISODE_COPY_KEYS.map((key) => [key, source[key]]));
+    return insertDraft(tx, actor, { ...meta, title, episodeNo }, withFreshIds(body), { duplicatedFrom: source.code }, now);
   });
 }
 

@@ -41,6 +41,17 @@ describe('listVideos', () => {
     expect(list.find((v) => v.code === 'V036')).toMatchObject({ latestVersionNo: null, openComments: 0 });
   });
 
+  it('carries what the list needs for tags and deadline stripes', async () => {
+    const list = await listVideos(w.db, w.admin, {});
+    expect(list.find((v) => v.code === 'V031')).toMatchObject({
+      formatKey: 'klient-s-chybou-zachrance',
+      isTrialReel: true,
+      seriesId: null,
+      episodeNo: null,
+      scriptDueDate: '2026-11-13',
+    });
+  });
+
   it('derives the cast initials from the script speakers', async () => {
     const byCode = Object.fromEntries((await listVideos(w.db, w.admin, {})).map((v) => [v.code, v.castInitials]));
     expect(byCode.V031).toBe('R + H');

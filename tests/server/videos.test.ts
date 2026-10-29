@@ -6,6 +6,7 @@ import { emptyScript } from '@/domain/script/template';
 import type { ScriptBody } from '@/domain/script/types';
 import {
   createVideo,
+  duplicateAsEpisode,
   saveDraft,
   setLifecycle,
   setManualCheck,
@@ -397,5 +398,73 @@ describe('setManualCheck', () => {
     await setManualCheck(w.db, w.radek, { videoId, versionId, code: 'GDPR', checked: true }, NOW);
     const detail = await getVideoDetail(w.db, w.radek, videoId);
     expect(detail.checks.find((c) => c.code === 'GDPR')?.status).toBe('manual_done');
+  });
+});
+
+describe('duplicateAsEpisode', () => {
+  async function seriesWithEpisode() {
+    await w.db.insert(s.series).values({ id: 'ser-dup', code: 'S77', name: 'Dvojí život' }).onConflictDoNothing();
+    const { id, code } = await createVideo(
+      w.db,
+      w.admin,
+      { title: 'Radek a fixace', seriesId: 'ser-dup', episodeNo: 2, categoryKey: 'produkt', cast: ['Radek'], props: 'Smlouva', goalMetric: 'saves' },
+      NOW,
+    );
+    const body = w.cleanBody();
+    await saveDraft(w.db, w.admin, id, body, NOW);
+    return { id, code, body };
+  }
+
+  it('copies meta and body into a new draft with fresh ids and the next episode number', async () => {
+    const source = await seriesWithEpisode();
+    const copy = await duplicateAsEpisode(w.db, w.admin, source.id, minutesLater(3));
+    expect(copy.code).not.toBe(source.code);
+    const row = await getVideo(w.db, copy.id);
+    expect(row).toMatchObject({
+      title: 'Radek a fixace', // part of a series: no suffix
+      seriesId: 'ser-dup',
+      episodeNo: 3,
+      categoryKey: 'produkt',
+      cast: ['Radek'],
+      props: 'Smlouva',
+      goalMetric: 'saves',
+      approvalStatus: 'draft',
+      productionStatus: 'waiting',
+      ownerId: w.admin.id,
+      scriptDueDate: null,
+    });
+    expect(row.createdAt.getTime()).toBe(minutesLater(3).getTime());
+
+    const copied = row.draft!;
+    expect(copied.caption).toBe(source.body.caption);
+    expect(copied.hooks).toEqual(source.body.hooks);
+    const ids = (b: ScriptBody) => [...b.scenes.map((sc) => sc.id), ...b.scenes.flatMap((sc) => sc.lines.map((l) => l.id))];
+    expect(ids(copied)).toHaveLength(ids(source.body).length);
+    expect(ids(copied).filter((id) => ids(source.body).includes(id))).toEqual([]);
+    // The call to action follows its line to the new id.
+    const sourceLine = source.body.scenes.flatMap((sc) => sc.lines).find((l) => l.id === source.body.cta!.lineId)!;
+    const newLine = copied.scenes.flatMap((sc) => sc.lines).find((l) => l.id === copied.cta!.lineId)!;
+    expect(newLine.text).toBe(sourceLine.text);
+    expect(copied.cta!.ctaType).toBe(source.body.cta!.ctaType);
+
+    // The source is untouched.
+    expect((await getVideo(w.db, source.id)).draft).toEqual(source.body);
+    const [log] = await activityFor(w.db, copy.id, 'video.created');
+    expect(log.after).toMatchObject({ code: copy.code, status: 'draft', duplicatedFrom: source.code });
+  });
+
+  it('adds „(díl N)“ to the title when the source is not in a series, and starts at 1', async () => {
+    const { id } = await newVideo('Samostatné video');
+    const copy = await duplicateAsEpisode(w.db, w.admin, id, NOW);
+    expect(await getVideo(w.db, copy.id)).toMatchObject({ title: 'Samostatné video (díl 1)', episodeNo: 1, seriesId: null });
+  });
+
+  it('copies the working draft even before the first submit and needs script.create', async () => {
+    const { id } = await newVideo('Draft');
+    await saveDraft(w.db, w.admin, id, withHookText(emptyScript(), 'Ruka s propiskou'), NOW);
+    const copy = await duplicateAsEpisode(w.db, w.admin, id, NOW);
+    expect((await getVideo(w.db, copy.id)).draft!.hooks[0].text).toBe('Ruka s propiskou');
+    await expectDomainError(duplicateAsEpisode(w.db, w.honza, id, NOW), 'FORBIDDEN');
+    await expectDomainError(duplicateAsEpisode(w.db, w.admin, 'nope', NOW), 'NOT_FOUND');
   });
 });

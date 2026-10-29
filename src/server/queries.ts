@@ -107,6 +107,12 @@ export interface VideoListItem {
   productionStatus: string;
   cycleId: string | null;
   plannedMonth: string | null;
+  formatKey: string | null;
+  isTrialReel: boolean;
+  seriesId: string | null;
+  episodeNo: number | null;
+  /** `YYYY-MM-DD`; the script is overdue after this day unless it is already decided. */
+  scriptDueDate: string | null;
   durationSec: number | null;
   openComments: number;
   latestVersionNo: number | null;
@@ -155,6 +161,11 @@ async function toListItems(db: Db, rows: VideoRow[]): Promise<VideoListItem[]> {
       productionStatus: video.productionStatus,
       cycleId: video.cycleId,
       plannedMonth: video.plannedMonth,
+      formatKey: video.formatKey,
+      isTrialReel: video.isTrialReel,
+      seriesId: video.seriesId,
+      episodeNo: video.episodeNo,
+      scriptDueDate: video.scriptDueDate,
       durationSec: body ? durationSec(body) : null,
       openComments: counts.get(video.id) ?? 0,
       latestVersionNo: version?.versionNo ?? null,
