@@ -147,7 +147,15 @@ describe('createComment', () => {
     expect((await getComment(w.db, id)).versionId).toBeNull();
     await expectDomainError(
       createComment(w.db, w.admin, { videoId: fresh, versionId: 'bogus', type: 'remark', body: 'x' }, NOW),
-      'VALIDATION',
+      'NOT_FOUND',
+      'Verze nenalezena.',
+    );
+    // a version of another video does not belong to this one
+    const other = await createSubmitted(w);
+    await expectDomainError(
+      createComment(w.db, w.admin, { videoId, versionId: other.versionId, type: 'remark', body: 'x' }, NOW),
+      'NOT_FOUND',
+      'Verze nenalezena.',
     );
   });
 });
@@ -309,6 +317,50 @@ describe('decideSuggestion', () => {
     expect(copied).toHaveLength(2);
     expect(new Set([...old, ...copied].map((d) => d.id)).size).toBe(4);
     expect((await getComment(w.db, id)).status).toBe('addressed');
+
+    const [log] = await activityFor(w.db, videoId, 'suggestion.accepted');
+    expect(log).toMatchObject({ actorId: w.admin.id, entity: 'comment', entityId: id });
+    expect(log.after).toMatchObject({ versionNo: 2, versionId: v2.id, replacement: 'největší' });
+  });
+
+  it('the new version is built from the approved body, never from the draft', async () => {
+    const { videoId, versionId, id } = await approvedWithSuggestion('honza');
+    // Defensive: even a draft that diverged behind the lock's back must not leak into the new version.
+    await w.db
+      .update(s.videos)
+      .set({ draft: { ...w.cleanBody(), caption: 'NEPOSOUZENÝ TEXT' } })
+      .where(eq(s.videos.id, videoId));
+
+    await decideSuggestion(w.db, w.admin, { commentId: id, accept: true }, minutesLater(10));
+
+    const versions = await w.db.select().from(s.scriptVersions).where(eq(s.scriptVersions.videoId, videoId));
+    const v2 = versions.find((v) => v.versionNo === 2)!;
+    expect(v2.body.caption).not.toBe('NEPOSOUZENÝ TEXT');
+    expect(v2.body.caption).toBe(w.cleanBody().caption);
+    expect(lineText(v2.body)).toBe('To je ta největší sázka v dějinách.');
+    const video = await getVideo(w.db, videoId);
+    expect(video.draft).toEqual(v2.body);
+    expect(video.approvalStatus).toBe('approved');
+    expect(versions.find((v) => v.id === versionId)!.body).toEqual(w.cleanBody());
+  });
+
+  it('a draft edited during review leaves the script unlocked: accepting changes the draft only, no new version', async () => {
+    const { videoId, versionId, id } = await suggestion();
+    await saveDraft(w.db, w.admin, videoId, { ...w.cleanBody(), caption: 'NEPOSOUZENÝ TEXT' }, NOW);
+    await decide(w.db, w.honza, { videoId, versionId, decision: 'approve', overrideWarnings: true }, NOW);
+    await decide(w.db, w.radek, { videoId, versionId, decision: 'approve', overrideWarnings: true }, NOW);
+    expect(await getVideo(w.db, videoId)).toMatchObject({ approvalStatus: 'approved', editingAfterApproval: true });
+
+    await decideSuggestion(w.db, w.admin, { commentId: id, accept: true }, NOW);
+
+    const versions = await w.db.select().from(s.scriptVersions).where(eq(s.scriptVersions.videoId, videoId));
+    expect(versions).toHaveLength(1);
+    expect(versions[0].body).toEqual(w.cleanBody());
+    const video = await getVideo(w.db, videoId);
+    expect(video).toMatchObject({ approvalStatus: 'approved', editingAfterApproval: true });
+    expect(video.draft?.caption).toBe('NEPOSOUZENÝ TEXT');
+    expect(lineText(video.draft)).toBe('To je ta největší sázka v dějinách.');
+    expect(await activityFor(w.db, videoId, 'suggestion.accepted')).toHaveLength(1);
   });
 
   it('on an approved, locked script a non-leadership suggestion cannot change the draft; after unlock it can', async () => {

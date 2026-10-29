@@ -137,7 +137,7 @@ describe('saveDraft', () => {
     await w.db.update(s.videos).set({ approvalStatus: 'approved' }).where(eq(s.videos.id, id));
     await expectDomainError(
       saveDraft(w.db, w.admin, id, emptyScript(), NOW),
-      'FORBIDDEN',
+      'INVALID_TRANSITION',
       'Schválený scénář je zamčený. Nejdřív ho odemkni.',
     );
   });
@@ -297,6 +297,22 @@ describe('setLifecycle', () => {
     expect(await activityFor(w.db, id, 'video.cancelled')).toHaveLength(1);
     await setLifecycle(w.db, w.honza, id, { action: 'restore', reason: '' }, NOW);
     expect((await getVideo(w.db, id)).approvalStatus).toBe('draft');
+  });
+
+  it('restore clears the previous approval and the unlock flag', async () => {
+    const { videoId } = await createSubmitted(w);
+    await w.db
+      .update(s.videos)
+      .set({ approvalStatus: 'approved', approvedBy: ['Honza', 'Radek'], approvedAt: NOW, editingAfterApproval: true })
+      .where(eq(s.videos.id, videoId));
+    await setLifecycle(w.db, w.admin, videoId, { action: 'postpone', reason: 'Později' }, NOW);
+    await setLifecycle(w.db, w.admin, videoId, { action: 'restore', reason: '' }, NOW);
+    expect(await getVideo(w.db, videoId)).toMatchObject({
+      approvalStatus: 'draft',
+      approvedBy: [],
+      approvedAt: null,
+      editingAfterApproval: false,
+    });
   });
 
   it('requires a reason, valid source status and permission', async () => {

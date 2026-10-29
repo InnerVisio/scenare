@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
@@ -180,7 +181,14 @@ export async function decide(db: Db, actor: Actor, input: DecideInput, now: Date
       const approvedBy = evaluation.approvedBy.map(nameOf);
       await tx
         .update(s.videos)
-        .set({ approvalStatus: 'approved', approvedBy, approvedAt: now, editingAfterApproval: false, updatedAt: now })
+        .set({
+          approvalStatus: 'approved',
+          approvedBy,
+          approvedAt: now,
+          // Edits made to the draft while the version was under review stay pending and must be re-submitted.
+          editingAfterApproval: !isDeepStrictEqual(video.draft, version.body),
+          updatedAt: now,
+        })
         .where(eq(s.videos.id, video.id));
       await logActivity(
         tx,

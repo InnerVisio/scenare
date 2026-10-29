@@ -196,7 +196,7 @@ export async function saveDraft(db: Db, actor: Actor, videoId: string, body: Scr
     const video = await loadVideo(tx, videoId, { lock: true });
     if (!can(actor, 'script.edit', { ownerId: video.ownerId })) throw forbidden();
     const status = statusOf(video);
-    if (status === 'approved' && !video.editingAfterApproval) throw new DomainError('FORBIDDEN', LOCKED_MESSAGE);
+    if (status === 'approved' && !video.editingAfterApproval) throw new DomainError('INVALID_TRANSITION', LOCKED_MESSAGE);
     if (status === 'postponed' || status === 'cancelled') {
       throw new DomainError('INVALID_TRANSITION', 'Odložený nebo zrušený scénář nejde upravovat.');
     }
@@ -343,7 +343,7 @@ export async function setLifecycle(
       .set({
         approvalStatus: next,
         lifecycleReason: next === 'draft' ? '' : reason,
-        ...(next === 'draft' ? { editingAfterApproval: false } : {}),
+        ...(next === 'draft' ? { approvedBy: [], approvedAt: null, editingAfterApproval: false } : {}),
         updatedAt: now,
       })
       .where(eq(s.videos.id, videoId));

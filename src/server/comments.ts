@@ -26,6 +26,8 @@ import {
   statusOf,
   type Executor,
   type Tx,
+  type VersionRow,
+  type VideoRow,
 } from './loaders';
 import { LOCKED_MESSAGE, remapOpenAnchors, snapshotMeta } from './videos';
 
@@ -85,10 +87,10 @@ export async function createComment(db: Db, actor: Actor, input: CreateCommentIn
         .select({ id: s.scriptVersions.id })
         .from(s.scriptVersions)
         .where(and(eq(s.scriptVersions.id, input.versionId), eq(s.scriptVersions.videoId, video.id)));
-      if (!known) throw new DomainError('VALIDATION', 'Verze nenalezena.');
+      if (!known) throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
       if (known.id !== latest.id) throw new DomainError('STALE', 'Mezitím vznikla nová verze.');
     } else if (input.versionId !== null) {
-      throw new DomainError('VALIDATION', 'Verze nenalezena.');
+      throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
     }
 
     const mentions = [...new Set(input.mentions ?? [])];
@@ -302,9 +304,13 @@ export async function decideSuggestion(
     const authorIsLeadership = author?.role === 'leadership';
     // Only leadership suggestions may change an approved script; they are recorded as a new, already approved version.
     if (locked && !authorIsLeadership) throw new DomainError('INVALID_TRANSITION', LOCKED_MESSAGE);
-    if (!video.draft) throw new DomainError('STALE', STALE_SUGGESTION);
+    // A locked approved script is only ever changed from its approved version body, never from the draft.
+    const previous = locked ? await latestVersion(tx, video.id) : undefined;
+    if (locked && !previous) throw new DomainError('INVALID_TRANSITION', 'Schválený scénář nemá žádnou verzi.');
+    const source = previous?.body ?? video.draft;
+    if (!source) throw new DomainError('STALE', STALE_SUGGESTION);
 
-    const applied = applySuggestion(video.draft, comment.anchor, suggestion.replacement);
+    const applied = applySuggestion(source, comment.anchor, suggestion.replacement);
     if (!applied.ok) throw new DomainError('STALE', STALE_SUGGESTION);
 
     await tx.update(s.videos).set({ draft: applied.body, updatedAt: now }).where(eq(s.videos.id, video.id));
@@ -319,7 +325,7 @@ export async function decideSuggestion(
       .where(eq(s.comments.id, comment.id));
 
     let created: { versionId: string; versionNo: number } | null = null;
-    if (locked) created = await createAcceptedVersion(tx, actor, video, applied.body, comment.id, now);
+    if (previous) created = await createAcceptedVersion(tx, actor, video, previous, applied.body, comment.id, now);
 
     await logActivity(
       tx,
@@ -340,13 +346,12 @@ export async function decideSuggestion(
 async function createAcceptedVersion(
   tx: Tx,
   actor: Actor,
-  video: Awaited<ReturnType<typeof loadVideo>>,
+  video: VideoRow,
+  previous: VersionRow,
   body: ScriptBody,
   exceptCommentId: string,
   now: Date,
 ): Promise<{ versionId: string; versionNo: number }> {
-  const previous = await latestVersion(tx, video.id);
-  if (!previous) throw new DomainError('INVALID_TRANSITION', 'Schválený scénář nemá žádnou verzi.');
   const versionId = newId();
   const versionNo = previous.versionNo + 1;
   await tx.insert(s.scriptVersions).values({

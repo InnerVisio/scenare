@@ -86,6 +86,7 @@ describe('full review cycle', () => {
     expect(done.approvalStatus).toBe('approved');
     expect(done.approvedBy).toEqual(['Honza', 'Radek']);
     expect(done.approvedAt?.getTime()).toBe(minutesLater(7).getTime());
+    expect(done.editingAfterApproval).toBe(false); // draft equals the approved body
     const [finalLog] = await activityFor(w.db, videoId, 'video.approved');
     expect(finalLog).toMatchObject({ actorId: w.radek.id, entity: 'video' });
     expect(finalLog.after).toMatchObject({ status: 'approved', approvedBy: ['Honza', 'Radek'] });
@@ -140,6 +141,20 @@ describe('versions bind decisions (Review Focus 2)', () => {
       'NOT_FOUND',
       'Scénář nenalezen.',
     );
+  });
+});
+
+describe('draft edited during review', () => {
+  it('approval keeps the script approved but marks the edited draft as a pending change', async () => {
+    const { videoId, versionId } = await createSubmitted(w);
+    await saveDraft(w.db, w.admin, videoId, { ...w.cleanBody(), caption: 'Upraveno během schvalování' }, NOW);
+    await decide(w.db, w.honza, { videoId, versionId, decision: 'approve' }, NOW);
+    await decide(w.db, w.radek, { videoId, versionId, decision: 'approve' }, NOW);
+    const video = await getVideo(w.db, videoId);
+    expect(video).toMatchObject({ approvalStatus: 'approved', editingAfterApproval: true });
+    expect(video.draft?.caption).toBe('Upraveno během schvalování');
+    const [version] = await w.db.select().from(s.scriptVersions).where(eq(s.scriptVersions.id, versionId));
+    expect(version.body.caption).toBe(w.cleanBody().caption);
   });
 });
 
