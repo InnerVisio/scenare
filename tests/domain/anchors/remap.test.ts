@@ -117,7 +117,9 @@ describe('remapAnchor', () => {
     };
     const body = setFieldText(fixture(), 'line:l1:text', 'Stop a poslouchej');
     const out = remapAnchor(anchor, body);
-    if (out.state === 'attached') expect(out.to).toBeLessThanOrEqual('Stop a poslouchej'.length);
+    expect(out.state).toBe('attached');
+    expect(out.from).toBe(0);
+    expect(out.to).toBe('Stop a poslouchej'.length);
   });
 
   it('(5) detaches when nothing matches, keeping field and offsets', () => {

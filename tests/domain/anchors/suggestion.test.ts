@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Anchor } from '@/domain/anchors/remap';
+import { remapAnchor, type Anchor } from '@/domain/anchors/remap';
 import { applySuggestion } from '@/domain/anchors/suggestion';
 import { getFieldText, setFieldText } from '@/domain/script/fields';
 import { deepFreeze, fixture } from '../script/fixtures';
@@ -67,6 +67,37 @@ describe('applySuggestion', () => {
     const edited = setFieldText(body, 'line:l1:text', 'Úplně přepsaný text bez původní věty');
     const res = applySuggestion(edited, anchor, REPLACEMENT);
     expect(res).toEqual({ ok: false, reason: 'stale' });
+  });
+
+  it('is stale when the quote can only be located fuzzily, and leaves the body untouched', () => {
+    const old = 'Banka ti nabídne sazbu jen když o ni požádáš';
+    const anchor: Anchor = {
+      fieldId: 'line:l1:text',
+      from: old.indexOf('nabídne'),
+      to: old.indexOf('nabídne') + 'nabídne sazbu jen když'.length,
+      quotedText: 'nabídne sazbu jen když',
+      state: 'attached',
+    };
+    const edited = deepFreeze(
+      setFieldText(fixture(), 'line:l1:text', 'Banka ti nabídne sazbu jenom když o ni požádáš'),
+    );
+    // Precondition: remapAnchor does find it fuzzily.
+    expect(remapAnchor(anchor, edited).state).toBe('attached');
+    const res = applySuggestion(edited, anchor, 'něco jiného');
+    expect(res).toEqual({ ok: false, reason: 'stale' });
+    expect(getFieldText(edited, 'line:l1:text')).toBe('Banka ti nabídne sazbu jenom když o ni požádáš');
+  });
+
+  it('still applies when the exact quote moved to a different field', () => {
+    const { body, anchor } = setup();
+    let edited = setFieldText(body, 'line:l1:text', 'Úplně přepsaný text');
+    edited = setFieldText(edited, 'caption', `Titulek: ${ORIGINAL}`);
+    const res = applySuggestion(edited, anchor, REPLACEMENT);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.anchor.fieldId).toBe('caption');
+    expect(getFieldText(res.body, 'caption')).toBe(`Titulek: ${REPLACEMENT}`);
+    expect(getFieldText(res.body, 'line:l1:text')).toBe('Úplně přepsaný text');
   });
 
   it('is stale when the field was deleted', () => {

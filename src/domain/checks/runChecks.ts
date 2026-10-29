@@ -111,7 +111,7 @@ function checkHashtags({ body, personHashtags }: CheckContext): Outcome {
   if (count < 3 || count > 5) problems.push(`počet ${count} (má být 3–5)`);
   if (!tags.has('#vaskonzultant')) problems.push('Chybí #vaskonzultant');
   for (const speaker of speakers(body)) {
-    const tag = personHashtags[speaker];
+    const tag = Object.hasOwn(personHashtags, speaker) ? personHashtags[speaker] : undefined;
     if (tag && !tags.has(tag.trim().toLowerCase())) problems.push(`Chybí ${tag}`);
   }
   return problems.length === 0 ? pass(String(count)) : fail(problems.join('; '));

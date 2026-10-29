@@ -221,6 +221,14 @@ describe('HASHTAGS', () => {
   it('ignores speakers without a configured hashtag (Klient)', () => {
     expect(run('HASHTAGS').status).toBe('pass');
   });
+  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
+    'does not throw for a speaker named %s',
+    (name) => {
+      const ctx = withBody((b) => (b.scenes[0].lines[0].speaker = name));
+      expect(() => run('HASHTAGS', ctx)).not.toThrow();
+      expect(run('HASHTAGS', ctx).status).toBe('pass');
+    },
+  );
   it('ignores configured people who do not speak', () => {
     const ctx = v031Context({ personHashtags: { Radek: '#radekteichmann', Honza: '#honzagizicky', Jarda: '#jarda' } });
     expect(run('HASHTAGS', ctx).status).toBe('pass');
