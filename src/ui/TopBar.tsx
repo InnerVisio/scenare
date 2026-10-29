@@ -3,40 +3,42 @@
 import { Bell, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { logout } from '@/app/login/actions';
 import { Avatar } from './Avatar';
 import { cn, focusRing } from './cn';
+import { cycleLabel, monthLabel, monthsAround, parseCycleParam, parseMonthParam } from './monthParams';
 import { useShell } from './ShellContext';
 
-const monthFormatter = new Intl.DateTimeFormat('cs-CZ', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+/**
+ * Disclosure popover behaviour: opens on the trigger, focus moves to the selected (or first) item,
+ * Escape / outside click / selection closes it and focus goes back to the trigger.
+ */
+function useDisclosure() {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
 
-export function monthLabel(month: string): string {
-  const [year, m] = month.split('-').map(Number);
-  const text = monthFormatter.format(new Date(Date.UTC(year, m - 1, 15)));
-  return text.charAt(0).toLocaleUpperCase('cs') + text.slice(1);
-}
-
-export const cycleLabel = (id: string) => `Cyklus ${id.replace('-', '–')}`;
-
-/** `current` ± `radius` months, as `YYYY-MM`. */
-export function monthsAround(current: string, radius = 6): string[] {
-  const [year, m] = current.split('-').map(Number);
-  return Array.from({ length: radius * 2 + 1 }, (_, i) => {
-    const d = new Date(Date.UTC(year, m - 1 + i - radius, 1));
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
   });
-}
 
-function useOutsideClose(open: boolean, close: () => void) {
-  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
+    const items = root.current?.querySelectorAll<HTMLElement>(`#${CSS.escape(panelId)} button`);
+    const target = root.current?.querySelector<HTMLElement>(`#${CSS.escape(panelId)} [aria-current="true"]`) ?? items?.[0];
+    target?.focus();
     const onPointer = (event: PointerEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) close();
+      if (root.current && !root.current.contains(event.target as Node)) closeRef.current();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
+      if (event.key === 'Escape') closeRef.current();
     };
     document.addEventListener('pointerdown', onPointer);
     document.addEventListener('keydown', onKey);
@@ -44,8 +46,17 @@ function useOutsideClose(open: boolean, close: () => void) {
       document.removeEventListener('pointerdown', onPointer);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open, close]);
-  return ref;
+  }, [open, panelId]);
+
+  return {
+    open,
+    root,
+    trigger,
+    panelId,
+    close,
+    toggle: () => (open ? close() : setOpen(true)),
+    triggerProps: { 'aria-expanded': open, 'aria-controls': panelId } as const,
+  };
 }
 
 const POPOVER =
@@ -64,16 +75,15 @@ function Segment({
   onSelect: (value: string) => void;
   align: 'left' | 'right';
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(open, () => setOpen(false));
+  const menu = useDisclosure();
   const current = options.find((o) => o.value === value);
   return (
-    <div ref={ref} className="relative flex-1 md:flex-none">
+    <div ref={menu.root} className="relative flex-1 md:flex-none">
       <button
+        ref={menu.trigger}
         type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        {...menu.triggerProps}
+        onClick={menu.toggle}
         className={cn(
           'flex min-h-12 w-full items-center justify-center rounded-pill px-4 text-sm font-semibold whitespace-nowrap md:px-5 md:text-base',
           focusRing,
@@ -83,16 +93,15 @@ function Segment({
         <span className="sr-only">{label}: </span>
         {current?.label ?? '–'}
       </button>
-      {open && (
-        <ul role="listbox" aria-label={label} className={cn(POPOVER, align === 'left' ? 'left-0' : 'right-0')}>
+      {menu.open && (
+        <ul id={menu.panelId} aria-label={label} className={cn(POPOVER, 'list-none', align === 'left' ? 'left-0' : 'right-0')}>
           {options.map((option) => (
-            <li key={option.value} role="presentation">
+            <li key={option.value}>
               <button
                 type="button"
-                role="option"
-                aria-selected={option.value === value}
+                aria-current={option.value === value ? 'true' : undefined}
                 onClick={() => {
-                  setOpen(false);
+                  menu.close();
                   onSelect(option.value);
                 }}
                 className={cn(
@@ -113,22 +122,21 @@ function Segment({
 
 function UserMenu() {
   const shell = useShell();
-  const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(open, () => setOpen(false));
+  const menu = useDisclosure();
   return (
-    <div ref={ref} className="relative">
+    <div ref={menu.root} className="relative">
       <button
+        ref={menu.trigger}
         type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
+        {...menu.triggerProps}
         aria-label={`Účet: ${shell.user.name}`}
-        onClick={() => setOpen((v) => !v)}
+        onClick={menu.toggle}
         className={cn('flex size-12 items-center justify-center rounded-full', focusRing)}
       >
         <Avatar initials={shell.user.initials} size="lg" />
       </button>
-      {open && (
-        <div role="menu" className={cn(POPOVER, 'right-0 w-60 max-h-none')}>
+      {menu.open && (
+        <div id={menu.panelId} className={cn(POPOVER, 'right-0 w-60 max-h-none')}>
           <div className="px-3 py-2">
             <p className="font-semibold">{shell.user.name}</p>
             <p className="text-sm text-text2">{shell.user.roleLabel}</p>
@@ -136,7 +144,6 @@ function UserMenu() {
           <form action={logout}>
             <button
               type="submit"
-              role="menuitem"
               className={cn('flex min-h-12 w-full items-center rounded-xl px-3 text-left font-semibold hover:bg-nest', focusRing)}
             >
               Odhlásit se
@@ -165,12 +172,12 @@ export function TopBar({
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const month = params.get('mesic') ?? shell.currentMonth;
-  const cycle = params.get('cyklus') ?? shell.defaultCycleId;
+  const month = parseMonthParam(params.get('mesic'), shell.currentMonth);
+  const cycle = parseCycleParam(params.get('cyklus'), shell.cycleIds, shell.defaultCycleId);
 
   const months = monthsAround(shell.currentMonth);
   if (!months.includes(month)) months.push(month);
-  const cycleIds = cycle && !shell.cycleIds.includes(cycle) ? [...shell.cycleIds, cycle] : shell.cycleIds;
+  const cycleIds = shell.cycleIds;
 
   function update(key: 'mesic' | 'cyklus', value: string) {
     const next = new URLSearchParams(params.toString());

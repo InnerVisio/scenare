@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 import { getDb } from '@/db/client';
 import { loadActor, type Actor } from '../actor';
 import { DomainError } from '../errors';
@@ -29,8 +30,8 @@ export async function readSession(): Promise<{ userId: string } | null> {
   return verifySession(jwt, authSecret(), new Date());
 }
 
-/** The logged-in user, or a redirect to `/login`. */
-export async function requireActor(): Promise<Actor> {
+/** The logged-in user, or a redirect to `/login`. Memoised per request so layout and page share one lookup. */
+export const requireActor = cache(async (): Promise<Actor> => {
   const session = await readSession();
   if (!session) redirect('/login');
   try {
@@ -39,4 +40,4 @@ export async function requireActor(): Promise<Actor> {
     if (error instanceof DomainError && error.code === 'NOT_FOUND') redirect('/login');
     throw error;
   }
-}
+});

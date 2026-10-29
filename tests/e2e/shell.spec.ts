@@ -35,7 +35,8 @@ test.describe('app shell', () => {
     await page.goto('/serie');
     await expect(page.getByText('Připravujeme')).toBeVisible();
     await page.getByRole('button', { name: /Cyklus/ }).click();
-    await page.getByRole('option', { name: 'Cyklus 2026–11' }).click();
+    await page.getByRole('list', { name: 'Cyklus' }).getByRole('button', { name: 'Cyklus 2026–11' }).click();
+    await expect(page.getByRole('button', { name: /Cyklus:/ })).toBeFocused();
     await expect(page).toHaveURL(/\/serie\?.*cyklus=2026-11/);
     await expectNoHorizontalScroll(page);
     if (info.project.name === 'mobile') {
@@ -43,5 +44,25 @@ test.describe('app shell', () => {
       await expect(page.getByRole('link', { name: 'Publikace' })).toBeVisible();
       await page.screenshot({ path: 'test-results/more-sheet-mobile.png' });
     }
+  });
+
+  test('invalid month parameter falls back instead of failing', async ({ page }) => {
+    const response = await page.goto('/?mesic=abc&cyklus=zzz');
+    expect(response?.status()).toBe(200);
+    await expect(page.getByText('Přehled se připravuje')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Měsíc/ })).toContainText(/\d{4}/);
+    await expect(page.getByRole('button', { name: /Cyklus/ })).toContainText('Cyklus 2026–11');
+  });
+
+  test('avatar menu opens, Escape closes it and focus returns to the avatar', async ({ page }) => {
+    await page.goto('/');
+    const avatar = page.getByRole('button', { name: /Účet: Honza/ });
+    await avatar.click();
+    await expect(avatar).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('button', { name: 'Odhlásit se' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(avatar).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('button', { name: 'Odhlásit se' })).toBeHidden();
+    await expect(avatar).toBeFocused();
   });
 });
