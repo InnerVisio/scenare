@@ -1,6 +1,7 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
+import { appUrl } from '../appUrl';
 import { sendMail } from '../mail/send';
 import { generateToken, hashToken } from './token';
 
@@ -82,7 +83,7 @@ export async function requestLoginLink(
     expiresAt: new Date(now.getTime() + LOGIN_LINK_MINUTES * 60_000),
   });
 
-  const base = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+  const base = (appUrl() ?? 'http://localhost:3000').replace(/\/+$/, '');
   const next = safeNextPath(opts.next);
   const link = `${base}/auth/${token}${next ? `?dalsi=${encodeURIComponent(next)}` : ''}`;
   await sendMail({ to: user.email, subject: 'Přihlášení do GTA Scénáře', ...loginMail(link) });

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getDb } from '@/db/client';
 import { consumeLoginToken, safeNextPath } from '@/server/auth/magicLink';
+import { appUrl } from '@/server/appUrl';
 import { isSameOriginRequest } from '@/server/auth/origin';
 import { createSession } from '@/server/auth/session';
 
@@ -13,7 +14,7 @@ const escapeHtml = (value: string) =>
 
 /** 303 so the browser follows a POST with a GET. */
 function redirectTo(path: string, request: NextRequest) {
-  return NextResponse.redirect(new URL(path, process.env.APP_URL || request.url), 303);
+  return NextResponse.redirect(new URL(path, appUrl() || request.url), 303);
 }
 
 /**
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const { token } = await params;
-  if (!isSameOriginRequest(request.headers.get('origin'), request.url, process.env.APP_URL)) {
+  if (!isSameOriginRequest(request.headers.get('origin'), request.url, appUrl() ?? undefined)) {
     return redirectTo('/login?chyba=odkaz', request);
   }
   const form = await request.formData().catch(() => null);

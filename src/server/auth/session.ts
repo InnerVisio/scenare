@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { getDb } from '@/db/client';
+import { appUrl } from '../appUrl';
 import { loadActor, type Actor } from '../actor';
 import { DomainError } from '../errors';
 import { authSecret, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession, verifySession } from './jwt';
@@ -14,7 +15,7 @@ export async function createSession(userId: string): Promise<void> {
   store.set(SESSION_COOKIE, jwt, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: (process.env.APP_URL ?? '').startsWith('https:'),
+    secure: (appUrl() ?? '').startsWith('https:'),
     path: '/',
     maxAge: SESSION_MAX_AGE_SECONDS,
   });

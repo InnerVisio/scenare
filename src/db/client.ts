@@ -40,14 +40,19 @@ async function openPostgres(url: string): Promise<Db> {
     import('drizzle-orm/postgres-js'),
     import('drizzle-orm/postgres-js/migrator'),
   ]);
-  // Migrations need their own single connection; the app pool is created afterwards.
-  const migrationClient = postgres(url, { max: 1 });
-  try {
-    await migrate(drizzle(migrationClient), { migrationsFolder: MIGRATIONS_FOLDER });
-  } finally {
-    await migrationClient.end();
+  // `prepare: false` because Neon's pooled URL goes through pgbouncer in transaction mode.
+  const options = { prepare: false, onnotice: () => {} };
+  // On Vercel the schema is migrated in `vercel-build`, never at runtime.
+  if (!process.env.VERCEL) {
+    // Migrations need their own single connection; the app pool is created afterwards.
+    const migrationClient = postgres(url, { ...options, max: 1 });
+    try {
+      await migrate(drizzle(migrationClient), { migrationsFolder: MIGRATIONS_FOLDER });
+    } finally {
+      await migrationClient.end();
+    }
   }
-  return drizzle(postgres(url), { schema });
+  return drizzle(postgres(url, options), { schema });
 }
 
 const globalForDb = globalThis as unknown as { __scenareDb?: Promise<Db> };
