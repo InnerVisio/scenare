@@ -131,7 +131,8 @@ export const videos = pgTable(
     verdict: text('verdict').notNull().default(''),
     draft: jsonb('draft').$type<ScriptBody>(),
     editingAfterApproval: boolean('editing_after_approval').notNull().default(false),
-    manualChecks: jsonb('manual_checks').$type<Record<string, boolean>>().notNull().default({}),
+    /** Version id → rule code → checked. */
+    manualChecks: jsonb('manual_checks').$type<Record<string, Record<string, boolean>>>().notNull().default({}),
     lifecycleReason: text('lifecycle_reason').notNull().default(''),
     isSample: boolean('is_sample').notNull().default(false),
     createdAt: createdAt(),
