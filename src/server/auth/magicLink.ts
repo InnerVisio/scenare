@@ -26,7 +26,9 @@ export function safeNextPath(value: string | null | undefined): string | null {
   try {
     const url = new URL(value, 'http://x');
     if (url.origin !== 'http://x') return null;
-    return url.pathname + url.search + url.hash;
+    const normalised = url.pathname + url.search + url.hash;
+    // Dot segments can collapse to "//host" ("/.//evil.com"), which browsers read as another origin.
+    return normalised.startsWith('/') && !normalised.startsWith('//') ? normalised : null;
   } catch {
     return null;
   }

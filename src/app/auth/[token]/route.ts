@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getDb } from '@/db/client';
 import { consumeLoginToken, safeNextPath } from '@/server/auth/magicLink';
+import { isSameOriginRequest } from '@/server/auth/origin';
 import { createSession } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +65,9 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const { token } = await params;
+  if (!isSameOriginRequest(request.headers.get('origin'), request.url, process.env.APP_URL)) {
+    return redirectTo('/login?chyba=odkaz', request);
+  }
   const form = await request.formData().catch(() => null);
   const next = safeNextPath(String(form?.get('dalsi') ?? ''));
 

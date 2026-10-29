@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as s from '@/db/schema';
 import { authSecret } from '@/server/auth/jwt';
+import { isSameOriginRequest } from '@/server/auth/origin';
 import { consumeLoginToken, requestLoginLink, safeNextPath } from '@/server/auth/magicLink';
 import { generateToken, hashToken, signSession, verifySession } from '@/server/auth/token';
 import { minutesLater, NOW, setupWorld, type World } from './helpers';
@@ -62,6 +63,9 @@ describe('safeNextPath', () => {
     'evil.com',
     '',
     '/%zz',
+    '/.//evil.com',
+    '/a/..//evil.com',
+    '/%2e//evil.com',
   ])('rejects %j', (value) => {
     expect(safeNextPath(value)).toBeNull();
   });
@@ -72,6 +76,30 @@ describe('safeNextPath', () => {
     expect(safeNextPath('/a/../b')).toBe('/b');
     expect(safeNextPath(null)).toBeNull();
     expect(safeNextPath(undefined)).toBeNull();
+  });
+});
+
+describe('isSameOriginRequest', () => {
+  const url = 'http://localhost:3000/auth/abc';
+
+  it('allows a missing Origin header and the own origin', () => {
+    expect(isSameOriginRequest(null, url)).toBe(true);
+    expect(isSameOriginRequest('http://localhost:3000', url)).toBe(true);
+  });
+
+  it('rejects another origin, "null" and garbage', () => {
+    expect(isSameOriginRequest('https://evil.example', url)).toBe(false);
+    expect(isSameOriginRequest('http://localhost:3001', url)).toBe(false);
+    expect(isSameOriginRequest('https://localhost:3000', url)).toBe(false);
+    expect(isSameOriginRequest('null', url)).toBe(false);
+    expect(isSameOriginRequest('not a url', url)).toBe(false);
+    expect(isSameOriginRequest('', url)).toBe(false);
+  });
+
+  it('accepts the APP_URL origin behind a proxy and still rejects strangers', () => {
+    const internal = 'http://10.0.0.5:3000/auth/abc';
+    expect(isSameOriginRequest('https://scenare.test', internal, 'https://scenare.test/')).toBe(true);
+    expect(isSameOriginRequest('https://evil.example', internal, 'https://scenare.test')).toBe(false);
   });
 });
 
