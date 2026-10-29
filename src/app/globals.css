@@ -49,6 +49,21 @@ body {
 @theme {
   --color-danger-bg: #ffd9e1;
   --color-danger-text: #b3264f;
+
+  /* Soft fills and their text colours (status pills, highlights, avatars). */
+  --color-mark: #e4e1fb;
+  --color-lime-soft: #e6f59a;
+  --color-lime-ink: #3f5a00;
+  --color-lime-dot: #7db000;
+  --color-apricot-soft: #ffe6c7;
+  --color-apricot-ink: #8a4b00;
+  --color-violet-soft: #e3e0fa;
+  --color-violet-ink: #3d33b8;
+  --color-violet-tint: #dcd9fb;
+  --color-grey-soft: #ecebf3;
+  --color-grey-dot: #8a87a0;
+  --color-mint: #cff3e1;
+  --color-mint-ink: #1c6b49;
 }
 
 html {

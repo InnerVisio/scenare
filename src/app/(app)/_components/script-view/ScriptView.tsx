@@ -100,6 +100,8 @@ export function ScriptView({
     return () => {
       clearTimeout(timer);
       cancelAnimationFrame(frame);
+      // A mode switch or unmount must not leave a stale toolbar behind.
+      clear();
       document.removeEventListener('selectionchange', onChange);
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onScroll);
@@ -205,7 +207,7 @@ export function ScriptView({
                 {scene.lines.map((line) => (
                   <div key={line.id} className="flex flex-col gap-2">
                     {body.cta?.lineId === line.id && (
-                      <span className="inline-flex w-fit items-center rounded-pill bg-[#E6F59A] px-3 py-1.5 text-sm leading-none font-semibold text-[#3F5A00] select-none">
+                      <span className="inline-flex w-fit items-center rounded-pill bg-lime-soft px-3 py-1.5 text-sm leading-none font-semibold text-lime-ink select-none">
                         Výzva{meta.ctaLabel ? ` · ${meta.ctaLabel}` : ''}
                       </span>
                     )}

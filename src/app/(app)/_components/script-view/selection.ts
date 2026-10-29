@@ -120,10 +120,28 @@ function resolveEnd(node: Node, offset: number, isStart: boolean): { fieldId: st
   return { fieldId: null, offset: 0 };
 }
 
+/** The last field that lies entirely before `node` in document order (null if none). */
+function previousField(node: Node): Element | null {
+  let found: Element | null = null;
+  for (const field of Array.from(node.ownerDocument?.querySelectorAll(FIELD_SELECTOR) ?? [])) {
+    if (field.contains(node)) continue;
+    if (field.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) found = field;
+  }
+  return found;
+}
+
 export function readSelection(sel: Selection): RawSelection {
   if (sel.rangeCount === 0) return { startFieldId: null, startOffset: 0, endFieldId: null, endOffset: 0 };
   const range = sel.getRangeAt(0);
   const start = resolveEnd(range.startContainer, range.startOffset, true);
-  const end = resolveEnd(range.endContainer, range.endOffset, false);
+  let end = resolveEnd(range.endContainer, range.endOffset, false);
+  // Triple-click / paragraph select ends at offset 0 of the next line, outside any field. When the
+  // field right before that point is the start field, the user selected that field up to its end.
+  if (end.fieldId === null && range.endOffset === 0 && start.fieldId !== null) {
+    const previous = previousField(range.endContainer);
+    if (previous?.getAttribute('data-field-id') === start.fieldId) {
+      end = { fieldId: start.fieldId, offset: sourceLength(previous) };
+    }
+  }
   return { startFieldId: start.fieldId, startOffset: start.offset, endFieldId: end.fieldId, endOffset: end.offset };
 }

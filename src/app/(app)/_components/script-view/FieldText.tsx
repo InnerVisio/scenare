@@ -12,7 +12,7 @@ const LOOK: Record<
   { anchored: string; active: string; struck: string; replacement: string; badge: string }
 > = {
   light: {
-    anchored: 'bg-[#E4E1FB]',
+    anchored: 'bg-mark',
     active: 'bg-violet text-white',
     struck: 'bg-danger-bg text-danger-text line-through decoration-1',
     replacement: 'bg-lime/70 text-ink',
@@ -64,17 +64,21 @@ export function FieldText({
   const segments = buildSegments(text, fieldId, threads);
 
   function click(event: MouseEvent, threadId: string) {
-    // A click that ends a text selection must not count as tapping the highlight.
-    if (typeof window !== 'undefined' && window.getSelection()?.isCollapsed === false) return;
     event.stopPropagation();
     onAnchorClick?.(threadId);
+  }
+
+  /** A click that ends a text selection must not count as tapping the highlight (the badge is exempt). */
+  function clickHighlight(event: MouseEvent, threadId: string) {
+    if (typeof window !== 'undefined' && window.getSelection()?.isCollapsed === false) return;
+    click(event, threadId);
   }
 
   const mark = (owner: AnchoredThread, content: string, key?: string) => (
     <span
       key={key}
       data-thread-id={owner.id}
-      onClick={onAnchorClick ? (event) => click(event, owner.id) : undefined}
+      onClick={onAnchorClick ? (event) => clickHighlight(event, owner.id) : undefined}
       className={cn(
         MARK,
         onAnchorClick && 'cursor-pointer',

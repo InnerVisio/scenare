@@ -97,4 +97,32 @@ describe('readSelection', () => {
       endOffset: 'Druhá replika.'.length,
     });
   });
+
+  it('snaps a paragraph-select end (offset 0 of the next line) to the end of the start field', () => {
+    const start = document.querySelector('[data-field-id="line:a:text"]')!.firstChild!;
+    const nextSpeaker = document.querySelectorAll('p')[1];
+    const sel = select(start, 3, nextSpeaker, 0);
+    expect(readSelection(sel)).toEqual({
+      startFieldId: 'line:a:text',
+      startOffset: 3,
+      endFieldId: 'line:a:text',
+      endOffset: 'Ke dni konce fixace bez poplatku.'.length,
+    });
+  });
+
+  it('snaps when the end is a text node at offset 0 outside any field', () => {
+    document.body.innerHTML = `<p><span data-field-id="line:a:text">Jedna.</span></p><p><b>Honza</b>: <span data-field-id="line:b:text">Dva.</span></p>`;
+    const start = document.querySelector('[data-field-id="line:a:text"]')!.firstChild!;
+    const speaker = document.querySelector('b')!.firstChild!;
+    const sel = select(start, 0, speaker, 0);
+    expect(readSelection(sel)).toMatchObject({ endFieldId: 'line:a:text', endOffset: 'Jedna.'.length });
+  });
+
+  it('does not snap when the previous field is not the start field', () => {
+    document.body.innerHTML = `<p><span data-field-id="line:a:text">Jedna.</span></p><p><span data-field-id="line:b:text">Dva.</span></p><p><b>Honza</b></p>`;
+    const start = document.querySelector('[data-field-id="line:a:text"]')!.firstChild!;
+    const speaker = document.querySelector('b')!.firstChild!;
+    const sel = select(start, 0, speaker, 0);
+    expect(readSelection(sel).endFieldId).toBeNull();
+  });
 });

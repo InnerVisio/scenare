@@ -7,11 +7,11 @@ interface Look {
 }
 
 const LOOKS: Record<ApprovalStatus, Look> = {
-  draft: { pill: 'bg-[#ECEAF3] text-ink2', dot: 'bg-[#8A87A0]' },
-  in_review: { pill: 'bg-[#FFE6C7] text-[#8A4B00]', dot: 'bg-apricot' },
+  draft: { pill: 'bg-grey-soft text-ink2', dot: 'bg-grey-dot' },
+  in_review: { pill: 'bg-apricot-soft text-apricot-ink', dot: 'bg-apricot' },
   returned: { pill: 'bg-danger-bg text-danger-text', dot: 'bg-coral' },
-  final_review: { pill: 'bg-[#E3E0FA] text-[#3D33B8]', dot: 'bg-violet' },
-  approved: { pill: 'bg-[#E6F59A] text-[#3F5A00]', dot: 'bg-[#7DB000]' },
+  final_review: { pill: 'bg-violet-soft text-violet-ink', dot: 'bg-violet' },
+  approved: { pill: 'bg-lime-soft text-lime-ink', dot: 'bg-lime-dot' },
   cancelled: { pill: 'border border-ink/25 bg-card text-text2 line-through', dot: null },
   postponed: { pill: 'border border-ink/25 bg-card text-text2', dot: null },
 };

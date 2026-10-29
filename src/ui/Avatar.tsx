@@ -1,7 +1,7 @@
 import { cn } from './cn';
 
 const SIZES = { sm: 'size-8 text-xs', md: 'size-10 text-sm', lg: 'size-12 text-base' } as const;
-const TONES = { mint: 'bg-[#CFF3E1] text-[#1C6B49]', lavender: 'bg-[#DCD9FB] text-[#3D33B8]', ink: 'bg-ink text-lime' } as const;
+const TONES = { mint: 'bg-mint text-mint-ink', lavender: 'bg-violet-tint text-violet-ink', ink: 'bg-ink text-lime' } as const;
 
 export function Avatar({
   initials,
