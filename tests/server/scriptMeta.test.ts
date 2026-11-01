@@ -12,7 +12,7 @@ beforeAll(async () => {
 
 const metaOf = async (code: string) => {
   const [video] = await w.db.select().from(s.videos).where(eq(s.videos.code, code));
-  return buildScriptMeta(w.db, await getVideoDetail(w.db, w.radek, video.id));
+  return buildScriptMeta(await getVideoDetail(w.db, w.radek, video.id));
 };
 
 describe('buildScriptMeta', () => {

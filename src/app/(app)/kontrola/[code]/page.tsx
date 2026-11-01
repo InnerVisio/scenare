@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
 import { DomainError } from '@/server/errors';
-import { loadReview, resolveCycleFilter } from '@/server/review';
+import { loadReviewPage } from '@/server/review';
 import { ReviewScreen } from '../../_components/review/ReviewScreen';
 
 export const metadata = { title: 'Kontrola scénáře – GTA Scénáře' };
@@ -18,11 +18,18 @@ export default async function ReviewPage({
   const actor = await requireActor();
   const db = await getDb();
   const { code } = await params;
-  const cycleId = await resolveCycleFilter(db, (await searchParams).cyklus);
+  const rawCycle = (await searchParams).cyklus;
 
   let data;
+  let cycleId: string | undefined;
   try {
-    data = await loadReview(db, actor, decodeURIComponent(code).toUpperCase(), { cycleId }, new Date());
+    ({ data, cycleId } = await loadReviewPage(
+      db,
+      actor,
+      decodeURIComponent(code).toUpperCase(),
+      { cycleParam: Array.isArray(rawCycle) ? rawCycle[0] : rawCycle },
+      new Date(),
+    ));
   } catch (error) {
     // A malformed %-escape in the URL (URIError) is just a script that does not exist.
     if (error instanceof URIError || (error instanceof DomainError && error.code === 'NOT_FOUND')) notFound();

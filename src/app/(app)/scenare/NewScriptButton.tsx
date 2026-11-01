@@ -8,9 +8,9 @@ import { createScriptAction } from './actions';
 function Submit() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant="primary" disabled={pending}>
+    <Button type="submit" variant="primary" pending={pending}>
       <Plus aria-hidden className="size-5" />
-      {pending ? 'Vytvářím…' : 'Nový scénář'}
+      {pending ? 'Vytvářím' : 'Nový scénář'}
     </Button>
   );
 }

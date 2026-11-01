@@ -35,18 +35,16 @@ function plural(n: number, one: string, few: string, many: string): string {
 async function findBlockers(tx: Executor, video: VideoRow, version: VersionRow): Promise<string[]> {
   const blockers: string[] = [];
 
-  const [{ openComments }] = await tx
-    .select({ openComments: sql<number>`count(*)::int` })
-    .from(s.comments)
-    .where(and(eq(s.comments.videoId, video.id), sql`${s.comments.parentId} is null`, eq(s.comments.status, 'open')));
+  const [{ openComments, pendingNumbers }] = await tx
+    .select({
+      openComments: sql<number>`(select count(*)::int from comments where video_id = ${video.id} and parent_id is null and status = 'open')`,
+      pendingNumbers: sql<number>`(select count(*)::int from number_checks where video_id = ${video.id} and status = 'pending')`,
+    })
+    .from(sql`(select 1) as one`);
   if (openComments > 0) {
     blockers.push(plural(openComments, 'nevyřešený komentář', 'nevyřešené komentáře', 'nevyřešených komentářů'));
   }
 
-  const [{ pendingNumbers }] = await tx
-    .select({ pendingNumbers: sql<number>`count(*)::int` })
-    .from(s.numberChecks)
-    .where(and(eq(s.numberChecks.videoId, video.id), eq(s.numberChecks.status, 'pending')));
   if (pendingNumbers > 0) {
     blockers.push(plural(pendingNumbers, 'nepotvrzené číslo', 'nepotvrzená čísla', 'nepotvrzených čísel'));
   }

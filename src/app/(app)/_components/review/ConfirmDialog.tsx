@@ -26,10 +26,10 @@ export function ConfirmDialog({
         ))}
       </ul>
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button variant="outline" onClick={onCancel} disabled={busy}>
+        <Button variant="outline" onClick={onCancel} pending={busy}>
           Zpět
         </Button>
-        <Button variant="approve" onClick={onConfirm} disabled={busy}>
+        <Button variant="approve" onClick={onConfirm} pending={busy}>
           Schválit i tak
         </Button>
       </div>

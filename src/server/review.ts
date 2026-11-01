@@ -1,4 +1,3 @@
-import { asc, eq, inArray } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import type { Anchor } from '@/domain/anchors/remap';
@@ -13,7 +12,15 @@ import type { ScriptMeta } from '@/app/(app)/_components/script-view/types';
 import type { Actor } from './actor';
 import { DomainError } from './errors';
 import { statusOf } from './loaders';
-import { getReviewQueue, getVideoDetail, type NumberCheckView, type ReviewQueueItem, type VideoDetail } from './queries';
+import {
+  buildVideoDetail,
+  getReviewQueue,
+  loadVideoHead,
+  type DecisionRow,
+  type NumberCheckView,
+  type ReviewQueueItem,
+  type VideoDetail,
+} from './queries';
 import { buildScriptMeta } from './scriptMeta';
 
 // View models for the review screen. Dates are ISO strings so everything crosses the server/client
@@ -141,30 +148,7 @@ export function toThreadVMs(detail: VideoDetail, versionNoById: Map<string, numb
   }));
 }
 
-export interface DecisionRow {
-  versionId: string;
-  userName: string;
-  decision: 'approve' | 'return';
-  note: string;
-  createdAt: Date;
-}
-
-/** Every decision made on any version of the script, oldest first. */
-export async function loadDecisionRows(db: Db, versionIds: string[]): Promise<DecisionRow[]> {
-  if (versionIds.length === 0) return [];
-  return db
-    .select({
-      versionId: s.approvalDecisions.versionId,
-      userName: s.users.name,
-      decision: s.approvalDecisions.decision,
-      note: s.approvalDecisions.note,
-      createdAt: s.approvalDecisions.createdAt,
-    })
-    .from(s.approvalDecisions)
-    .innerJoin(s.users, eq(s.users.id, s.approvalDecisions.userId))
-    .where(inArray(s.approvalDecisions.versionId, versionIds))
-    .orderBy(asc(s.approvalDecisions.createdAt));
-}
+export type { DecisionRow };
 
 export function toVersionVMs(detail: VideoDetail, decisionRows: DecisionRow[], userName: Map<string, string>): VersionVM[] {
   return detail.versions.map((v) => ({
@@ -227,30 +211,38 @@ export async function loadReview(
   filters: { cycleId?: string },
   now: Date,
 ): Promise<ReviewData> {
-  const [found] = await db.select({ id: s.videos.id }).from(s.videos).where(eq(s.videos.code, code));
-  if (!found) throw new DomainError('NOT_FOUND', 'Scénář nenalezen.');
+  return (await loadReviewPage(db, actor, code, { cycleId: filters.cycleId }, now)).data;
+}
 
-  const detail = await getVideoDetail(db, actor, found.id);
+/**
+ * The review screen in 7 queries: the script head (which also validates `?cyklus=`), then the script's
+ * rows and the queue in parallel. Pass the raw `?cyklus=` as `cycleParam`.
+ */
+export async function loadReviewPage(
+  db: Db,
+  actor: Actor,
+  code: string,
+  filter: { cycleId?: string; cycleParam?: string },
+  now: Date,
+): Promise<{ data: ReviewData; cycleId: string | undefined }> {
+  const head = await loadVideoHead(db, actor, { code }, filter.cycleParam);
+  const cycleId = filter.cycleId ?? head.filterCycleId ?? undefined;
+  const [detail, queue] = await Promise.all([
+    buildVideoDetail(db, actor, head, { activity: false }),
+    getReviewQueue(db, actor, { cycleId }),
+  ]);
   const { video, latestVersion: latest } = detail;
   if (!detail.currentBody) throw new DomainError('NOT_FOUND', 'Scénář zatím nemá žádný obsah.');
 
-  const [{ hookTypeLabels, ...meta }, queue, userRows, lookups] = await Promise.all([
-    buildScriptMeta(db, detail),
-    getReviewQueue(db, actor, filters),
-    db.select({ id: s.users.id, name: s.users.name }).from(s.users).orderBy(asc(s.users.name)),
-    db.select().from(s.lookupItems),
-  ]);
-
-  const decisionRows = await loadDecisionRows(db, detail.versions.map((v) => v.id));
-
+  const { hookTypeLabels, ...meta } = buildScriptMeta(detail);
+  const userRows = detail.refs.users.map((u) => ({ id: u.id, name: u.name }));
   const userName = new Map(userRows.map((u) => [u.id, u.name]));
   const versionNoById = new Map(detail.versions.map((v) => [v.id, v.versionNo]));
 
   const threads = toThreadVMs(detail, versionNoById);
+  const versions = toVersionVMs(detail, detail.allDecisions, userName);
 
-  const versions = toVersionVMs(detail, decisionRows, userName);
-
-  const categories = new Map(lookups.filter((l) => l.kind === 'category').map((l) => [l.key, l]));
+  const categories = new Map(detail.refs.lookups.filter((l) => l.kind === 'category').map((l) => [l.key, l]));
   const queueVM: QueueItemVM[] = queue.map((item) => {
     const category = item.categoryKey ? categories.get(item.categoryKey) : undefined;
     return {
@@ -269,21 +261,18 @@ export async function loadReview(
   const status = statusOf(video);
 
   let cycle: ReviewData['cycle'] = null;
-  if (video.cycleId) {
-    const [row] = await db.select().from(s.shootingCycles).where(eq(s.shootingCycles.id, video.cycleId));
-    const [settings] = await db.select().from(s.settings).where(eq(s.settings.id, 'global'));
-    if (row) {
-      const deadline = row.shootDate ? minusDays(row.shootDate, settings?.approvalDaysBefore ?? 7) : null;
-      cycle = {
-        id: row.id,
-        shootDate: row.shootDate,
-        deadline,
-        daysToDeadline: deadline ? daysUntil(dayAtNoon(deadline), now) : null,
-      };
-    }
+  const row = detail.refs.cycle;
+  if (row) {
+    const deadline = row.shootDate ? minusDays(row.shootDate, detail.refs.approvalDaysBefore) : null;
+    cycle = {
+      id: row.id,
+      shootDate: row.shootDate,
+      deadline,
+      daysToDeadline: deadline ? daysUntil(dayAtNoon(deadline), now) : null,
+    };
   }
 
-  return {
+  const data: ReviewData = {
     nowIso: now.toISOString(),
     actor: { id: actor.id, name: actor.name },
     video: { id: video.id, code: video.code, title: video.title, status },
@@ -311,6 +300,7 @@ export async function loadReview(
     users: userRows.filter((u) => u.id !== actor.id),
     lastSeenVersionNo: detail.lastSeenVersionNo,
   };
+  return { data, cycleId };
 }
 
 /** `?cyklus=` if it names an existing cycle, otherwise no filter. */

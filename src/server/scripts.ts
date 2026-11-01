@@ -1,6 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
 import type { Db } from '@/db/client';
-import * as s from '@/db/schema';
 import type { RuleConfig } from '@/domain/checks/rules';
 import type { CheckResult } from '@/domain/checks/runChecks';
 import { can } from '@/domain/policy/can';
@@ -9,13 +7,12 @@ import type { ScriptBody } from '@/domain/script/types';
 import { canSubmit, isAwaitingDecision, type ApprovalStatus } from '@/domain/workflow/approval';
 import type { ScriptMeta } from '@/app/(app)/_components/script-view/types';
 import type { Actor } from './actor';
-import { loadRules } from './checkContext';
-import { DomainError } from './errors';
+import { rulesFrom } from './checkContext';
+import { buildEditorOptions, cyclesAndSeries, type EditorOptions } from './editorOptions';
 import { statusOf } from './loaders';
-import { getVideoDetail } from './queries';
+import { buildVideoDetail, loadVideoHead } from './queries';
 import {
   approvalProgress,
-  loadDecisionRows,
   reviewPerms,
   toThreadVMs,
   toVersionVMs,
@@ -92,6 +89,8 @@ export interface ScriptPageData {
   perms: ReviewData['perms'];
   actions: ScriptActions;
   values: EditorValues;
+  /** Picker options, only when loaded with `options: true`. */
+  options?: EditorOptions;
   /** What the editor needs to run the checks on the draft in the browser. */
   checkInput: {
     rules: RuleConfig[];
@@ -101,24 +100,32 @@ export interface ScriptPageData {
   };
 }
 
-export async function loadScriptPage(db: Db, actor: Actor, code: string, now: Date): Promise<ScriptPageData> {
-  const [found] = await db.select({ id: s.videos.id }).from(s.videos).where(eq(s.videos.code, code));
-  if (!found) throw new DomainError('NOT_FOUND', 'Scénář nenalezen.');
-
-  const detail = await getVideoDetail(db, actor, found.id);
+/**
+ * The script page in 6-7 queries (head, then the script's rows in parallel). The editor passes
+ * `activity: false` and `options: true`: it needs the pickers but not the activity feed.
+ */
+export async function loadScriptPage(
+  db: Db,
+  actor: Actor,
+  code: string,
+  now: Date,
+  opts: { activity?: boolean; options?: boolean } = {},
+): Promise<ScriptPageData> {
+  const head = await loadVideoHead(db, actor, { code });
+  const [detail, extra] = await Promise.all([
+    buildVideoDetail(db, actor, head, { activity: opts.activity }),
+    opts.options ? cyclesAndSeries(db) : Promise.resolve(null),
+  ]);
   const { video, latestVersion: latest } = detail;
   const status = statusOf(video);
   const owner = { ownerId: video.ownerId };
   const body = detail.currentBody ?? emptyScript();
   const draft = detail.draft ?? body;
 
-  const [{ hookTypeLabels, ...meta }, userRows, decisionRows, rules, lookups] = await Promise.all([
-    buildScriptMeta(db, detail),
-    db.select({ id: s.users.id, name: s.users.name }).from(s.users).orderBy(asc(s.users.name)),
-    loadDecisionRows(db, detail.versions.map((v) => v.id)),
-    loadRules(db),
-    db.select().from(s.lookupItems),
-  ]);
+  const { lookups } = detail.refs;
+  const rules = rulesFrom(lookups);
+  const { hookTypeLabels, ...meta } = buildScriptMeta(detail);
+  const userRows = detail.refs.users.map((u) => ({ id: u.id, name: u.name }));
   const userName = new Map(userRows.map((u) => [u.id, u.name]));
 
   const personHashtags: Record<string, string> = {};
@@ -161,7 +168,7 @@ export async function loadScriptPage(db: Db, actor: Actor, code: string, now: Da
     bodies: Object.fromEntries(detail.versions.map((v) => [v.versionNo, v.body])),
     meta,
     hookTypeLabels,
-    versions: toVersionVMs(detail, decisionRows, userName),
+    versions: toVersionVMs(detail, detail.allDecisions, userName),
     threads: toThreadVMs(detail, new Map(detail.versions.map((v) => [v.id, v.versionNo]))),
     numberChecks: detail.numberChecks.map((n) => ({
       ...n,
@@ -193,6 +200,7 @@ export async function loadScriptPage(db: Db, actor: Actor, code: string, now: Da
       intent: video.intent,
       mainIdea: video.mainIdea,
     },
+    options: extra ? buildEditorOptions(lookups, detail.refs.users, extra) : undefined,
     checkInput: { rules, personHashtags, formatStatuses, manualChecks: latest ? (video.manualChecks?.[latest.id] ?? {}) : {} },
   };
 }

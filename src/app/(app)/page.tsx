@@ -1,6 +1,5 @@
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
-import { loadEditorOptions } from '@/server/editorOptions';
 import { getDashboard } from '@/server/queries';
 import { TopBar } from '@/ui/TopBar';
 import { ActionCard, CommentsCard, Kanban, PhaseThreeCard, ShootCard } from './_components/dashboard/Dashboard';
@@ -13,7 +12,7 @@ export default async function HomePage() {
   const actor = await requireActor();
   const db = await getDb();
   const now = new Date();
-  const [data, options] = await Promise.all([getDashboard(db, actor, now), loadEditorOptions(db)]);
+  const data = await getDashboard(db, actor, now);
   return (
     <>
       <TopBar title={greeting(now, actor.name)} subtitle={dateLine(now, data.cycle?.daysToShoot ?? null)} size="display" />
@@ -24,7 +23,7 @@ export default async function HomePage() {
           <CommentsCard data={data} />
         </div>
         <PhaseThreeCard />
-        <Kanban data={data} categories={options.categories} />
+        <Kanban data={data} categories={data.categories} />
       </div>
     </>
   );

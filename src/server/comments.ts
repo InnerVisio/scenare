@@ -83,12 +83,15 @@ export async function createComment(db: Db, actor: Actor, input: CreateCommentIn
     const latest = await latestVersion(tx, video.id);
     if (latest) {
       if (input.versionId === null) throw new DomainError('VALIDATION', 'Chybí verze scénáře.');
-      const [known] = await tx
-        .select({ id: s.scriptVersions.id })
-        .from(s.scriptVersions)
-        .where(and(eq(s.scriptVersions.id, input.versionId), eq(s.scriptVersions.videoId, video.id)));
-      if (!known) throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
-      if (known.id !== latest.id) throw new DomainError('STALE', 'Mezitím vznikla nová verze.');
+      if (input.versionId !== latest.id) {
+        // Only a mismatch needs the extra lookup: an unknown id is NOT_FOUND, an older version is STALE.
+        const [known] = await tx
+          .select({ id: s.scriptVersions.id })
+          .from(s.scriptVersions)
+          .where(and(eq(s.scriptVersions.id, input.versionId), eq(s.scriptVersions.videoId, video.id)));
+        if (!known) throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
+        throw new DomainError('STALE', 'Mezitím vznikla nová verze.');
+      }
     } else if (input.versionId !== null) {
       throw new DomainError('NOT_FOUND', 'Verze nenalezena.');
     }

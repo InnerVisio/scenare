@@ -18,7 +18,7 @@ export default async function ScriptViewPreviewPage() {
   const detail = await getVideoDetail(db, actor, item.id);
   if (!detail.currentBody) notFound();
 
-  const { hookTypeLabels, ...meta } = await buildScriptMeta(db, detail);
+  const { hookTypeLabels, ...meta } = await buildScriptMeta(detail);
 
   const threads: AnchoredThread[] = detail.threads.map((t) => ({
     id: t.id,

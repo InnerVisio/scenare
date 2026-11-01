@@ -172,7 +172,7 @@ export function CommentCard({
             autoFocus
           />
           <div className="flex gap-2">
-            <Button type="submit" variant={mode === 'reply' ? 'primary' : 'danger'} disabled={busy || draft.trim() === ''}>
+            <Button type="submit" variant={mode === 'reply' ? 'primary' : 'danger'} pending={busy} disabled={draft.trim() === ''}>
               {mode === 'reply' ? 'Odeslat odpověď' : 'Odmítnout návrh'}
             </Button>
             <Button
@@ -197,26 +197,26 @@ export function CommentCard({
           )}
           {pendingSuggestion && perms.decideSuggestion && (
             <>
-              <Button variant="approve" disabled={busy} onClick={() => void run(() => actions.accept(thread.id))}>
+              <Button variant="approve" pending={busy} onClick={() => void run(() => actions.accept(thread.id))}>
                 Přijmout
               </Button>
-              <Button variant="outline" disabled={busy} onClick={() => setMode('reject')}>
+              <Button variant="outline" pending={busy} onClick={() => setMode('reject')}>
                 Odmítnout
               </Button>
             </>
           )}
           {thread.status === 'open' && !pendingSuggestion && perms.address && (
-            <Button variant="outline" disabled={busy} onClick={() => void run(() => actions.address(thread.id))}>
+            <Button variant="outline" pending={busy} onClick={() => void run(() => actions.address(thread.id))}>
               Zapracováno
             </Button>
           )}
           {thread.status !== 'closed' && perms.close && (
-            <Button variant="primary" disabled={busy} onClick={() => void run(() => actions.close(thread.id))}>
+            <Button variant="primary" pending={busy} onClick={() => void run(() => actions.close(thread.id))}>
               Uzavřít
             </Button>
           )}
           {thread.status !== 'open' && perms.reopen && (
-            <Button variant="outline" disabled={busy} onClick={() => void run(() => actions.reopen(thread.id))}>
+            <Button variant="outline" pending={busy} onClick={() => void run(() => actions.reopen(thread.id))}>
               Znovu otevřít
             </Button>
           )}

@@ -1,6 +1,5 @@
 import { getDb } from '@/db/client';
 import { formatRelative } from '@/domain/format/date';
-import { listNotifications } from '@/server/queries';
 import { loadShellData } from '@/server/shell';
 import { requireActor } from '@/server/auth/session';
 import { ROLE_LABELS } from '@/ui/roles';
@@ -13,14 +12,14 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   const actor = await requireActor();
   const db = await getDb();
   const now = new Date();
-  const [shell, notifications] = await Promise.all([loadShellData(db, actor, now), listNotifications(db, actor, { limit: 10 })]);
+  const shell = await loadShellData(db, actor, now);
 
   return (
     <ShellProvider
       value={{
         user: { name: shell.user.name, initials: shell.user.initials, roleLabel: ROLE_LABELS[shell.user.role] },
         unread: shell.unread,
-        notifications: notifications.map((n) => ({
+        notifications: shell.notifications.map((n) => ({
           id: n.id,
           text: n.text,
           href: n.href,

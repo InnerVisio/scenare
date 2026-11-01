@@ -87,7 +87,7 @@ export function DetailActions({
       {actions.unlock && (
         <Button
           variant="primary"
-          disabled={busy}
+          pending={busy}
           onClick={async () => {
             if (await perform(unlockScriptAction({ videoId }))) router.push(`/scenare/${code}/upravit`);
           }}
@@ -110,7 +110,7 @@ export function DetailActions({
       {actions.restore && (
         <Button
           variant="primary"
-          disabled={busy}
+          pending={busy}
           onClick={async () => {
             if (await perform(lifecycleAction({ videoId, action: 'restore' }))) {
               toast('Scénář obnoven');
@@ -133,7 +133,7 @@ export function DetailActions({
               <Button
                 variant="ghost"
                 className="justify-start"
-                disabled={busy}
+                pending={busy}
                 onClick={async () => {
                   const result = await perform(duplicateEpisodeAction({ videoId }));
                   if (result) {
@@ -186,10 +186,10 @@ export function DetailActions({
             </p>
           )}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={close} disabled={busy}>
+            <Button variant="outline" onClick={close} pending={busy}>
               Zpět
             </Button>
-            <Button type="submit" variant={dialog === 'cancel' ? 'danger' : 'primary'} disabled={busy}>
+            <Button type="submit" variant={dialog === 'cancel' ? 'danger' : 'primary'} pending={busy}>
               {dialog === 'cancel' ? 'Zrušit scénář' : 'Odložit'}
             </Button>
           </div>

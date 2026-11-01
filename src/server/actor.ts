@@ -8,10 +8,11 @@ export interface Actor {
   id: string;
   role: Role;
   name: string;
+  initials?: string;
 }
 
 export async function loadActor(db: Db, userId: string): Promise<Actor> {
   const [user] = await db.select().from(s.users).where(eq(s.users.id, userId));
   if (!user) throw new DomainError('NOT_FOUND', 'Uživatel nenalezen.');
-  return { id: user.id, role: user.role, name: user.name };
+  return { id: user.id, role: user.role, name: user.name, initials: user.initials };
 }

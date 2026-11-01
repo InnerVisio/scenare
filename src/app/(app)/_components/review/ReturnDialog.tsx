@@ -54,10 +54,10 @@ export function ReturnDialog({
           </p>
         )}
         <div className="mt-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={onCancel} disabled={busy}>
+          <Button variant="outline" onClick={onCancel} pending={busy}>
             Zrušit
           </Button>
-          <Button type="submit" variant="danger" disabled={busy || missing}>
+          <Button type="submit" variant="danger" pending={busy} disabled={missing}>
             Vrátit k dopracování
           </Button>
         </div>

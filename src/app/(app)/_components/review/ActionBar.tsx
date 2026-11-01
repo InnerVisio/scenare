@@ -48,7 +48,7 @@ export function ActionBar({
       <Button
         variant="danger"
         onClick={onReturn}
-        disabled={busy}
+        pending={busy}
         title="Vrátit k dopracování (R)"
         className={cn(fixed && 'min-h-14 flex-1 px-4 text-lg')}
       >
@@ -58,7 +58,7 @@ export function ActionBar({
       <Button
         variant="approve"
         onClick={onApprove}
-        disabled={busy || line.actorApproved}
+        pending={busy} disabled={line.actorApproved}
         title="Schválit (A)"
         className={cn(fixed && 'min-h-14 flex-[1.4] px-4 text-lg')}
       >

@@ -103,7 +103,7 @@ function ParamsSection({ settings }: { settings: SettingsValue }) {
           </Field>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={save.pending}>
+          <Button type="submit" pending={save.pending}>
             Uložit parametry
           </Button>
           <Status status={save.status} />
@@ -147,7 +147,7 @@ function CyclesSection({ cycles }: { cycles: CycleRow[] }) {
         </tbody>
       </table>
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" disabled={save.pending} onClick={() => save.run(() => addCycle())}>
+        <Button variant="outline" pending={save.pending} onClick={() => save.run(() => addCycle())}>
           <Plus aria-hidden className="size-5" />
           Přidat další měsíc
         </Button>
@@ -269,7 +269,7 @@ function LookupEditor({ kind, initial, fields }: { kind: string; initial: Lookup
           <Plus aria-hidden className="size-5" />
           Přidat položku
         </Button>
-        <Button disabled={save.pending} onClick={submit}>
+        <Button pending={save.pending} onClick={submit}>
           Uložit
         </Button>
         <Status status={save.status} />
@@ -335,7 +335,7 @@ function RulesSection({ rules }: { rules: LookupRowValue[] }) {
       </ul>
       <div className="flex flex-wrap items-center gap-3">
         <Button
-          disabled={save.pending}
+          pending={save.pending}
           onClick={() =>
             save.run(() =>
               saveLookups({ items: rows.map((r) => ({ kind: 'check_rule', key: r.key, label: r.label, sortOrder: r.sortOrder, archived: r.archived, data: r.data })) }),
@@ -390,7 +390,7 @@ function UserRow({ initial }: { initial: UserValue }) {
         <TextInput className="bg-card" value={u.initials} maxLength={3} onChange={(e) => setU({ ...u, initials: e.target.value })} />
       </Field>
       <div className="flex flex-wrap items-center gap-3 md:col-span-4">
-        <Button type="submit" variant="outline" disabled={save.pending}>
+        <Button type="submit" variant="outline" pending={save.pending}>
           Uložit uživatele
         </Button>
         <Status status={save.status} />

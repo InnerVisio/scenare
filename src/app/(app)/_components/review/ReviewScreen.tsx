@@ -48,7 +48,7 @@ import {
 } from './model';
 import { useIsDesktop } from './useIsDesktop';
 
-const REFRESH_MS = 10_000;
+const REFRESH_MS = 30_000;
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;

@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getDb } from '@/db/client';
 import * as s from '@/db/schema';
 import { createSession } from '@/server/auth/session';
+import { UserButton } from './UserButton';
 
 export const metadata = { title: 'Vývojové přihlášení – GTA Scénáře' };
 export const dynamic = 'force-dynamic';
@@ -39,13 +40,10 @@ export default async function DevLoginPage() {
             <li key={user.id}>
               <form action={loginAs}>
                 <input type="hidden" name="userId" value={user.id} />
-                <button
-                  type="submit"
-                  className="flex min-h-16 w-full flex-col items-start justify-center rounded-card bg-card px-6 py-3 text-left hover:bg-nest focus:outline-none focus:ring-2 focus:ring-violet"
-                >
+                <UserButton>
                   <span className="text-h2">{user.name}</span>
                   <span className="text-text2">{ROLE_LABELS[user.role]}</span>
-                </button>
+                </UserButton>
               </form>
             </li>
           ))}

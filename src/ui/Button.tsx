@@ -36,16 +36,26 @@ function content(variant: ButtonVariant | undefined, children: ReactNode) {
   );
 }
 
+/** `pending`: a server call is running; the button is disabled at once and shows „…“. */
 export function Button({
   variant = 'primary',
   className,
   children,
   type = 'button',
+  pending = false,
+  disabled,
   ...props
-}: Shared & ButtonHTMLAttributes<HTMLButtonElement>) {
+}: Shared & ButtonHTMLAttributes<HTMLButtonElement> & { pending?: boolean }) {
   return (
-    <button type={type} className={buttonClasses(variant, className)} {...props}>
+    <button
+      type={type}
+      className={buttonClasses(variant, className)}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      {...props}
+    >
       {content(variant, children)}
+      {pending && <span aria-hidden>…</span>}
     </button>
   );
 }

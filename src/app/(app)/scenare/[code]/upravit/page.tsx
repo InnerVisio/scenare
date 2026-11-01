@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
-import { loadEditorOptions } from '@/server/editorOptions';
 import { DomainError } from '@/server/errors';
 import { loadScriptPage } from '@/server/scripts';
 import { ScriptEditor } from '../../../_components/editor/ScriptEditor';
@@ -17,17 +16,18 @@ export default async function EditScriptPage({ params }: { params: Promise<{ cod
 
   let data;
   try {
-    data = await loadScriptPage(db, actor, decodeURIComponent(code).toUpperCase(), new Date());
+    data = await loadScriptPage(db, actor, decodeURIComponent(code).toUpperCase(), new Date(), { activity: false, options: true });
   } catch (error) {
     if (error instanceof URIError || (error instanceof DomainError && error.code === 'NOT_FOUND')) notFound();
     throw error;
   }
 
   if (data.actions.edit) {
-    return <ScriptEditor key={data.video.id} data={data} options={await loadEditorOptions(db)} />;
+    return <ScriptEditor key={data.video.id} data={data} options={data.options!} />;
   }
   // An approved script is locked: show it read-only with the button that unlocks it for the author.
   if (data.actions.unlock) {
+    data = await loadScriptPage(db, actor, data.video.code, new Date());
     return (
       <div className="flex flex-col gap-4">
         <p role="status" className="rounded-card bg-apricot-soft px-5 py-4 text-apricot-ink">

@@ -157,6 +157,7 @@ export function Composer({
         />
         <button
           type="submit"
+          aria-busy={busy || undefined}
           disabled={!canSend}
           aria-label="Odeslat"
           className={cn(
