@@ -1,11 +1,14 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
+import * as s from '@/db/schema';
+import { formatDate } from '@/domain/format/date';
 import { can } from '@/domain/policy/can';
 import { requireActor } from '@/server/auth/session';
 import { getDashboard } from '@/server/queries';
 import { Card } from '@/ui/Card';
 import { EmptyState } from '@/ui/EmptyState';
 import { TopBar } from '@/ui/TopBar';
+import { TestMailButton } from './TestMailButton';
 
 export const metadata = { title: 'Diagnostika – GTA Scénáře' };
 export const dynamic = 'force-dynamic';
@@ -42,6 +45,7 @@ export default async function DiagnosticsPage() {
   const pings: number[] = [];
   for (let i = 0; i < 3; i++) pings.push(await timed(() => db.execute(sql`select 1`)));
   const dashboardMs = await timed(() => getDashboard(db, actor, new Date()));
+  const [dailyRun] = await db.select().from(s.jobRuns).where(eq(s.jobRuns.key, 'daily'));
 
   const rows: [string, string][] = [
     ['Region funkce (Vercel)', process.env.VERCEL_REGION ?? 'lokálně'],
@@ -49,6 +53,9 @@ export default async function DiagnosticsPage() {
     ['Připojení k databázi', `${connectMs} ms`],
     ['Jeden dotaz (3×)', pings.map((ms) => `${ms} ms`).join(' · ')],
     ['Načtení nástěnky', `${dashboardMs} ms`],
+    ['E-maily', process.env.RESEND_API_KEY ? 'Resend zapnutý' : 'jen testovací výpis (chybí RESEND_API_KEY)'],
+    ['Plánovač', `CRON_SECRET nastaven: ${process.env.CRON_SECRET ? 'ano' : 'ne'}`],
+    ['Poslední denní souhrn', dailyRun ? formatDate(new Date(`${dailyRun.ranOn}T12:00:00Z`)) : 'zatím neběžel'],
   ];
   return (
     <>
@@ -62,6 +69,9 @@ export default async function DiagnosticsPage() {
             </div>
           ))}
         </dl>
+        <div className="mt-6">
+          <TestMailButton />
+        </div>
       </Card>
     </>
   );

@@ -257,7 +257,16 @@ export const notifications = pgTable('notifications', {
     .notNull()
     .references(() => activityLog.id),
   readAt: timestamp('read_at', { withTimezone: true }),
+  /** When the notification went out in an e-mail digest (or was skipped because it was read / e-mail is off). */
+  emailedAt: timestamp('emailed_at', { withTimezone: true }),
   createdAt: createdAt(),
+});
+
+/** Once-a-day guards for scheduled jobs; `ranOn` is the Prague calendar day (YYYY-MM-DD). */
+export const jobRuns = pgTable('job_runs', {
+  key: text('key').primaryKey(),
+  ranOn: text('ran_on').notNull(),
+  ranAt: timestamp('ran_at', { withTimezone: true }).notNull(),
 });
 
 export const publications = pgTable('publications', {

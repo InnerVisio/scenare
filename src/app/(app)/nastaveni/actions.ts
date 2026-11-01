@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { sendTestMail } from '@/server/notify/testMail';
 import { addNextCycle, updateSettings, upsertLookups, upsertUser } from '@/server/settings';
 import { runAction } from '../_actions/run';
 
@@ -34,6 +35,7 @@ const userSchema = z.object({
   email: z.string().max(200),
   role: z.enum(['admin', 'marketer', 'leadership', 'production']),
   initials: z.string().max(10),
+  notifyEmail: z.boolean().optional(),
 });
 
 export async function saveSettings(input: unknown) {
@@ -50,4 +52,8 @@ export async function saveUser(input: unknown) {
 
 export async function addCycle() {
   return runAction({}, z.object({}), (db, actor, _input, now) => addNextCycle(db, actor, now));
+}
+
+export async function sendTestMailToMe() {
+  return runAction({}, z.object({}), (db, actor, _input, now) => sendTestMail(db, actor, now), { revalidate: false });
 }

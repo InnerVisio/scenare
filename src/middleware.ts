@@ -4,7 +4,13 @@ import { authSecret, SESSION_COOKIE, verifySession } from '@/server/auth/jwt';
 const PUBLIC_PATHS = ['/login', '/dev-login'];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname) || pathname === '/auth' || pathname.startsWith('/auth/');
+  return (
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname === '/auth' ||
+    pathname.startsWith('/auth/') ||
+    // The scheduler authenticates with its own bearer secret.
+    pathname.startsWith('/api/cron/')
+  );
 }
 
 export async function middleware(request: NextRequest) {

@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { newId } from '@/domain/ids';
@@ -127,15 +127,18 @@ export interface UserRow {
   email: string;
   role: Role;
   initials: string;
+  /** E-mail notifications on (`notifyPrefs.email`). */
+  notifyEmail: boolean;
 }
 
-export interface UserInput extends Omit<UserRow, 'id'> {
+export interface UserInput extends Omit<UserRow, 'id' | 'notifyEmail'> {
   id?: string;
+  notifyEmail?: boolean;
 }
 
 export async function listUsers(db: Db): Promise<UserRow[]> {
   const rows = await db.select().from(s.users).orderBy(asc(s.users.name));
-  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, initials: u.initials }));
+  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, initials: u.initials, notifyEmail: u.notifyPrefs.email !== false }));
 }
 
 export async function upsertUser(db: Db, actor: Actor, input: UserInput, now: Date): Promise<{ id: string }> {
@@ -154,12 +157,18 @@ export async function upsertUser(db: Db, actor: Actor, input: UserInput, now: Da
   if (taken && taken.id !== input.id) throw invalid('Tenhle e-mail už používá jiný uživatel.');
 
   if (input.id) {
-    const updated = await db.update(s.users).set(values).where(eq(s.users.id, input.id)).returning({ id: s.users.id });
+    const notifyPrefs =
+      input.notifyEmail === undefined ? {} : { notifyPrefs: sql`${s.users.notifyPrefs} || ${JSON.stringify({ email: input.notifyEmail })}::jsonb` };
+    const updated = await db
+      .update(s.users)
+      .set({ ...values, ...notifyPrefs })
+      .where(eq(s.users.id, input.id))
+      .returning({ id: s.users.id });
     if (updated.length === 0) throw new DomainError('NOT_FOUND', 'Uživatel nenalezen.');
     return { id: input.id };
   }
   const id = newId();
-  await db.insert(s.users).values({ id, ...values });
+  await db.insert(s.users).values({ id, ...values, notifyPrefs: { email: input.notifyEmail ?? true } });
   return { id };
 }
 

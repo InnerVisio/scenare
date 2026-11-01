@@ -43,7 +43,8 @@ Vzor je v `.env.example`.
 | `AUTH_SECRET` | Tajný klíč pro relace a přihlašovací odkazy, min. 32 znaků. |
 | `APP_URL` | Veřejná adresa aplikace pro odkazy v e-mailech. Na Vercelu se odvodí automaticky, nastav ji jen pro vlastní doménu. |
 | `RESEND_API_KEY` | Klíč k Resendu pro odesílání e-mailů. Bez něj se e-maily jen vypisují do konzole. |
-| `MAIL_FROM` | Odesílatel e-mailů, např. `Scénáře <scenare@example.com>`. |
+| `MAIL_FROM` | Odesílatel e-mailů, např. `Scénáře <scenare@example.com>`; doména musí být ověřená v Resendu. |
+| `CRON_SECRET` | Tajný klíč pro `/api/cron/tick` (plánovač e-mailů z GitHub Actions). Bez něj vrací 503. |
 | `ALLOW_DEV_LOGIN` | `1` zapne `/dev-login`. V produkci nesmí být zapnuté. |
 | `SEED_DEMO` | `1` při Vercel buildu po migraci nahraje ukázková data (seed je idempotentní a nepřepisuje úpravy). |
 
@@ -51,6 +52,7 @@ Vzor je v `.env.example`.
 
 1. Naimportuj repozitář do Vercelu a připoj Neon (Storage / Marketplace), který nastaví `DATABASE_URL` a `DATABASE_URL_UNPOOLED`.
 2. Nastav `AUTH_SECRET`, případně `RESEND_API_KEY`, `MAIL_FROM` a pro vlastní doménu `APP_URL`.
-3. Při každém buildu (`vercel-build`) se nejdřív spustí migrace databáze, volitelně seed (`SEED_DEMO=1`) a pak `next build`.
+3. Pro e-maily nastav i `CRON_SECRET` a v GitHubu repozitářové secrets `APP_URL` (např. `https://scenare.vercel.app`) a `CRON_SECRET` (stejná hodnota), viz docs.
+4. Při každém buildu (`vercel-build`) se nejdřív spustí migrace databáze, volitelně seed (`SEED_DEMO=1`) a pak `next build`.
 
 Podrobný postup: [docs/nasazeni-vercel.md](docs/nasazeni-vercel.md).

@@ -47,6 +47,8 @@ export async function verifySession(jwt: string, secret: string, now: Date): Pro
   if (!jwt) return null;
   try {
     const { payload } = await jwtVerify(jwt, key(secret), { algorithms: ['HS256'], currentDate: now });
+    // Tokens with a purpose (deep links) are not sessions.
+    if (payload.purpose !== undefined) return null;
     return typeof payload.sub === 'string' && payload.sub ? { userId: payload.sub } : null;
   } catch {
     return null;

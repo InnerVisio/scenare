@@ -84,3 +84,10 @@ const isoDayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, 
 export function pragueDay(d: Date): string {
   return isoDayFormatter.format(d);
 }
+
+const hourFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, hour: '2-digit', hourCycle: 'h23' });
+
+/** Hour of the day (0–23) in Europe/Prague. */
+export function pragueHour(d: Date): number {
+  return Number(parts(hourFormatter, d).hour);
+}

@@ -358,6 +358,7 @@ interface UserValue {
   email: string;
   role: Role;
   initials: string;
+  notifyEmail?: boolean;
 }
 
 function UserRow({ initial }: { initial: UserValue }) {
@@ -389,6 +390,15 @@ function UserRow({ initial }: { initial: UserValue }) {
       <Field label="Iniciály">
         <TextInput className="bg-card" value={u.initials} maxLength={3} onChange={(e) => setU({ ...u, initials: e.target.value })} />
       </Field>
+      <label className="flex min-h-12 items-center gap-3 font-semibold md:col-span-4">
+        <input
+          type="checkbox"
+          className="size-6 accent-violet"
+          checked={u.notifyEmail !== false}
+          onChange={(e) => setU({ ...u, notifyEmail: e.target.checked })}
+        />
+        Posílat e-maily
+      </label>
       <div className="flex flex-wrap items-center gap-3 md:col-span-4">
         <Button type="submit" variant="outline" pending={save.pending}>
           Uložit uživatele
