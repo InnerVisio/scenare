@@ -32,12 +32,12 @@ test.describe('app shell', () => {
   });
 
   test('placeholder page, cycle picker and navigation', async ({ page }, info) => {
-    await page.goto('/serie');
+    await page.goto('/nataceni');
     await expect(page.getByText('Připravujeme')).toBeVisible();
     await page.getByRole('button', { name: /Cyklus/ }).click();
     await page.getByRole('list', { name: 'Cyklus' }).getByRole('button', { name: 'Cyklus 2026–11' }).click();
     await expect(page.getByRole('button', { name: /Cyklus:/ })).toBeFocused();
-    await expect(page).toHaveURL(/\/serie\?.*cyklus=2026-11/);
+    await expect(page).toHaveURL(/\/nataceni\?.*cyklus=2026-11/);
     await expectNoHorizontalScroll(page);
     if (info.project.name === 'mobile') {
       await page.getByRole('button', { name: 'Více' }).click();

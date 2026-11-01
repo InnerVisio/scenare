@@ -26,6 +26,10 @@ function versionSuffix(after: Record<string, unknown> | null): string {
   return typeof no === 'number' ? ` v${no}` : '';
 }
 
+function seriesCode(after: Record<string, unknown> | null): string {
+  return typeof after?.code === 'string' ? after.code : 'série';
+}
+
 /**
  * Czech sentence and link for one activity row.
  * `names` maps user ids to display names; `viewer` is the person reading it (leadership is sent to
@@ -108,9 +112,20 @@ export function describeActivity(
     case 'reference.removed':
       text = `${who} odebral ukázku od ${code}`;
       break;
+    case 'series.created':
+      text = `${who} založil sérii ${seriesCode(after)}`;
+      break;
+    case 'series.updated':
+      text = `${who} upravil sérii ${seriesCode(after)}`;
+      break;
+    case 'series.closed':
+      text = `${who} uzavřel sérii ${seriesCode(after)}`;
+      break;
     default:
       text = `Změna ve ${code}`;
   }
+
+  if (row.action.startsWith('series.')) return { text, href: `/serie/${seriesCode(after)}` };
 
   if (!row.videoCode) return { text, href: '/' };
   const leadership = viewer?.role === 'leadership';

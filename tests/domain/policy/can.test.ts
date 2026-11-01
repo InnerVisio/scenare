@@ -20,6 +20,7 @@ const ACTIONS: Action[] = [
   'production.update',
   'reference.add',
   'reference.remove',
+  'series.manage',
 ];
 
 // Explicit expected matrix. Marketer's owner-bound actions are listed for the
@@ -46,6 +47,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'production.update': T,
     'reference.add': T,
     'reference.remove': T, // as the author of the sample
+    'series.manage': T,
   },
   leadership: {
     'script.create': F,
@@ -66,6 +68,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'production.update': F,
     'reference.add': T,
     'reference.remove': T, // as the author of the sample
+    'series.manage': F,
   },
   marketer: {
     'script.create': T,
@@ -86,6 +89,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'production.update': F,
     'reference.add': T,
     'reference.remove': T, // as the author of the sample
+    'series.manage': F,
   },
   production: {
     'script.create': F,
@@ -106,6 +110,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'production.update': T,
     'reference.add': T,
     'reference.remove': T, // as the author of the sample
+    'series.manage': F,
   },
 };
 

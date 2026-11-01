@@ -18,7 +18,8 @@ export type Action =
   | 'settings.manage'
   | 'production.update'
   | 'reference.add'
-  | 'reference.remove';
+  | 'reference.remove'
+  | 'series.manage';
 
 const ALL_ACTIONS: readonly Action[] = [
   'script.create',
@@ -39,6 +40,7 @@ const ALL_ACTIONS: readonly Action[] = [
   'production.update',
   'reference.add',
   'reference.remove',
+  'series.manage',
 ];
 
 /** Admin never acts as an approver: those actions belong to leadership only. */

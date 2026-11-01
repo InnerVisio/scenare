@@ -6,7 +6,10 @@ import { createComment } from '@/server/comments';
 import { loadEditorOptions } from '@/server/editorOptions';
 import { loadReviewPage } from '@/server/review';
 import { loadScriptPage } from '@/server/scripts';
+import { loadSeriesDetail, loadSeriesList } from '@/server/series';
+import { listLookups } from '@/server/settings';
 import { loadShellData } from '@/server/shell';
+import { leadershipUsers } from '@/server/loaders';
 import { loadActor, type Actor } from '@/server/actor';
 import { createVideo, saveDraft, submitForReview } from '@/server/videos';
 import { COMPLETE_META, createSubmitted, NOW, setupWorld, type World } from '../server/helpers';
@@ -52,6 +55,12 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
       return listVideos(db, a, { cycleId: options.cycles[0]?.key });
     }),
     'scenare/[code]': await withLayout(async (a) => loadScriptPage(db, a, reviewCode, NOW)),
+    'serie (list)': await withLayout(async () => Promise.all([loadSeriesList(db), listLookups(db, 'category')])),
+    'serie/[code]': await withLayout(async () => {
+      const detail = await loadSeriesDetail(db, 'S01');
+      await Promise.all([listLookups(db, 'category'), leadershipUsers(db)]);
+      return detail;
+    }),
     'scenare/[code]/upravit': await withLayout(async (a) => {
       return loadScriptPage(db, a, reviewCode, NOW, { activity: false, options: true });
     }),

@@ -7,8 +7,8 @@ let w: World;
 beforeAll(async () => {
   w = await setupWorld();
   await w.db.insert(s.series).values([
-    { id: 'ser-b', code: 'S02', name: 'Druhá' },
-    { id: 'ser-a', code: 'S01', name: 'První' },
+    { id: 'ser-b', code: 'S92', name: 'Druhá' },
+    { id: 'ser-a', code: 'S91', name: 'První' },
   ]);
 });
 
@@ -37,8 +37,9 @@ describe('loadEditorOptions', () => {
     const o = await loadEditorOptions(w.db);
     expect(o.cycles).toEqual([{ key: '2026-11', label: 'Cyklus 2026–11' }]);
     expect(o.series.map((x) => [x.key, x.label])).toEqual([
-      ['ser-a', 'S01 · První'],
-      ['ser-b', 'S02 · Druhá'],
+      ['demo-series-s01', 'S01 · Mýty o hypotékách'],
+      ['ser-a', 'S91 · První'],
+      ['ser-b', 'S92 · Druhá'],
     ]);
     expect(o.users.map((u) => u.label)).toEqual([...o.users.map((u) => u.label)].sort((a, b) => a.localeCompare(b, 'cs')));
     expect(o.users.map((u) => u.label)).toContain('Honza');

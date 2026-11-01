@@ -658,5 +658,31 @@ export async function seedDemo(db: Db): Promise<void> {
         },
       ])
       .onConflictDoNothing();
+
+    // One demo series with two of the demo scripts as its episodes (only those not in a series yet).
+    await tx
+      .insert(s.series)
+      .values({
+        id: 'demo-series-s01',
+        code: 'S01',
+        name: 'Mýty o hypotékách',
+        mainCategoryKey: 'produkt',
+        goal: 'Vyvrátit tři nejčastější mýty o hypotékách a přivést dotazy na poradenství.',
+        guarantorId: honza,
+        ownerId: admin,
+        plannedEpisodes: 3,
+        originalPlannedEpisodes: 3,
+        startDate: '2026-11-01',
+        expectedEnd: '2026-12-31',
+        note: 'UKÁZKA – série pro vyzkoušení obrazovky Série',
+        status: 'active',
+      })
+      .onConflictDoNothing();
+    for (const [episodeNo, code] of [[1, 'V028'], [2, 'V032']] as const) {
+      await tx
+        .update(s.videos)
+        .set({ seriesId: 'demo-series-s01', episodeNo })
+        .where(sql`${s.videos.code} = ${code} and ${s.videos.seriesId} is null`);
+    }
   });
 }
