@@ -56,6 +56,8 @@ export interface ScriptActions {
   restore: boolean;
   duplicate: boolean;
   openInReview: boolean;
+  /** Change the production status. */
+  production: boolean;
 }
 
 export interface ScriptPageData {
@@ -68,6 +70,7 @@ export interface ScriptPageData {
     status: ApprovalStatus;
     editingAfterApproval: boolean;
     lifecycleReason: string;
+    productionStatus: string;
     seriesId: string | null;
   };
   /** Latest version, or null before the first submit. */
@@ -152,6 +155,7 @@ export async function loadScriptPage(
     restore: can(actor, 'script.lifecycle', owner) && paused,
     duplicate: can(actor, 'script.create') && video.seriesId !== null,
     openInReview: can(actor, 'approval.decide') && isAwaitingDecision(status),
+    production: can(actor, 'production.update'),
   };
 
   return {
@@ -164,6 +168,7 @@ export async function loadScriptPage(
       status,
       editingAfterApproval: video.editingAfterApproval,
       lifecycleReason: video.lifecycleReason,
+      productionStatus: video.productionStatus,
       seriesId: video.seriesId,
     },
     latest: latest ? { id: latest.id, no: latest.versionNo } : null,

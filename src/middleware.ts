@@ -8,6 +8,8 @@ function isPublic(pathname: string): boolean {
     PUBLIC_PATHS.includes(pathname) ||
     pathname === '/auth' ||
     pathname.startsWith('/auth/') ||
+    // The shooting crew's read-only page; the signed link in the path is the credential.
+    pathname.startsWith('/stab/') ||
     // The scheduler authenticates with its own bearer secret.
     pathname.startsWith('/api/cron/')
   );

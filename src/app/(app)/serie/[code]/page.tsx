@@ -89,7 +89,7 @@ export default async function SeriesDetailPage({ params }: { params: Promise<{ c
             {series.closedAt ? `, ${formatDateTime(series.closedAt)}` : ''}.
           </p>
         ) : (
-          manage && <CloseSeries seriesId={series.id} canClose={metrics.canClose} reasons={metrics.reasons} />
+          can(actor, 'series.close') && <CloseSeries seriesId={series.id} canClose={metrics.canClose} reasons={metrics.reasons} />
         )}
       </Card>
 

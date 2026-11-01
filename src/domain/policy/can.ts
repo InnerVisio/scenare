@@ -19,7 +19,8 @@ export type Action =
   | 'production.update'
   | 'reference.add'
   | 'reference.remove'
-  | 'series.manage';
+  | 'series.manage'
+  | 'series.close';
 
 const ALL_ACTIONS: readonly Action[] = [
   'script.create',
@@ -41,6 +42,7 @@ const ALL_ACTIONS: readonly Action[] = [
   'reference.add',
   'reference.remove',
   'series.manage',
+  'series.close',
 ];
 
 /** Admin never acts as an approver: those actions belong to leadership only. */
@@ -60,6 +62,7 @@ const LEADERSHIP: ReadonlySet<Action> = new Set<Action>([
   'comment.close',
   'comment.reopen',
   'script.lifecycle',
+  'series.close',
 ]);
 
 const MARKETER_ALWAYS: ReadonlySet<Action> = new Set<Action>([

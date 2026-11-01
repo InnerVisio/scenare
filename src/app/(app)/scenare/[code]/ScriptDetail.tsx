@@ -13,6 +13,7 @@ import { VersionsPanel } from '../../_components/review/VersionsPanel';
 import { ReferenceBlock } from '../../_components/references/ReferenceList';
 import { ScriptView } from '../../_components/script-view/ScriptView';
 import { DetailActions } from './DetailActions';
+import { ProductionStatus } from './ProductionStatus';
 import { failingChecks, progressLine } from './detailModel';
 
 const sceneNumbers = (body: ScriptPageData['body']) => Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]));
@@ -81,6 +82,7 @@ export function ScriptDetail({ data }: { data: ScriptPageData }) {
           warnings={failingChecks(data.checks)}
           missing={data.submitMissing}
         />
+        {video.status === 'approved' && <ProductionStatus videoId={video.id} value={video.productionStatus} editable={actions.production} />}
       </header>
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">

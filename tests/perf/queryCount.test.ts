@@ -9,6 +9,8 @@ import { loadScriptPage } from '@/server/scripts';
 import { loadSeriesDetail, loadSeriesList } from '@/server/series';
 import { listLookups } from '@/server/settings';
 import { loadShellData } from '@/server/shell';
+import { loadCrewPackage, loadShootingDay } from '@/server/shooting';
+import { signCrewLink } from '@/server/auth/token';
 import { leadershipUsers } from '@/server/loaders';
 import { loadActor, type Actor } from '@/server/actor';
 import { createVideo, saveDraft, submitForReview } from '@/server/videos';
@@ -61,6 +63,8 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
       await Promise.all([listLookups(db, 'category'), leadershipUsers(db)]);
       return detail;
     }),
+    'nataceni (shooting day)': await withLayout(async () => loadShootingDay(db, '2026-11', NOW)),
+    'stab/[token] (no layout)': await measure(async () => loadCrewPackage(db, await signCrewLink('2026-11', 'perf-secret', NOW), 'perf-secret', NOW)),
     'scenare/[code]/upravit': await withLayout(async (a) => {
       return loadScriptPage(db, a, reviewCode, NOW, { activity: false, options: true });
     }),

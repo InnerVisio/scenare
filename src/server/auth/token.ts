@@ -44,3 +44,28 @@ export async function verifyDeepLink(jwt: string, secret: string, now: Date): Pr
     return null;
   }
 }
+
+export const CREW_LINK_DAYS = 14;
+const CREW_LINK_PURPOSE = 'crew';
+
+/** A 14-day read-only JWT for the shooting crew's page of one cycle. Has a purpose, so it is never a session. */
+export async function signCrewLink(cycleId: string, secret: string, now: Date): Promise<string> {
+  const issuedAt = Math.floor(now.getTime() / 1000);
+  return new SignJWT({ purpose: CREW_LINK_PURPOSE, cycleId })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt(issuedAt)
+    .setExpirationTime(issuedAt + CREW_LINK_DAYS * 24 * 60 * 60)
+    .sign(keyOf(secret));
+}
+
+/** Cycle of a valid crew link, otherwise null (other tokens, tampered or expired ones included). */
+export async function verifyCrewLink(jwt: string, secret: string, now: Date): Promise<{ cycleId: string } | null> {
+  if (!jwt) return null;
+  try {
+    const { payload } = await jwtVerify(jwt, keyOf(secret), { algorithms: ['HS256'], currentDate: now });
+    if (payload.purpose !== CREW_LINK_PURPOSE || typeof payload.cycleId !== 'string' || !payload.cycleId) return null;
+    return { cycleId: payload.cycleId };
+  } catch {
+    return null;
+  }
+}

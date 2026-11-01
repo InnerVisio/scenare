@@ -82,9 +82,9 @@ describe('closeSeries', () => {
     await expectDomainError(closeSeries(w.db, w.admin, id, NOW), 'VALIDATION', 'Publikace bez odkazu: 1.');
     await w.db.update(s.publications).set({ url: 'https://example.com/v' }).where(eq(s.publications.videoId, videoId));
 
-    await expectDomainError(closeSeries(w.db, w.honza, id, NOW), 'FORBIDDEN');
-    await closeSeries(w.db, w.admin, id, NOW);
-    expect(await getSeries(id)).toMatchObject({ status: 'closed', closedBy: w.admin.id, closedAt: NOW });
+    await expectDomainError(closeSeries(w.db, { ...w.admin, role: 'marketer' }, id, NOW), 'FORBIDDEN');
+    await closeSeries(w.db, w.honza, id, NOW); // leadership may close a series
+    expect(await getSeries(id)).toMatchObject({ status: 'closed', closedBy: w.honza.id, closedAt: NOW });
     const detail = await loadSeriesDetail(w.db, code);
     expect(detail.metrics.checks).toEqual([]);
     const log = await w.db.select().from(s.activityLog).where(eq(s.activityLog.entityId, id));

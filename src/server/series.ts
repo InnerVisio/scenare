@@ -162,7 +162,7 @@ export type EpisodeRow = Awaited<ReturnType<typeof episodeSelect>>[number];
 
 export async function closeSeries(db: Db, actor: Actor, id: string, now: Date): Promise<void> {
   await db.transaction(async (tx) => {
-    requireManage(actor);
+    if (!can(actor, 'series.close')) throw forbidden();
     const row = await loadSeriesRow(tx, id, true);
     if (row.status === 'closed') throw new DomainError('INVALID_TRANSITION', 'Série už je uzavřená.');
     const episodes = await episodeSelect(tx).where(eq(s.videos.seriesId, id));

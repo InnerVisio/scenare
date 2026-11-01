@@ -1,4 +1,5 @@
 import type { Role } from '@/domain/policy/can';
+import { PRODUCTION_STATUS_LABELS, type ProductionStatus } from '@/domain/workflow/production';
 
 export interface ActivityTextRow {
   action: string;
@@ -121,11 +122,19 @@ export function describeActivity(
     case 'series.closed':
       text = `${who} uzavřel sérii ${seriesCode(after)}`;
       break;
+    case 'production.status_changed':
+      text = `${who} změnil stav výroby ${code} na ${PRODUCTION_STATUS_LABELS[after?.status as ProductionStatus] ?? String(after?.status ?? '')}`;
+      break;
+    case 'shooting.crew_link':
+      text = `${who} vytvořil odkaz pro štáb (cyklus ${String(after?.cycleId ?? '')})`;
+      break;
     default:
       text = `Změna ve ${code}`;
   }
 
   if (row.action.startsWith('series.')) return { text, href: `/serie/${seriesCode(after)}` };
+
+  if (row.action === 'shooting.crew_link') return { text, href: `/nataceni?cyklus=${String(after?.cycleId ?? '')}` };
 
   if (!row.videoCode) return { text, href: '/' };
   const leadership = viewer?.role === 'leadership';
