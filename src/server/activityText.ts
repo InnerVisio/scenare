@@ -102,6 +102,12 @@ export function describeActivity(
     case 'number.confirmed':
       text = `${who} potvrdil číslo ve ${code}`;
       break;
+    case 'reference.added':
+      text = `${who} přidal ukázku k ${code}`;
+      break;
+    case 'reference.removed':
+      text = `${who} odebral ukázku od ${code}`;
+      break;
     default:
       text = `Změna ve ${code}`;
   }

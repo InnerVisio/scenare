@@ -18,6 +18,8 @@ const ACTIONS: Action[] = [
   'approval.decide',
   'settings.manage',
   'production.update',
+  'reference.add',
+  'reference.remove',
 ];
 
 // Explicit expected matrix. Marketer's owner-bound actions are listed for the
@@ -42,6 +44,8 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'approval.decide': F,
     'settings.manage': T,
     'production.update': T,
+    'reference.add': T,
+    'reference.remove': T, // as the author of the sample
   },
   leadership: {
     'script.create': F,
@@ -60,6 +64,8 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'approval.decide': T,
     'settings.manage': F,
     'production.update': F,
+    'reference.add': T,
+    'reference.remove': T, // as the author of the sample
   },
   marketer: {
     'script.create': T,
@@ -78,6 +84,8 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'approval.decide': F,
     'settings.manage': F,
     'production.update': F,
+    'reference.add': T,
+    'reference.remove': T, // as the author of the sample
   },
   production: {
     'script.create': F,
@@ -96,6 +104,8 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'approval.decide': F,
     'settings.manage': F,
     'production.update': T,
+    'reference.add': T,
+    'reference.remove': T, // as the author of the sample
   },
 };
 
@@ -163,5 +173,16 @@ describe('can: invariants', () => {
   });
   it('denies an unknown role', () => {
     expect(can({ id: 'u1', role: 'ghost' as Role }, 'comment.create')).toBe(false);
+  });
+});
+
+describe('can: reference.remove', () => {
+  it.each(['leadership', 'marketer', 'production'] as Role[])('%s may remove only a sample they added', (role) => {
+    expect(can(user(role), 'reference.remove', { ownerId: 'someone-else' })).toBe(false);
+    expect(can(user(role), 'reference.remove')).toBe(false);
+    expect(can(user(role), 'reference.remove', { ownerId: 'u1' })).toBe(true);
+  });
+  it('admin may remove any sample', () => {
+    expect(can(user('admin'), 'reference.remove', { ownerId: 'someone-else' })).toBe(true);
   });
 });

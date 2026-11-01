@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { getFieldText } from '@/domain/script/fields';
 import type { Hook, Line, Scene, ScriptBody } from '@/domain/script/types';
+import type { ReferenceVM } from '@/server/references';
 import { cn } from '@/ui/cn';
 import { DiffView } from './DiffView';
 import { FieldText, type FieldTone } from './FieldText';
@@ -32,6 +33,8 @@ export interface ScriptViewProps {
   /** Hook type key → label, for the „A · Problém v obraze“ card headers. */
   hookTypeLabels: Record<string, string>;
   activeCommentId?: string;
+  /** Samples; the ones bound to a scene get a „▶ ukázka“ link in that scene's header. */
+  references?: ReferenceVM[];
   /** Called (after the selection settles) with a valid anchor and the selection's viewport rectangle. */
   onSelectAnchor?: (anchor: NewAnchor, rect: DOMRect) => void;
   /** Called when there is no longer a usable selection, so the parent can hide its toolbar. */
@@ -47,6 +50,7 @@ export function ScriptView({
   threads,
   hookTypeLabels,
   activeCommentId,
+  references = [],
   onSelectAnchor,
   onSelectionClear,
   onAnchorClick,
@@ -193,10 +197,25 @@ export function ScriptView({
         <ol>
           {body.scenes.map((scene, i) => (
             <li key={scene.id} className="grid gap-x-6 gap-y-2 border-t border-ink/10 py-5 md:grid-cols-[88px_1fr]">
-              <p className="flex items-baseline justify-between text-sm font-semibold text-text2 md:block">
-                <span className="md:hidden">Scéna {i + 1}</span>
-                <span>{sceneTime(scene)}</span>
-              </p>
+              <div className="flex flex-col gap-1">
+                <p className="flex items-baseline justify-between text-sm font-semibold text-text2 md:block">
+                  <span className="md:hidden">Scéna {i + 1}</span>
+                  <span>{sceneTime(scene)}</span>
+                </p>
+                {references
+                  .filter((reference) => reference.sceneId === scene.id)
+                  .map((reference) => (
+                    <a
+                      key={reference.id}
+                      href={reference.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-12 w-fit items-center text-sm font-semibold text-violet underline-offset-2 hover:underline md:min-h-0"
+                    >
+                      ▶ ukázka
+                    </a>
+                  ))}
+              </div>
               <div className="flex min-w-0 flex-col gap-3">
                 {scene.visual && (
                   <p className="text-script break-words text-text2">

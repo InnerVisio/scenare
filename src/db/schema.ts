@@ -11,6 +11,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 import type { Anchor } from '@/domain/anchors/remap';
+import type { VideoReference } from '@/domain/references';
 import type { ScriptBody } from '@/domain/script/types';
 
 export type UserRole = 'admin' | 'marketer' | 'leadership' | 'production';
@@ -134,6 +135,8 @@ export const videos = pgTable(
     /** Version id → rule code → checked. */
     manualChecks: jsonb('manual_checks').$type<Record<string, Record<string, boolean>>>().notNull().default({}),
     lifecycleReason: text('lifecycle_reason').notNull().default(''),
+    /** Sample videos (links) for the team; not versioned, it is background, not script content. */
+    references: jsonb('references').$type<VideoReference[]>().notNull().default([]),
     isSample: boolean('is_sample').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

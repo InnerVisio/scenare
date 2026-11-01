@@ -25,6 +25,7 @@ export function SceneRow({
   threadsByField,
   dispatch,
   onOpenThread,
+  onAddReference,
 }: {
   scene: Scene;
   index: number;
@@ -36,6 +37,8 @@ export function SceneRow({
   threadsByField: Map<string, ThreadVM[]>;
   dispatch: Dispatch<BodyAction>;
   onOpenThread: (threadId: string) => void;
+  /** „+ ukázka“: jump to the samples form with this scene preselected. */
+  onAddReference: (sceneId: string) => void;
 }) {
   const seconds = (key: 'fromSec' | 'toSec', label: string) => (
     <Field label={label} className="w-24">
@@ -101,6 +104,10 @@ export function SceneRow({
       <Button variant="outline" className="w-fit" onClick={() => dispatch({ type: 'addLine', sceneId: scene.id })}>
         <Plus aria-hidden className="size-4" />
         Replika
+      </Button>
+      <Button variant="ghost" className="w-fit" onClick={() => onAddReference(scene.id)}>
+        <Plus aria-hidden className="size-4" />
+        ukázka
       </Button>
     </section>
   );

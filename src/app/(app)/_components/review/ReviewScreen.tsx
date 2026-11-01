@@ -23,6 +23,7 @@ import type { ReviewData } from '@/server/review';
 import { Button } from '@/ui/Button';
 import { Tabs } from '@/ui/Tabs';
 import { cn, focusRing } from '@/ui/cn';
+import { ReferenceBlock } from '../references/ReferenceList';
 import { ScriptView } from '../script-view/ScriptView';
 import { SelectionToolbar } from '../script-view/SelectionToolbar';
 import type { AnchoredThread, NewAnchor, ScriptViewMode } from '../script-view/types';
@@ -432,6 +433,12 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
             />
             {decideBar('inline')}
           </div>
+          <ReferenceBlock
+            className="mb-6"
+            videoId={data.video.id}
+            references={data.references}
+            scenes={Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]))}
+          />
           <ScriptView
             body={body}
             meta={data.meta}
@@ -441,6 +448,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
             threads={notice ? [] : anchored}
             hookTypeLabels={data.hookTypeLabels}
             activeCommentId={activeId}
+            references={data.references}
             onSelectAnchor={selectable ? (anchor, rect) => setSelection({ anchor, rect }) : undefined}
             onSelectionClear={() => setSelection(null)}
             onAnchorClick={activate}

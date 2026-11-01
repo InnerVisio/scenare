@@ -16,7 +16,9 @@ export type Action =
   | 'number.confirm'
   | 'approval.decide'
   | 'settings.manage'
-  | 'production.update';
+  | 'production.update'
+  | 'reference.add'
+  | 'reference.remove';
 
 const ALL_ACTIONS: readonly Action[] = [
   'script.create',
@@ -35,6 +37,8 @@ const ALL_ACTIONS: readonly Action[] = [
   'approval.decide',
   'settings.manage',
   'production.update',
+  'reference.add',
+  'reference.remove',
 ];
 
 /** Admin never acts as an approver: those actions belong to leadership only. */
@@ -83,6 +87,9 @@ export function can(
   action: Action,
   ctx?: { ownerId?: string | null },
 ): boolean {
+  // Everybody may attach a sample; only its author (`ctx.ownerId`) or an admin may take it away.
+  if (action === 'reference.add') return true;
+  if (action === 'reference.remove') return user.role === 'admin' || (!!ctx?.ownerId && ctx.ownerId === user.id);
   switch (user.role) {
     case 'admin':
       return ALL_ACTIONS.includes(action) && !ADMIN_DENIED.has(action);

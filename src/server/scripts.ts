@@ -21,6 +21,7 @@ import {
   type ThreadVM,
   type VersionVM,
 } from './review';
+import { toReferenceVMs, type ReferenceVM } from './references';
 import { buildScriptMeta } from './scriptMeta';
 
 /** The meta fields the editor changes; keys match `VideoMetaPatch`. */
@@ -89,6 +90,7 @@ export interface ScriptPageData {
   perms: ReviewData['perms'];
   actions: ScriptActions;
   values: EditorValues;
+  references: ReferenceVM[];
   /** Picker options, only when loaded with `options: true`. */
   options?: EditorOptions;
   /** What the editor needs to run the checks on the draft in the browser. */
@@ -200,6 +202,7 @@ export async function loadScriptPage(
       intent: video.intent,
       mainIdea: video.mainIdea,
     },
+    references: toReferenceVMs(video.references, actor, userName),
     options: extra ? buildEditorOptions(lookups, detail.refs.users, extra) : undefined,
     checkInput: { rules, personHashtags, formatStatuses, manualChecks: latest ? (video.manualChecks?.[latest.id] ?? {}) : {} },
   };

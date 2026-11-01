@@ -542,6 +542,23 @@ export async function seedDemo(db: Db): Promise<void> {
       }
     }
 
+    // One demo sample on V031: only when the video has none yet, so reseeding never duplicates or overwrites it.
+    await tx
+      .update(s.videos)
+      .set({
+        references: [
+          {
+            id: 'demo-ref-v031-1',
+            url: 'https://www.tiktok.com/@example/video/1234567890',
+            note: 'Takhle rychlý střih na začátku',
+            sceneId: null,
+            addedBy: admin,
+            addedAt: at('10-27', '09:00').toISOString(),
+          },
+        ],
+      })
+      .where(sql`${s.videos.code} = 'V031' and jsonb_array_length(${s.videos.references}) = 0`);
+
     // Returned first versions (V026 by Honza, V031 by Radek) → resubmitted as v2.
     const returns = [
       { key: 'v026', userId: honza, note: 'Pointa přijde pozdě, zkrátit úvod a dát asistentku dřív.', at: at('10-27', '15:20') },

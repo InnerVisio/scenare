@@ -21,6 +21,7 @@ import {
   type ReviewQueueItem,
   type VideoDetail,
 } from './queries';
+import { toReferenceVMs, type ReferenceVM } from './references';
 import { buildScriptMeta } from './scriptMeta';
 
 // View models for the review screen. Dates are ISO strings so everything crosses the server/client
@@ -96,6 +97,7 @@ export interface ReviewData {
   /** Version number → body, for comparisons. */
   bodies: Record<number, ScriptBody>;
   meta: ScriptMeta;
+  references: ReferenceVM[];
   hookTypeLabels: Record<string, string>;
   versions: VersionVM[];
   threads: ThreadVM[];
@@ -280,6 +282,7 @@ export async function loadReviewPage(
     body: detail.currentBody,
     bodies: Object.fromEntries(detail.versions.map((v) => [v.versionNo, v.body])),
     meta,
+    references: toReferenceVMs(video.references, actor, userName),
     hookTypeLabels,
     versions,
     threads,

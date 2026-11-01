@@ -37,6 +37,8 @@ import { FieldThreads } from './FieldThreads';
 import { IconButton } from './IconButton';
 import { LiveChecks, useLiveChecks } from './LiveChecks';
 import { MetaForm } from './MetaForm';
+import { ReferenceForm } from '../references/ReferenceForm';
+import { ReferenceList } from '../references/ReferenceList';
 import { SaveIndicator } from './SaveIndicator';
 import { SceneRow } from './SceneRow';
 import { SubmitDialog } from './SubmitDialog';
@@ -144,6 +146,13 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
   }, [data.threads, body]);
 
   // ---- side panel: checks and comments ---------------------------------------------------------
+  const [refScene, setRefScene] = useState('');
+  const refSection = useRef<HTMLElement>(null);
+  const addReferenceTo = (sceneId: string) => {
+    setRefScene(sceneId);
+    refSection.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    refSection.current?.querySelector<HTMLInputElement>('input[type="url"]')?.focus({ preventScroll: true });
+  };
   const [tab, setTab] = useState<'checks' | 'comments'>('checks');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | undefined>();
@@ -281,6 +290,23 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
         <div className="flex min-w-0 flex-col gap-4">
           <MetaForm values={values} onChange={patchValues} options={options} currentMonth={currentMonth} />
 
+          <section ref={refSection} aria-label="Ukázky" className="flex flex-col gap-4 rounded-card bg-card p-5 lg:p-6">
+            <h2 className="text-h2">Ukázky</h2>
+            <p className="-mt-2 text-text2">Odkaz na vzorové video (TikTok, Instagram, YouTube), aby bylo jasné, jak to má vypadat.</p>
+            <ReferenceList
+              videoId={videoId}
+              references={data.references}
+              scenes={Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]))}
+              empty="Zatím žádná ukázka."
+            />
+            <ReferenceForm
+              videoId={videoId}
+              scenes={body.scenes.map((scene, i) => ({ id: scene.id, label: `Scéna ${i + 1}` }))}
+              sceneId={body.scenes.some((scene) => scene.id === refScene) ? refScene : ''}
+              onSceneChange={setRefScene}
+            />
+          </section>
+
           <SectionCard label="Co divák získá">
             <Field label="Co se divák dozví">
               <Textarea value={body.viewerLearns} maxLength={1000} onChange={(event) => dispatch({ type: 'field', key: 'viewerLearns', value: event.target.value })} />
@@ -372,6 +398,7 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
               threadsByField={threadsByField}
               dispatch={dispatch}
               onOpenThread={openThread}
+              onAddReference={addReferenceTo}
             />
           ))}
           <div>

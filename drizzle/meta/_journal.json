@@ -8,6 +8,13 @@
       "when": 1793275033283,
       "tag": "0000_sleepy_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793497236485,
+      "tag": "0001_whole_rattler",
+      "breakpoints": true
     }
   ]
 }

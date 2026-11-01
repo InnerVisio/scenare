@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import type { ActionResult } from '@/server/actionResult';
+import { addReference, removeReference } from '@/server/references';
 import { duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, unlockForEdit, updateVideoMeta } from '@/server/videos';
 import { runAction } from '../_actions/run';
 
@@ -111,4 +112,20 @@ export async function createScriptAction(prefill: z.input<typeof prefillSchema>)
   });
   if (!result.ok) throw new Error(result.message);
   redirect(`/scenare/${result.code}/upravit`);
+}
+
+const addReferenceSchema = z.object({
+  videoId: id,
+  url: text(2000),
+  note: text(2000).optional(),
+  sceneId: id.nullable().optional(),
+});
+const removeReferenceSchema = z.object({ videoId: id, referenceId: id });
+
+export async function addReferenceAction(input: z.input<typeof addReferenceSchema>): Promise<ActionResult<{ id: string }>> {
+  return runAction(input, addReferenceSchema, (db, actor, i, now) => addReference(db, actor, i, now));
+}
+
+export async function removeReferenceAction(input: z.input<typeof removeReferenceSchema>): Promise<ActionResult> {
+  return runAction(input, removeReferenceSchema, (db, actor, i, now) => removeReference(db, actor, i, now));
 }
