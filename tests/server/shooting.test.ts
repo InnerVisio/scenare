@@ -86,8 +86,8 @@ describe('loadShootingDay', () => {
     expect(day).not.toBeNull();
     expect(day!.cycle).toMatchObject({ id: '2026-11', shootDate: '2026-11-20', approvalDeadline: '2026-11-13', daysToShoot: 22, daysToDeadline: 15, clipTarget: '30–40' });
     const codes = day!.groups.flatMap((g) => g.castGroups.flatMap((c) => c.items.map((i) => i.code)));
-    expect(codes.sort()).toEqual(['V028', 'V032']);
-    expect(day!.approvedCount).toBe(2);
+    expect(codes.sort()).toEqual(['V020', 'V021', 'V028', 'V032']);
+    expect(day!.approvedCount).toBe(4);
     expect(day!.warnings.join(' ')).toContain('Chybí schválené scénáře');
     expect(day!.warnings.join(' ')).not.toContain('Termín schválení už uplynul');
     expect(day!.groups[0].castGroups[0].items[0].hooks.length).toBeGreaterThan(0);
@@ -110,7 +110,7 @@ describe('crew link package', () => {
     expect(pack).not.toBeNull();
     expect(pack!.cycleId).toBe('2026-11');
     const items = pack!.groups.flatMap((g) => g.castGroups.flatMap((c) => c.items));
-    expect(items.map((i) => i.code).sort()).toEqual(['V028', 'V032']);
+    expect(items.map((i) => i.code).sort()).toEqual(['V020', 'V021', 'V028', 'V032']);
     const first = items[0];
     expect(first.lines.length).toBeGreaterThan(0);
     expect(first.lines[0]).toHaveProperty('speaker');

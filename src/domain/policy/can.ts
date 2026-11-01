@@ -20,7 +20,8 @@ export type Action =
   | 'reference.add'
   | 'reference.remove'
   | 'series.manage'
-  | 'series.close';
+  | 'series.close'
+  | 'publication.manage';
 
 const ALL_ACTIONS: readonly Action[] = [
   'script.create',
@@ -43,6 +44,7 @@ const ALL_ACTIONS: readonly Action[] = [
   'reference.remove',
   'series.manage',
   'series.close',
+  'publication.manage',
 ];
 
 /** Admin never acts as an approver: those actions belong to leadership only. */

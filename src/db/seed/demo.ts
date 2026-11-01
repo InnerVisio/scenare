@@ -260,6 +260,42 @@ const V036_SPEC: BodySpec = {
   source: 'Interní zábava, bez dat.',
 };
 
+const V020_SPEC: BodySpec = {
+  prefix: 'v020',
+  hooks: [
+    ['tvrda-veta', 'Dobrý nábor začíná u šéfa, ne u inzerátu.', 'Honza u stolu s prázdným inzerátem na monitoru.'],
+    ['otazka-na-divaka', 'Kdy jsi naposledy hledal člověka do týmu?', 'Detail ruky, která přeškrtává inzerát.'],
+  ],
+  scenes: [
+    [0, 6, 'Honza a Radek u stolu nad inzerátem na monitoru.', [['Honza', 'do kamery', 'Dobrý nábor začíná u šéfa, ne u inzerátu.'], ['Radek', 'kývne', 'Protože lidé jdou za člověkem.']]],
+    [6, 15, 'Záběr na tabuli s třemi otázkami pro kandidáta.', [['Radek', 've střihu', 'Tři otázky, které se ptáme každého kandidáta.']]],
+    [15, 19, 'Honza s Radkem podávají ruku novému kolegovi.', [['Honza', 'do kamery', 'Pošli to kolegovi, který právě hledá člověka.']]],
+  ],
+  ctaType: 'share',
+  caption: 'Nábor není o inzerátu, ale o lidech. Pošli to kolegovi, který právě hledá posilu.',
+  hashtags: ['#vaskonzultant', '#honzagizicky', '#nabor'],
+  viewerLearns: 'Úspěšný nábor stojí na osobním kontaktu vedoucího a jasných otázkách pro kandidáta.',
+  source: 'Interní zkušenost vedení GTA.',
+};
+
+const V021_SPEC: BodySpec = {
+  prefix: 'v021',
+  hooks: [
+    ['pred-po', 'Hypotéka před poradou a po ní.', 'Dva záběry: zmatený klient a klient s úsměvem.'],
+    ['otazka-na-divaka', 'Víš, kolik zaplatíš za pět let?', 'Radek ukazuje na kalkulačku.'],
+  ],
+  scenes: [
+    [0, 7, 'Klientská místnost, Radek a klient nad papíry.', [['Petr (klient)', 'nejistě', 'Já tomu vlastně moc nerozumím.'], ['Radek', 'klidně', 'Projdeme to po krocích.']]],
+    [7, 16, 'Detail kalkulačky a splátkového kalendáře.', [['Radek', 'do kamery', 'Za pět let ušetříš víc, než čekáš.']]],
+    [16, 20, 'Petr se usmívá, Radek mu podává smlouvu.', [['Radek', 'do kamery', 'Ulož si to, než budeš řešit hypotéku.']]],
+  ],
+  ctaType: 'save',
+  caption: 'Hypotéka bez překvapení. Ulož si to, než budeš podepisovat.',
+  hashtags: ['#vaskonzultant', '#radekteichmann', '#hypoteka'],
+  viewerLearns: 'Při hypotéce se vyplatí spočítat celkovou splátku za pět let, ne jen měsíční částku.',
+  source: 'Běžná praxe poradenství GTA, bez klientských dat.',
+};
+
 // ---------------------------------------------------------------------------------------------
 // Video definitions
 // ---------------------------------------------------------------------------------------------
@@ -285,13 +321,53 @@ interface VideoDef {
   props: string;
   intent: string;
   mainIdea: string;
-  status: 'draft' | 'in_review' | 'final_review';
+  status: 'draft' | 'in_review' | 'final_review' | 'approved';
+  productionStatus?: 'waiting' | 'published';
   versions: Version[];
   /** Working copy; for a draft it is the only body. */
   draftSpec: BodySpec;
 }
 
 const VIDEOS: VideoDef[] = [
+  {
+    code: 'V020',
+    title: 'Nábor začíná u šéfa',
+    categoryKey: 'nabor',
+    treatmentKey: 'instagramove',
+    profileKey: 'honza',
+    characterKey: 'osobni',
+    formatKey: 'kancelarsky-sketch',
+    goalMetric: 'shares',
+    isTrialReel: false,
+    locationKeys: ['hlavni-kancelar'],
+    cast: ['Honza', 'Radek'],
+    props: 'Notebook s inzerátem, tabule',
+    intent: 'Ukázat, že nábor stojí na osobním přístupu vedení.',
+    mainIdea: 'Dva šéfové prochází tři otázky, které kladou každému kandidátovi.',
+    status: 'approved',
+    versions: [{ spec: V020_SPEC, summary: 'První odeslání', createdAt: at('10-26', '09:30') }],
+    draftSpec: V020_SPEC,
+  },
+  {
+    code: 'V021',
+    title: 'Hypotéka bez překvapení',
+    categoryKey: 'produkt',
+    treatmentKey: 'odborne',
+    profileKey: 'radek',
+    characterKey: 'pracovni',
+    formatKey: 'klient-s-chybou-zachrance',
+    goalMetric: 'saves',
+    isTrialReel: false,
+    locationKeys: ['klientske-mistnosti'],
+    cast: ['Radek', 'Petr (klient)'],
+    props: 'Kalkulačka, smlouva',
+    intent: 'Vysvětlit, proč počítat celkovou splátku hypotéky za pět let.',
+    mainIdea: 'Radek s klientem krok za krokem projde hypotéku a ukáže skutečné náklady.',
+    status: 'approved',
+    productionStatus: 'published',
+    versions: [{ spec: V021_SPEC, summary: 'První odeslání', createdAt: at('10-26', '10:15') }],
+    draftSpec: V021_SPEC,
+  },
   {
     code: 'V026',
     title: 'Dva šéfové, jeden problém',
@@ -490,7 +566,9 @@ export async function seedDemo(db: Db): Promise<void> {
           ownerId: admin,
           scriptDueDate: '2026-11-13',
           approvalStatus: def.status,
-          productionStatus: 'waiting',
+          productionStatus: def.productionStatus ?? 'waiting',
+          ...(def.status === 'approved' ? { approvedBy: ['Honza', 'Radek'], approvedAt: at('10-27', '12:00') } : {}),
+          ...(def.productionStatus === 'published' ? { shotAt: at('10-24', '12:00') } : {}),
           draft: buildBody(def.draftSpec),
           isSample: true,
           createdAt: created,
@@ -541,6 +619,47 @@ export async function seedDemo(db: Db): Promise<void> {
           .onConflictDoNothing();
       }
     }
+
+    // Two approved demo scripts (one decision from each leader on v1); V021 is already published.
+    for (const [code, key] of [['V020', 'v020'], ['V021', 'v021']] as const) {
+      const [video] = await tx.select({ id: s.videos.id }).from(s.videos).where(sql`${s.videos.code} = ${code}`);
+      for (const [name, userId, time] of [['honza', honza, '11:00'], ['radek', radek, '12:00']] as const) {
+        const decidedAt = at('10-27', time);
+        await tx
+          .insert(s.approvalDecisions)
+          .values({ id: `sample-${key}-decision-${name}`, versionId: `sample-${key}-v1`, userId, decision: 'approve', note: '', overrodeWarnings: false, createdAt: decidedAt })
+          .onConflictDoNothing();
+        await tx
+          .insert(s.activityLog)
+          .values({
+            id: `sample-${key}-act-approve-${name}`,
+            actorId: userId,
+            videoId: video.id,
+            entity: 'approval_decision',
+            entityId: `sample-${key}-decision-${name}`,
+            action: 'approval.approved',
+            before: { status: 'in_review' },
+            after: { decision: 'approve', versionNo: 1, overrodeWarnings: false },
+            createdAt: decidedAt,
+          })
+          .onConflictDoNothing();
+      }
+    }
+    const [v021Video] = await tx.select({ id: s.videos.id }).from(s.videos).where(sql`${s.videos.code} = 'V021'`);
+    await tx
+      .insert(s.publications)
+      .values({
+        id: 'sample-v021-pub-1',
+        videoId: v021Video.id,
+        profileKey: 'radek',
+        publishedAt: at('10-28', '18:00'),
+        variant: 'hlavni-verze',
+        url: 'https://www.tiktok.com/@radekteichmann/video/7300000000000000021',
+        note: 'UKÁZKA – publikace s metrikami',
+        metrics24h: { views: 3200, reach: 2400, skipRate: 38, avgWatchSec: 9.5, shares: 42, saves: 96, comments: 11, reelFollowers: 18, profileVisits: 64 },
+        metrics7d: { views: 11800, reach: 8600, skipRate: 34, avgWatchSec: 10.2, shares: 190, saves: 410, comments: 37, reelFollowers: 71, profileVisits: 240 },
+      })
+      .onConflictDoNothing();
 
     // One demo sample on V031: only when the video has none yet, so reseeding never duplicates or overwrites it.
     await tx

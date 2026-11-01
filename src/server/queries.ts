@@ -40,6 +40,7 @@ import {
   type EditorOptions,
   type LookupRow,
 } from "./editorOptions";
+import type { RawPublication } from "./publications";
 import { DomainError } from "./errors";
 import {
   statusOf,
@@ -322,6 +323,8 @@ export interface VideoHead {
   filterCycleId: string | null;
   /** Place among the cycle's non-cancelled scripts of the same category, by code; null without cycle or category. */
   categoryPosition: { position: number; total: number } | null;
+  /** The script's publications (a JSON aggregate in the head query, so the script page needs no extra query). */
+  publications: RawPublication[];
 }
 
 export async function loadVideoHead(
@@ -340,6 +343,10 @@ export async function loadVideoHead(
       settings: s.settings,
       seenNo: seen.versionNo,
       filterCycleId: filterCycle.id,
+      publications: sql<RawPublication[] | string>`(select coalesce(json_agg(json_build_object(
+          'id', p.id, 'profileKey', p.profile_key, 'publishedAt', p.published_at, 'variant', p.variant, 'url', p.url,
+          'note', p.note, 'metrics24h', p.metrics_24h, 'metrics7d', p.metrics_7d) order by p.published_at, p.id), '[]'::json)
+        from publications p where p.video_id = ${s.videos.id})`,
       categoryPosition: sql<{ position: number; total: number } | null>`(
         select case when ${s.videos.cycleId} is null or ${s.videos.categoryKey} is null then null
           else json_build_object('position', count(*) filter (where peer.code <= ${s.videos.code}), 'total', count(*)) end
@@ -375,6 +382,7 @@ export async function loadVideoHead(
     seenVersionNo: row.seenNo ?? null,
     filterCycleId: row.filterCycleId ?? null,
     categoryPosition: row.categoryPosition ?? null,
+    publications: typeof row.publications === "string" ? (JSON.parse(row.publications) as RawPublication[]) : (row.publications ?? []),
   };
 }
 

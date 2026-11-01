@@ -9,6 +9,7 @@ import { loadScriptPage } from '@/server/scripts';
 import { loadSeriesDetail, loadSeriesList } from '@/server/series';
 import { listLookups } from '@/server/settings';
 import { loadShellData } from '@/server/shell';
+import { loadPublicationsPage } from '@/server/publications';
 import { loadCrewPackage, loadShootingDay } from '@/server/shooting';
 import { signCrewLink } from '@/server/auth/token';
 import { leadershipUsers } from '@/server/loaders';
@@ -57,6 +58,7 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
       return listVideos(db, a, { cycleId: options.cycles[0]?.key });
     }),
     'scenare/[code]': await withLayout(async (a) => loadScriptPage(db, a, reviewCode, NOW)),
+    'publikace (list)': await withLayout(async () => loadPublicationsPage(db, '2026-11', false)),
     'serie (list)': await withLayout(async () => Promise.all([loadSeriesList(db), listLookups(db, 'category')])),
     'serie/[code]': await withLayout(async () => {
       const detail = await loadSeriesDetail(db, 'S01');

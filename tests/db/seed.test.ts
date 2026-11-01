@@ -27,7 +27,7 @@ describe('runSeed', () => {
     expect(await n(db, s.lookupItems, eq(s.lookupItems.kind, 'publication_variant'))).toBe(6);
     expect(await n(db, s.lookupItems, eq(s.lookupItems.kind, 'check_rule'))).toBe(13);
     expect(await n(db, s.users)).toBe(3);
-    expect(await n(db, s.videos)).toBe(6);
+    expect(await n(db, s.videos)).toBe(8);
     expect(await n(db, s.settings)).toBe(1);
   });
 
@@ -71,9 +71,12 @@ describe('runSeed', () => {
       V028: 'in_review',
       V033: 'in_review',
       V036: 'draft',
+      V020: 'approved',
+      V021: 'approved',
     });
-    expect(await n(db, s.scriptVersions)).toBe(7);
-    expect(await n(db, s.approvalDecisions)).toBe(2);
+    expect(await n(db, s.scriptVersions)).toBe(9);
+    expect(await n(db, s.approvalDecisions)).toBe(6);
+    expect(await n(db, s.publications)).toBe(1);
   });
 
   it('seeds lookups without demo data when demo is false', async () => {

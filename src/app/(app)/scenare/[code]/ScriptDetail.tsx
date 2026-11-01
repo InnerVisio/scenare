@@ -9,6 +9,7 @@ import { cn, focusRing } from '@/ui/cn';
 import { Field, Select } from '@/ui/Field';
 import { StatusPill } from '@/ui/StatusPill';
 import { Tabs } from '@/ui/Tabs';
+import { PublicationsBlock } from '../../_components/publications/PublicationsBlock';
 import { VersionsPanel } from '../../_components/review/VersionsPanel';
 import { ReferenceBlock } from '../../_components/references/ReferenceList';
 import { ScriptView } from '../../_components/script-view/ScriptView';
@@ -116,6 +117,16 @@ export function ScriptDetail({ data }: { data: ScriptPageData }) {
             </div>
           )}
           {comparing && from === to && <p className="rounded-inner bg-nest p-4 text-text2">Vybraná je stejná verze, není co porovnávat.</p>}
+          {(video.status === 'approved' || data.publications.publications.length > 0) && (
+            <PublicationsBlock
+              videoId={video.id}
+              publications={data.publications.publications}
+              profiles={data.publications.profiles}
+              variants={data.publications.variants}
+              defaultProfile={data.values.profileKey ?? ''}
+              canManage={actions.publication}
+            />
+          )}
           <ReferenceBlock videoId={video.id} references={data.references} scenes={sceneNumbers(data.body)} />
           <ScriptView
             body={comparing ? data.bodies[to] : data.body}

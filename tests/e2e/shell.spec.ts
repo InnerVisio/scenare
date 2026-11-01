@@ -31,9 +31,9 @@ test.describe('app shell', () => {
     await page.screenshot({ path: `test-results/home-${info.project.name}.png` });
   });
 
-  test('placeholder page, cycle picker and navigation', async ({ page }, info) => {
+  test('publications page, cycle picker and navigation', async ({ page }, info) => {
     await page.goto('/publikace');
-    await expect(page.getByText('Připravujeme')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Publikace' })).toBeVisible();
     await page.getByRole('button', { name: /Cyklus/ }).click();
     await page.getByRole('list', { name: 'Cyklus' }).getByRole('button', { name: 'Cyklus 2026–11' }).click();
     await expect(page.getByRole('button', { name: /Cyklus:/ })).toBeFocused();

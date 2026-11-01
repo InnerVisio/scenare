@@ -1,6 +1,7 @@
 import type { Db } from '@/db/client';
 import type { RuleConfig } from '@/domain/checks/rules';
 import type { CheckResult } from '@/domain/checks/runChecks';
+import { publicationBlock, type PublicationBlock } from './publications';
 import { missingForSubmit } from '@/domain/metrics/submitRequirements';
 import { can } from '@/domain/policy/can';
 import { emptyScript } from '@/domain/script/template';
@@ -58,6 +59,8 @@ export interface ScriptActions {
   openInReview: boolean;
   /** Change the production status. */
   production: boolean;
+  /** Add / edit / delete publications. */
+  publication: boolean;
 }
 
 export interface ScriptPageData {
@@ -97,6 +100,8 @@ export interface ScriptPageData {
   references: ReferenceVM[];
   /** Required fields still empty before the script can be submitted (Czech names). */
   submitMissing: string[];
+  /** The script's publications and the pickers of their form. */
+  publications: PublicationBlock;
   /** Picker options, only when loaded with `options: true`. */
   options?: EditorOptions;
   /** What the editor needs to run the checks on the draft in the browser. */
@@ -156,6 +161,7 @@ export async function loadScriptPage(
     duplicate: can(actor, 'script.create') && video.seriesId !== null,
     openInReview: can(actor, 'approval.decide') && isAwaitingDecision(status),
     production: can(actor, 'production.update'),
+    publication: can(actor, 'publication.manage'),
   };
 
   return {
@@ -212,6 +218,7 @@ export async function loadScriptPage(
     },
     references: toReferenceVMs(video.references, actor, userName),
     submitMissing: missingForSubmit(video, lookups.some((l) => l.kind === 'profile' && l.key === video.profileKey && l.data.personal === true)),
+    publications: publicationBlock(head.publications, video, lookups),
     options: extra ? buildEditorOptions(lookups, detail.refs.users, extra) : undefined,
     checkInput: { rules, personHashtags, formatStatuses, manualChecks: latest ? (video.manualChecks?.[latest.id] ?? {}) : {} },
   };

@@ -17,7 +17,7 @@ describe('loadScriptPage', () => {
     expect(page.latest).toBeNull();
     expect(page.draftAhead).toBe(false);
     expect(page.body).toEqual(page.draft);
-    expect(page.actions).toEqual({ edit: true, unlock: false, submit: true, pause: true, restore: false, duplicate: false, openInReview: false, production: true });
+    expect(page.actions).toEqual({ edit: true, unlock: false, submit: true, pause: true, restore: false, duplicate: false, openInReview: false, production: true, publication: true });
     expect(page.values).toMatchObject({ title: 'Radek vs. Honza: kdo dřív', categoryKey: 'lifestyle', formatKey: 'radek-vs-honza', goalMetric: 'shares' });
     expect(page.checkInput.personHashtags).toEqual({ Honza: '#honzagizicky', Radek: '#radekteichmann' });
     expect(page.checkInput.formatStatuses['kancelarsky-sketch']).toBe('verified');

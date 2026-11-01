@@ -22,6 +22,7 @@ const ACTIONS: Action[] = [
   'reference.remove',
   'series.manage',
   'series.close',
+  'publication.manage',
 ];
 
 // Explicit expected matrix. Marketer's owner-bound actions are listed for the
@@ -50,6 +51,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'reference.remove': T, // as the author of the sample
     'series.manage': T,
     'series.close': T,
+    'publication.manage': T,
   },
   leadership: {
     'script.create': F,
@@ -72,6 +74,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'reference.remove': T, // as the author of the sample
     'series.manage': F,
     'series.close': T,
+    'publication.manage': F,
   },
   marketer: {
     'script.create': T,
@@ -94,6 +97,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'reference.remove': T, // as the author of the sample
     'series.manage': F,
     'series.close': F,
+    'publication.manage': F,
   },
   production: {
     'script.create': F,
@@ -116,6 +120,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'reference.remove': T, // as the author of the sample
     'series.manage': F,
     'series.close': F,
+    'publication.manage': F,
   },
 };
 

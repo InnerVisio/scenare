@@ -122,6 +122,15 @@ export function describeActivity(
     case 'series.closed':
       text = `${who} uzavřel sérii ${seriesCode(after)}`;
       break;
+    case 'publication.added':
+      text = `${who} přidal publikaci k ${code}`;
+      break;
+    case 'publication.updated':
+      text = `${who} upravil publikaci u ${code}`;
+      break;
+    case 'publication.deleted':
+      text = `${who} smazal publikaci od ${code}`;
+      break;
     case 'production.status_changed':
       text = `${who} změnil stav výroby ${code} na ${PRODUCTION_STATUS_LABELS[after?.status as ProductionStatus] ?? String(after?.status ?? '')}`;
       break;

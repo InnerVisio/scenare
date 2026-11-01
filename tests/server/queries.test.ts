@@ -25,7 +25,7 @@ beforeAll(async () => {
 describe('listVideos', () => {
   it('lists all demo videos by code with counts, cast and duration', async () => {
     const list = await listVideos(w.db, w.admin, {});
-    expect(list.map((v) => v.code)).toEqual(['V026', 'V028', 'V031', 'V032', 'V033', 'V036']);
+    expect(list.map((v) => v.code)).toEqual(['V020', 'V021', 'V026', 'V028', 'V031', 'V032', 'V033', 'V036']);
     const v031 = list.find((v) => v.code === 'V031')!;
     expect(v031).toMatchObject({
       title: 'Klient s chybou: fixace hypotéky',
@@ -64,9 +64,9 @@ describe('listVideos', () => {
     const codes = async (f: Parameters<typeof listVideos>[2]) => (await listVideos(w.db, w.admin, f)).map((v) => v.code);
     expect(await codes({ approvalStatus: 'in_review' })).toEqual(['V028', 'V032', 'V033']);
     expect(await codes({ categoryKey: 'lifestyle' })).toEqual(['V028', 'V036']);
-    expect(await codes({ cycleId: '2026-11', productionStatus: 'waiting' })).toHaveLength(6);
+    expect(await codes({ cycleId: '2026-11', productionStatus: 'waiting' })).toHaveLength(7);
     expect(await codes({ cycleId: 'nope' })).toEqual([]);
-    expect(await codes({ plannedMonth: '2026-11' })).toHaveLength(6);
+    expect(await codes({ plannedMonth: '2026-11' })).toHaveLength(8);
     expect(await codes({ q: 'PET radku' })).toEqual(['V032']);
     expect(await codes({ q: 'fixace' })).toEqual(['V031']);
     expect(await codes({ q: 'v033' })).toEqual(['V033']);
@@ -115,8 +115,8 @@ describe('getDashboard', () => {
       daysToShoot: 22,
       daysToDeadline: 15,
       clipTarget: '30–40',
-      locations: [],
-      approvedCount: 0,
+      locations: ['Hlavní kancelář (1. p.)', 'Klientské místnosti (přízemí)'],
+      approvedCount: 2,
     });
     expect(Object.keys(d.kanban).sort()).toEqual(
       ['approved', 'cancelled', 'draft', 'final_review', 'in_review', 'postponed', 'returned'].sort(),
@@ -124,7 +124,7 @@ describe('getDashboard', () => {
     expect(d.kanban.in_review.map((v) => v.code)).toEqual(['V028', 'V032', 'V033']);
     expect(d.kanban.final_review.map((v) => v.code)).toEqual(['V026', 'V031']);
     expect(d.kanban.draft.map((v) => v.code)).toEqual(['V036']);
-    expect(d.kanban.approved).toEqual([]);
+    expect(d.kanban.approved.map((v) => v.code).sort()).toEqual(['V020', 'V021']);
     expect(d.openCommentsTotal).toBe(2);
     expect(d.openComments).toEqual([
       expect.objectContaining({ videoCode: 'V031', author: 'Radek', typeLabel: 'Odborné doplnění' }),
