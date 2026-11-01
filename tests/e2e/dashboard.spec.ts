@@ -17,7 +17,7 @@ test.describe('dashboard and settings', () => {
     await expect(page.getByText('Čeká na tvou kontrolu')).toBeVisible();
     await expect(page.getByRole('link', { name: /Začít kontrolu/ })).toBeVisible();
     await expect(page.getByText('kde co vázne')).toBeVisible();
-    await expect(page.getByText('Přehled mixu přijde ve fázi 3')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Rozdělení cyklu 2026-11' })).toBeVisible();
     await expectNoHorizontalScroll(page);
     await page.screenshot({ path: `test-results/dashboard-${info.project.name}.png`, fullPage: true });
   });

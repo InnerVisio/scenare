@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { MIX_STATUS_LABELS, type CycleMix, type MixRow, type MixStatus } from '@/domain/metrics/mix';
 import type { ApprovalStatus } from '@/domain/workflow/approval';
 import { APPROVAL_STATUS_LABELS } from '@/domain/workflow/approval';
 import type { EditorOptions } from '@/server/editorOptions';
@@ -150,11 +151,84 @@ export function CommentsCard({ data }: { data: DashboardData }) {
   );
 }
 
-export function PhaseThreeCard() {
+const STATUS_STYLE: Record<MixStatus, string> = {
+  none: 'bg-nest text-text2',
+  approved: 'bg-ink text-card',
+  pending: 'bg-apricot-soft text-apricot-ink',
+  missing: 'bg-danger-bg text-danger-text',
+};
+
+function MixBar({ row }: { row: MixRow }) {
+  const pct = (n: number) => (row.plan > 0 ? Math.min(100, (n / row.plan) * 100) : 0);
   return (
-    <Card className="flex flex-col gap-1">
-      <h2 className="text-h2">Přehled mixu přijde ve fázi 3</h2>
-      <p className="text-text2">Tematický mix, plnění měsíce a série se zobrazí, až bude hotová publikace a statistiky.</p>
+    <div role="img" aria-label={`${row.approved} schváleno, ${row.proposed - row.approved} navrženo z ${row.plan}`} className="flex h-2.5 overflow-hidden rounded-full bg-nest">
+      <span className="bg-violet" style={{ width: `${pct(row.approved)}%` }} />
+      <span className="bg-violet-soft" style={{ width: `${Math.max(0, pct(row.proposed) - pct(row.approved))}%` }} />
+    </div>
+  );
+}
+
+function MixRowView({ row, href, color }: { row: MixRow; href: string; color?: string }) {
+  const proposedOnly = row.proposed - row.approved;
+  return (
+    <li>
+      <Link href={href} className={cn('flex min-h-12 flex-col gap-1.5 rounded-inner bg-nest p-3', focusRing)}>
+        <span className="flex items-center gap-2">
+          {color && <span aria-hidden className="size-3 shrink-0 rounded-full border border-ink/15" style={{ backgroundColor: color }} />}
+          <span className="min-w-0 flex-1 truncate font-semibold">{row.label}</span>
+          <span className={cn('shrink-0 rounded-pill px-3 py-1 text-sm font-semibold', STATUS_STYLE[row.status])}>{MIX_STATUS_LABELS[row.status]}</span>
+        </span>
+        <MixBar row={row} />
+        <span className="text-sm text-text2">
+          {row.approved} / {row.plan} schváleno · {proposedOnly} navrženo · chybí {row.missing}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+export function MixCard({ cycleId, mix, categories }: { cycleId: string; mix: CycleMix; categories: EditorOptions['categories'] }) {
+  const cycleHref = `/scenare?cyklus=${cycleId}`;
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-h2">Rozdělení cyklu {cycleId}</h2>
+        <p className="text-sm text-text2">plán {mix.plan} {scriptsLabel(mix.plan)}</p>
+      </div>
+      {mix.unassigned > 0 && (
+        <Link href={`${cycleHref}&zarazeni=ne`} className={cn('rounded-inner bg-apricot-soft px-4 py-3 font-semibold text-apricot-ink underline', focusRing)}>
+          {mix.unassigned} {mix.unassigned === 1 ? 'scénář není zařazený' : mix.unassigned <= 4 ? 'scénáře nejsou zařazené' : 'scénářů není zařazených'}
+        </Link>
+      )}
+      <ul aria-label="Kategorie" className="grid list-none gap-2 md:grid-cols-2">
+        {mix.categories.rows.map((row) => (
+          <MixRowView key={row.key} row={row} href={`${cycleHref}&kategorie=${row.key}`} color={categories.find((c) => c.key === row.key)?.color} />
+        ))}
+      </ul>
+      <ul aria-label="Typ zpracování" className="grid list-none gap-2 md:grid-cols-2">
+        {mix.treatments.rows.map((row) => (
+          <MixRowView key={row.key} row={row} href={cycleHref} />
+        ))}
+      </ul>
+      {mix.characters.length > 0 && (
+        <ul aria-label="Osobní a pracovní" className="grid list-none gap-2 md:grid-cols-2">
+          {mix.characters.map((c) => (
+            <li key={c.profileKey} className="flex flex-col gap-1 rounded-inner bg-nest p-3">
+              <span className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 font-semibold">{c.label}</span>
+                <span className={cn('shrink-0 rounded-pill px-3 py-1 text-sm font-semibold', c.status === 'out' ? STATUS_STYLE.missing : STATUS_STYLE[c.status === 'ok' ? 'approved' : 'none'])}>
+                  {c.status === 'ok' ? 'OK' : c.status === 'out' ? 'Mimo poměr' : '—'}
+                </span>
+              </span>
+              <span className="text-sm text-text2">
+                {c.total === 0
+                  ? 'Zatím žádný scénář'
+                  : c.characters.map((x) => `${x.label.toLowerCase()} ${x.count} (${Math.round((x.share ?? 0) * 100)} %, cíl ${Math.round(x.target * 100)} %)`).join(' · ')}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

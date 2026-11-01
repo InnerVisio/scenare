@@ -1,13 +1,14 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { EditorOptions } from '@/server/editorOptions';
 import type { EditorValues } from '@/server/scripts';
 import { cn, focusRing } from '@/ui/cn';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { monthLabel, monthsAround } from '@/ui/monthParams';
 import { ChipInput } from './ChipInput';
+import { mixHints } from './mixHints';
 import { addNames, applyFormat } from './reducers';
 
 const GOALS = [
@@ -18,13 +19,14 @@ const GOALS = [
 
 const orNull = (value: string) => value || null;
 
-function Options({ items, empty = '—' }: { items: { key: string; label: string }[]; empty?: string }) {
+function Options({ items, empty = '—', missing = {} }: { items: { key: string; label: string }[]; empty?: string; missing?: Record<string, number> }) {
   return (
     <>
       <option value="">{empty}</option>
       {items.map((item) => (
         <option key={item.key} value={item.key}>
           {item.label}
+          {missing[item.key] ? ` (chybí ${missing[item.key]})` : ''}
         </option>
       ))}
     </>
@@ -44,6 +46,11 @@ export function MetaForm({
   currentMonth: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { cycleId, categoryKey, treatmentKey, profileKey, characterKey } = values;
+  const hints = useMemo(
+    () => mixHints(options, { cycleId, categoryKey, treatmentKey, profileKey, characterKey }),
+    [options, cycleId, categoryKey, treatmentKey, profileKey, characterKey],
+  );
   const months = monthsAround(currentMonth);
   if (values.plannedMonth && !months.includes(values.plannedMonth)) months.push(values.plannedMonth);
 
@@ -68,14 +75,14 @@ export function MetaForm({
       </button>
 
       <div className={cn('gap-4 sm:grid-cols-2', open ? 'grid' : 'hidden', 'lg:grid')}>
-        <Field label="Kategorie">
+        <Field label="Kategorie" hint={hints.category ?? undefined}>
           <Select value={values.categoryKey ?? ''} onChange={(event) => onChange({ categoryKey: orNull(event.target.value) })}>
-            <Options items={options.categories} />
+            <Options items={options.categories} missing={hints.categoryMissing} />
           </Select>
         </Field>
-        <Field label="Typ zpracování">
+        <Field label="Typ zpracování" hint={hints.treatment ?? undefined}>
           <Select value={values.treatmentKey ?? ''} onChange={(event) => onChange({ treatmentKey: orNull(event.target.value) })}>
-            <Options items={options.treatments} />
+            <Options items={options.treatments} missing={hints.treatmentMissing} />
           </Select>
         </Field>
         <Field label="Profil">
@@ -83,7 +90,7 @@ export function MetaForm({
             <Options items={options.profiles} />
           </Select>
         </Field>
-        <Field label="Charakter">
+        <Field label="Charakter" hint={hints.character ?? undefined}>
           <Select value={values.characterKey ?? ''} onChange={(event) => onChange({ characterKey: orNull(event.target.value) })}>
             <Options items={options.characters} />
           </Select>

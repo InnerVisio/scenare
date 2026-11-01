@@ -23,6 +23,7 @@ import type { ReviewData } from '@/server/review';
 import { Button } from '@/ui/Button';
 import { Tabs } from '@/ui/Tabs';
 import { cn, focusRing } from '@/ui/cn';
+import { ReferenceForm } from '../references/ReferenceForm';
 import { ReferenceBlock } from '../references/ReferenceList';
 import { ScriptView } from '../script-view/ScriptView';
 import { SelectionToolbar } from '../script-view/SelectionToolbar';
@@ -102,6 +103,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   useEffect(() => {
     selectionRef.current = selection;
   });
+  const [refScene, setRefScene] = useState('');
   const [target, setTarget] = useState<ComposerTarget>({ kind: 'general' });
   const [focusToken, setFocusToken] = useState(0);
   const [composerError, setComposerError] = useState<string | null>(null);
@@ -433,11 +435,26 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
             />
             {decideBar('inline')}
           </div>
+          {data.categoryChip && (
+            <p className="mb-4 w-fit rounded-pill bg-nest px-3 py-1.5 text-sm font-semibold">
+              {data.categoryChip.label} · {data.categoryChip.position}. ze {data.categoryChip.total} v cyklu
+            </p>
+          )}
           <ReferenceBlock
             className="mb-6"
             videoId={data.video.id}
             references={data.references}
             scenes={Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]))}
+            form={
+              perms.addReference ? (
+                <ReferenceForm
+                  videoId={data.video.id}
+                  scenes={body.scenes.map((scene, i) => ({ id: scene.id, label: `Scéna ${i + 1}` }))}
+                  sceneId={refScene}
+                  onSceneChange={setRefScene}
+                />
+              ) : undefined
+            }
           />
           <ScriptView
             body={body}

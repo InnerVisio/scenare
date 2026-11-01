@@ -84,6 +84,8 @@ export interface ReviewPerms {
   address: boolean;
   decideSuggestion: boolean;
   manualCheck: boolean;
+  /** Add a sample (ukázku) to the script. */
+  addReference: boolean;
 }
 
 export interface ReviewData {
@@ -118,6 +120,8 @@ export interface ReviewData {
   prevCode: string | null;
   nextCode: string | null;
   cycle: { id: string; shootDate: string | null; deadline: string | null; daysToDeadline: number | null } | null;
+  /** „Trendy · 2. ze 3 v cyklu“: where the script sits among its category's scripts in the cycle. */
+  categoryChip: { label: string; position: number; total: number } | null;
   users: { id: string; name: string }[];
   /** Version the actor last looked at, captured before this visit is recorded. */
   lastSeenVersionNo: number | null;
@@ -180,6 +184,7 @@ export function reviewPerms(actor: Actor, ownerId: string | null, status: Approv
     address: can(actor, 'comment.address', owner),
     decideSuggestion: can(actor, 'suggestion.decide', owner),
     manualCheck: can(actor, 'approval.decide') || can(actor, 'script.edit', owner),
+    addReference: can(actor, 'reference.add'),
   };
 }
 
@@ -220,6 +225,18 @@ export async function loadReview(
  * The review screen in 7 queries: the script head (which also validates `?cyklus=`), then the script's
  * rows and the queue in parallel. Pass the raw `?cyklus=` as `cycleParam`.
  */
+function categoryChipOf(
+  place: { position: number; total: number } | null,
+  status: ApprovalStatus,
+  categoryKey: string | null,
+  lookups: { kind: string; key: string; label: string; data: Record<string, unknown> }[],
+): ReviewData['categoryChip'] {
+  const category = lookups.find((l) => l.kind === 'category' && l.key === categoryKey);
+  const label = category && (typeof category.data.short === 'string' ? category.data.short : category.label);
+  if (!place || !label || status === 'cancelled') return null;
+  return { label, ...place };
+}
+
 export async function loadReviewPage(
   db: Db,
   actor: Actor,
@@ -300,6 +317,7 @@ export async function loadReviewPage(
     prevCode: position > 0 ? queue[position - 1].code : null,
     nextCode: position >= 0 && position < queue.length - 1 ? queue[position + 1].code : null,
     cycle,
+    categoryChip: categoryChipOf(head.categoryPosition, status, video.categoryKey, detail.refs.lookups),
     users: userRows.filter((u) => u.id !== actor.id),
     lastSeenVersionNo: detail.lastSeenVersionNo,
   };

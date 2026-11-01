@@ -26,6 +26,8 @@ export interface ListQuery {
   stav?: string;
   vyroba?: string;
   serie?: string;
+  /** `ne` = only scripts missing a category or a treatment. */
+  zarazeni?: 'ne';
   q?: string;
 }
 
@@ -45,6 +47,7 @@ export function parseListQuery(
   const stav = first(raw.stav);
   const vyroba = first(raw.vyroba);
   const serie = first(raw.serie);
+  const zarazeni = first(raw.zarazeni);
   const q = first(raw.q)?.trim();
   if (cyklus && known.cycleIds.includes(cyklus)) out.cyklus = cyklus;
   if (isMonthKey(mesic)) out.mesic = mesic;
@@ -52,11 +55,12 @@ export function parseListQuery(
   if (stav && (APPROVAL_STATUSES as readonly string[]).includes(stav)) out.stav = stav;
   if (vyroba && (PRODUCTION_STATUSES as readonly string[]).includes(vyroba)) out.vyroba = vyroba;
   if (serie && known.seriesIds.includes(serie)) out.serie = serie;
+  if (zarazeni === 'ne') out.zarazeni = zarazeni;
   if (q) out.q = q;
   return out;
 }
 
-const ORDER: (keyof ListQuery)[] = ['cyklus', 'mesic', 'kategorie', 'stav', 'vyroba', 'serie', 'q'];
+const ORDER: (keyof ListQuery)[] = ['cyklus', 'mesic', 'kategorie', 'stav', 'vyroba', 'serie', 'zarazeni', 'q'];
 
 export function toListHref(query: ListQuery): string {
   const params = new URLSearchParams();

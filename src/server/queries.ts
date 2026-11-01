@@ -5,10 +5,13 @@ import {
   eq,
   inArray,
   isNull,
+  or,
   sql,
   type AnyColumn,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import type { CycleMix } from "@/domain/metrics/mix";
+import { cycleMixFrom } from "./mix";
 import type { Db } from "@/db/client";
 import * as s from "@/db/schema";
 import { runChecks, type CheckResult } from "@/domain/checks/runChecks";
@@ -114,6 +117,8 @@ export interface VideoListFilters {
   seriesId?: string;
   /** Free text matched against code and title, ignoring case and diacritics. */
   q?: string;
+  /** Only scripts missing a category or a treatment. */
+  unassigned?: boolean;
 }
 
 export interface VideoListItem {
@@ -121,6 +126,9 @@ export interface VideoListItem {
   code: string;
   title: string;
   categoryKey: string | null;
+  treatmentKey: string | null;
+  profileKey: string | null;
+  characterKey: string | null;
   approvalStatus: ApprovalStatus;
   productionStatus: string;
   cycleId: string | null;
@@ -159,6 +167,9 @@ export async function listVideos(
       ? eq(s.videos.productionStatus, filters.productionStatus)
       : undefined,
     filters.seriesId ? eq(s.videos.seriesId, filters.seriesId) : undefined,
+    filters.unassigned
+      ? or(isNull(s.videos.categoryKey), isNull(s.videos.treatmentKey))
+      : undefined,
   ].filter((c) => c !== undefined);
 
   // Latest version, owner and open-comment count come with the videos: no query per video.
@@ -195,6 +206,9 @@ export async function listVideos(
         code: video.code,
         title: video.title,
         categoryKey: video.categoryKey,
+        treatmentKey: video.treatmentKey,
+        profileKey: video.profileKey,
+        characterKey: video.characterKey,
         approvalStatus: statusOf(video),
         productionStatus: video.productionStatus,
         cycleId: video.cycleId,
@@ -306,6 +320,8 @@ export interface VideoHead {
   seenVersionNo: number | null;
   /** `cycleParam` when it names an existing cycle. */
   filterCycleId: string | null;
+  /** Place among the cycle's non-cancelled scripts of the same category, by code; null without cycle or category. */
+  categoryPosition: { position: number; total: number } | null;
 }
 
 export async function loadVideoHead(
@@ -324,6 +340,11 @@ export async function loadVideoHead(
       settings: s.settings,
       seenNo: seen.versionNo,
       filterCycleId: filterCycle.id,
+      categoryPosition: sql<{ position: number; total: number } | null>`(
+        select case when ${s.videos.cycleId} is null or ${s.videos.categoryKey} is null then null
+          else json_build_object('position', count(*) filter (where peer.code <= ${s.videos.code}), 'total', count(*)) end
+        from videos peer
+        where peer.cycle_id = ${s.videos.cycleId} and peer.category_key = ${s.videos.categoryKey} and peer.approval_status <> 'cancelled')`,
     })
     .from(s.videos)
     .leftJoin(s.series, eq(s.series.id, s.videos.seriesId))
@@ -353,6 +374,7 @@ export async function loadVideoHead(
     approvalDaysBefore: row.settings?.approvalDaysBefore ?? 7,
     seenVersionNo: row.seenNo ?? null,
     filterCycleId: row.filterCycleId ?? null,
+    categoryPosition: row.categoryPosition ?? null,
   };
 }
 
@@ -706,6 +728,8 @@ export interface Dashboard {
   returnedToMe: number;
   /** Category pickers, from the same lookups query as the cards. */
   categories: EditorOptions["categories"];
+  /** Mix of the shown cycle, computed from the cycle's videos and lookups already loaded. */
+  mix: CycleMix | null;
 }
 
 const pragueDay = new Intl.DateTimeFormat("en-CA", {
@@ -742,6 +766,7 @@ export async function getDashboard(
         .select({
           cycle: s.shootingCycles,
           daysBefore: s.settings.approvalDaysBefore,
+          tolerancePp: s.settings.tolerancePp,
         })
         .from(s.shootingCycles)
         .leftJoin(s.settings, eq(s.settings.id, "global"))
@@ -779,6 +804,7 @@ export async function getDashboard(
     upcoming ?? [...cycles].sort((a, b) => b.id.localeCompare(a.id))[0];
 
   let cycle: DashboardCycle | null = null;
+  let mix: CycleMix | null = null;
   const kanban = Object.fromEntries(
     APPROVAL_STATUSES.map((status) => [status, [] as VideoListItem[]]),
   ) as Record<ApprovalStatus, VideoListItem[]>;
@@ -790,6 +816,12 @@ export async function getDashboard(
       lookups,
     );
     for (const item of items) kanban[item.approvalStatus].push(item);
+    mix = cycleMixFrom({
+      videos: items,
+      lookups,
+      plan: cycleRow.plannedVideos,
+      tolerancePp: cycleRows[0]?.tolerancePp ?? 10,
+    });
 
     const approved = kanban.approved;
     const keys = [...new Set(approved.flatMap((v) => v.locationKeys))];
@@ -827,6 +859,7 @@ export async function getDashboard(
     kanban,
     returnedToMe: totals.returnedToMe,
     categories: categoryOptions(lookups),
+    mix,
   };
 }
 

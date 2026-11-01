@@ -9,7 +9,7 @@ import { loadScriptPage } from '@/server/scripts';
 import { loadShellData } from '@/server/shell';
 import { loadActor, type Actor } from '@/server/actor';
 import { createVideo, saveDraft, submitForReview } from '@/server/videos';
-import { createSubmitted, NOW, setupWorld, type World } from '../server/helpers';
+import { COMPLETE_META, createSubmitted, NOW, setupWorld, type World } from '../server/helpers';
 
 // Counts the SQL statements drizzle sends to PGlite (the same ones postgres-js would send to Neon).
 // Every statement is a network round trip on Vercel, so the count is a proxy for page latency.
@@ -60,7 +60,7 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
 
 async function useCases(): Promise<Record<string, number>> {
   const { db, admin, honza } = w;
-  const { id: videoId } = await createVideo(db, admin, { title: 'Perf' }, NOW);
+  const { id: videoId } = await createVideo(db, admin, { title: 'Perf', ...COMPLETE_META }, NOW);
   const saveDraftCount = await measure(() => saveDraft(db, admin, videoId, w.cleanBody(), NOW));
   await submitForReview(db, admin, videoId, {}, NOW);
   const [row] = await db.query.videos.findMany({ where: (v, { eq }) => eq(v.id, videoId) });

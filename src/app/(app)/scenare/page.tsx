@@ -32,6 +32,7 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
     approvalStatus: query.stav,
     productionStatus: query.vyroba,
     seriesId: query.serie,
+    unassigned: query.zarazeni === 'ne',
     q: query.q,
   });
   const filtered = Object.keys(query).length > 0;

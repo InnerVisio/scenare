@@ -100,17 +100,21 @@ export function ReferenceBlock({
   references,
   scenes,
   className,
+  form,
 }: {
   videoId: string;
   references: ReferenceVM[];
   scenes: SceneNumbers;
   className?: string;
+  /** The add form, for people who may add samples. */
+  form?: React.ReactNode;
 }) {
-  if (references.length === 0) return null;
+  if (references.length === 0 && !form) return null;
   return (
     <section aria-label="Ukázky" className={cn('flex flex-col gap-2', className)}>
       <h2 className="text-h2">Ukázky</h2>
       <ReferenceList videoId={videoId} references={references} scenes={scenes} />
+      {form}
     </section>
   );
 }

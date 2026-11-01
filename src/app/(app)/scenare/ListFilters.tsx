@@ -84,13 +84,14 @@ export function ListFilters({
         </button>
         {children && <div className="hidden shrink-0 lg:block">{children}</div>}
       </div>
-      <div className={cn('grid-cols-2 gap-2 md:grid-cols-3 lg:grid lg:grid-cols-6', open ? 'grid' : 'hidden')}>
+      <div className={cn('grid-cols-2 gap-2 md:grid-cols-3 lg:grid lg:grid-cols-7', open ? 'grid' : 'hidden')}>
         {select('cyklus', 'Cyklus', 'Všechny cykly', options.cycles.map((c) => ({ value: c.key, label: c.label })))}
         {select('mesic', 'Měsíc', 'Všechny měsíce', months.map((m) => ({ value: m, label: monthLabel(m) })))}
         {select('kategorie', 'Kategorie', 'Všechny kategorie', options.categories.map((c) => ({ value: c.key, label: c.short })))}
         {select('stav', 'Stav schválení', 'Každý stav', APPROVAL_STATUSES.map((s) => ({ value: s, label: APPROVAL_STATUS_LABELS[s] })))}
         {select('vyroba', 'Stav výroby', 'Každá výroba', PRODUCTION_STATUSES.map((s) => ({ value: s, label: PRODUCTION_STATUS_LABELS[s] })))}
         {select('serie', 'Série', 'Všechny série', options.series.map((s) => ({ value: s.key, label: s.label })))}
+        {select('zarazeni', 'Zařazení', 'Všechna zařazení', [{ value: 'ne', label: 'Nezařazené' }])}
       </div>
       {active > 0 && (
         <div>

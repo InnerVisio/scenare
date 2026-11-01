@@ -79,6 +79,7 @@ export function ScriptDetail({ data }: { data: ScriptPageData }) {
           actions={actions}
           hasPreviousVersion={latestNo !== null}
           warnings={failingChecks(data.checks)}
+          missing={data.submitMissing}
         />
       </header>
 

@@ -17,6 +17,7 @@ const NO_PERMS = {
   address: false,
   decideSuggestion: false,
   manualCheck: false,
+  addReference: false,
 };
 
 const noop = async () => false;

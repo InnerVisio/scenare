@@ -1,6 +1,7 @@
 import type { Db } from '@/db/client';
 import type { RuleConfig } from '@/domain/checks/rules';
 import type { CheckResult } from '@/domain/checks/runChecks';
+import { missingForSubmit } from '@/domain/metrics/submitRequirements';
 import { can } from '@/domain/policy/can';
 import { emptyScript } from '@/domain/script/template';
 import type { ScriptBody } from '@/domain/script/types';
@@ -91,6 +92,8 @@ export interface ScriptPageData {
   actions: ScriptActions;
   values: EditorValues;
   references: ReferenceVM[];
+  /** Required fields still empty before the script can be submitted (Czech names). */
+  submitMissing: string[];
   /** Picker options, only when loaded with `options: true`. */
   options?: EditorOptions;
   /** What the editor needs to run the checks on the draft in the browser. */
@@ -203,6 +206,7 @@ export async function loadScriptPage(
       mainIdea: video.mainIdea,
     },
     references: toReferenceVMs(video.references, actor, userName),
+    submitMissing: missingForSubmit(video, lookups.some((l) => l.kind === 'profile' && l.key === video.profileKey && l.data.personal === true)),
     options: extra ? buildEditorOptions(lookups, detail.refs.users, extra) : undefined,
     checkInput: { rules, personHashtags, formatStatuses, manualChecks: latest ? (video.manualChecks?.[latest.id] ?? {}) : {} },
   };

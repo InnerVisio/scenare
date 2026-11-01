@@ -6,6 +6,7 @@ import { newId } from '@/domain/ids';
 import { can } from '@/domain/policy/can';
 import { emptyScript } from '@/domain/script/template';
 import type { ScriptBody } from '@/domain/script/types';
+import { missingForSubmit, submitMissingMessage } from '@/domain/metrics/submitRequirements';
 import { canSubmit, statusAfterSubmit } from '@/domain/workflow/approval';
 import { logActivity } from './activity';
 import type { Actor } from './actor';
@@ -296,6 +297,12 @@ export async function submitForReview(
       throw new DomainError('INVALID_TRANSITION', 'Scénář teď nejde odeslat ke schválení.');
     }
     if (!video.draft) throw new DomainError('VALIDATION', 'Scénář je prázdný.');
+
+    const [profile] = video.profileKey
+      ? await tx.select().from(s.lookupItems).where(and(eq(s.lookupItems.kind, 'profile'), eq(s.lookupItems.key, video.profileKey)))
+      : [];
+    const missing = missingForSubmit(video, profile?.data.personal === true);
+    if (missing.length > 0) throw new DomainError('VALIDATION', submitMissingMessage(missing), missing);
 
     const previous = await latestVersion(tx, videoId);
     const versionNo = (previous?.versionNo ?? 0) + 1;

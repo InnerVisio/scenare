@@ -14,6 +14,15 @@ export function minutesLater(minutes: number): Date {
   return new Date(NOW.getTime() + minutes * 60_000);
 }
 
+/** Meta a script needs before it can be submitted (category, treatment, cycle, profile, character). */
+export const COMPLETE_META = {
+  categoryKey: 'produkt',
+  treatmentKey: 'odborne',
+  cycleId: '2026-11',
+  profileKey: 'radek',
+  characterKey: 'pracovni',
+} as const;
+
 export interface World {
   db: Db;
   admin: Actor;
@@ -62,7 +71,7 @@ export async function createSubmitted(
   w: World,
   title = 'Testovací scénář',
 ): Promise<{ videoId: string; versionId: string; code: string }> {
-  const { id: videoId, code } = await createVideo(w.db, w.admin, { title }, NOW);
+  const { id: videoId, code } = await createVideo(w.db, w.admin, { title, ...COMPLETE_META }, NOW);
   await saveDraft(w.db, w.admin, videoId, w.cleanBody(), NOW);
   const { versionId } = await submitForReview(w.db, w.admin, videoId, {}, NOW);
   return { videoId, versionId, code };

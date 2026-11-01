@@ -17,6 +17,7 @@ import {
   NOW,
   setupWorld,
   type World,
+  COMPLETE_META,
 } from './helpers';
 
 let w: World;
@@ -30,7 +31,7 @@ const decisionsOf = async (versionId: string) =>
 describe('full review cycle', () => {
   it('create → submit v1 → Radek returns → admin accepts suggestion → submit v2 → Honza approves → Radek approves', async () => {
     // create + submit v1
-    const { id: videoId } = await createVideo(w.db, w.admin, { title: 'Celý cyklus' }, minutesLater(0));
+    const { id: videoId } = await createVideo(w.db, w.admin, { title: 'Celý cyklus', ...COMPLETE_META }, minutesLater(0));
     await saveDraft(w.db, w.admin, videoId, w.cleanBody(), minutesLater(0));
     const v1 = await submitForReview(w.db, w.admin, videoId, { changeSummary: 'První odeslání' }, minutesLater(1));
     expect((await getVideo(w.db, videoId)).approvalStatus).toBe('in_review');
@@ -251,7 +252,7 @@ describe('warnings and override', () => {
   });
 
   it('lists failing auto "reject" rules by label; manual pending rules do not block', async () => {
-    const { id: videoId } = await createVideo(w.db, w.admin, { title: 'Prázdný hook' }, NOW);
+    const { id: videoId } = await createVideo(w.db, w.admin, { title: 'Prázdný hook', ...COMPLETE_META }, NOW);
     const body = w.cleanBody();
     await saveDraft(w.db, w.admin, videoId, { ...body, hooks: body.hooks.map((h) => (h.id === 'A' ? { ...h, text: '' } : h)), source: '' }, NOW);
     const { versionId } = await submitForReview(w.db, w.admin, videoId, {}, NOW);

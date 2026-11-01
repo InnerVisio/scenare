@@ -85,6 +85,9 @@ test.describe('script editor', () => {
     await page.getByLabel('Název', { exact: true }).fill(title);
     if (project === 'mobile') await page.getByRole('button', { name: 'Detaily videa' }).click();
     await page.getByLabel('Kategorie').selectOption('trendy');
+    await page.getByLabel('Typ zpracování').selectOption('odborne');
+    await page.getByLabel('Profil', { exact: true }).selectOption('gta-partners');
+    await page.getByLabel('Cyklus', { exact: true }).selectOption('2026-11');
     await page.getByLabel('Cíl videa').selectOption('shares');
 
     await page.getByLabel('Co se divák dozví').fill('Fixace jde ukončit bez poplatku.');

@@ -23,6 +23,7 @@ import {
   NOW,
   setupWorld,
   type World,
+  COMPLETE_META,
 } from './helpers';
 
 let w: World;
@@ -169,7 +170,7 @@ describe('saveDraft', () => {
 
 describe('submitForReview', () => {
   it('creates version 1 with meta snapshot, sets in_review, logs and notifies leadership', async () => {
-    const { id } = await createVideo(w.db, w.admin, { title: 'Odeslat', categoryKey: 'produkt', plannedMonth: '2026-12' }, NOW);
+    const { id } = await createVideo(w.db, w.admin, { title: 'Odeslat', ...COMPLETE_META, plannedMonth: '2026-12' }, NOW);
     await saveDraft(w.db, w.admin, id, w.cleanBody(), NOW);
     const { versionId, versionNo } = await submitForReview(w.db, w.admin, id, { changeSummary: 'První odeslání' }, minutesLater(2));
     expect(versionNo).toBe(1);
@@ -177,7 +178,7 @@ describe('submitForReview', () => {
     const [version] = await w.db.select().from(s.scriptVersions).where(eq(s.scriptVersions.id, versionId));
     expect(version).toMatchObject({ videoId: id, versionNo: 1, origin: 'submit', changeSummary: 'První odeslání', createdBy: w.admin.id });
     expect(version.body).toEqual(w.cleanBody());
-    expect(version.meta).toMatchObject({ title: 'Odeslat', categoryKey: 'produkt', plannedMonth: '2026-12' });
+    expect(version.meta).toMatchObject({ title: 'Odeslat', ...COMPLETE_META, plannedMonth: '2026-12' });
 
     const row = await getVideo(w.db, id);
     expect(row).toMatchObject({ approvalStatus: 'in_review', editingAfterApproval: false, approvedBy: [], approvedAt: null });
@@ -190,6 +191,27 @@ describe('submitForReview', () => {
     const notified = await w.db.select().from(s.notifications).where(eq(s.notifications.activityId, log.id));
     expect(notified.map((n) => n.userId).sort()).toEqual([w.honza.id, w.radek.id].sort());
     expect(notified.some((n) => n.userId === w.admin.id)).toBe(false);
+  });
+
+  it('lists the missing fields in Czech and does not submit', async () => {
+    const { id } = await createVideo(w.db, w.admin, { title: 'Neúplný' }, NOW);
+    await saveDraft(w.db, w.admin, id, w.cleanBody(), NOW);
+    const err = await expectDomainError(
+      submitForReview(w.db, w.admin, id, {}, NOW),
+      'VALIDATION',
+      'Před odesláním doplň: kategorii, typ zpracování, cyklus, profil.',
+    );
+    expect(err.details).toEqual(['kategorii', 'typ zpracování', 'cyklus', 'profil']);
+    expect((await getVideo(w.db, id)).approvalStatus).toBe('draft');
+
+    await updateVideoMeta(w.db, w.admin, id, { ...COMPLETE_META, characterKey: null }, NOW);
+    await expectDomainError(
+      submitForReview(w.db, w.admin, id, {}, NOW),
+      'VALIDATION',
+      'Před odesláním doplň: charakter (osobní / pracovní).',
+    );
+    await updateVideoMeta(w.db, w.admin, id, { profileKey: 'gta-partners' }, NOW); // not a personal profile
+    await expect(submitForReview(w.db, w.admin, id, {}, NOW)).resolves.toMatchObject({ versionNo: 1 });
   });
 
   it('a resubmission after return is final_review with version 2', async () => {

@@ -2,7 +2,7 @@ import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
 import { getDashboard } from '@/server/queries';
 import { TopBar } from '@/ui/TopBar';
-import { ActionCard, CommentsCard, Kanban, PhaseThreeCard, ShootCard } from './_components/dashboard/Dashboard';
+import { ActionCard, CommentsCard, Kanban, MixCard, ShootCard } from './_components/dashboard/Dashboard';
 import { dateLine, greeting } from './_components/dashboard/model';
 
 export const metadata = { title: 'Přehled – GTA Scénáře' };
@@ -22,7 +22,7 @@ export default async function HomePage() {
           <ShootCard cycle={data.cycle} />
           <CommentsCard data={data} />
         </div>
-        <PhaseThreeCard />
+        {data.cycle && data.mix && <MixCard cycleId={data.cycle.id} mix={data.mix} categories={data.categories} />}
         <Kanban data={data} categories={data.categories} />
       </div>
     </>

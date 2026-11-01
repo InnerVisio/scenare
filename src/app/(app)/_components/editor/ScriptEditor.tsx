@@ -37,6 +37,7 @@ import { FieldThreads } from './FieldThreads';
 import { IconButton } from './IconButton';
 import { LiveChecks, useLiveChecks } from './LiveChecks';
 import { MetaForm } from './MetaForm';
+import { missingForSubmit } from '@/domain/metrics/submitRequirements';
 import { ReferenceForm } from '../references/ReferenceForm';
 import { ReferenceList } from '../references/ReferenceList';
 import { SaveIndicator } from './SaveIndicator';
@@ -483,6 +484,7 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
         busy={submitBusy || busyCount > 0}
         error={submitError}
         warnings={failingChecks(checks)}
+        missing={missingForSubmit(values, options.profiles.find((p) => p.key === values.profileKey)?.personal === true)}
         hasPreviousVersion={data.latest !== null}
         onSubmit={(summary) => void submit(summary)}
         onCancel={() => {

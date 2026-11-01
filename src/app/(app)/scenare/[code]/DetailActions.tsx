@@ -21,12 +21,15 @@ export function DetailActions({
   actions,
   hasPreviousVersion,
   warnings,
+  missing,
 }: {
   videoId: string;
   code: string;
   actions: ScriptActions;
   hasPreviousVersion: boolean;
   warnings: string[];
+  /** Required fields still empty; they block the submit. */
+  missing: string[];
 }) {
   const router = useRouter();
   const toast = useReviewToast();
@@ -165,6 +168,7 @@ export function DetailActions({
         busy={busy}
         error={error}
         warnings={warnings}
+        missing={missing}
         hasPreviousVersion={hasPreviousVersion}
         onSubmit={(summary) => void submit(summary)}
         onCancel={close}
