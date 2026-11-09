@@ -12,10 +12,8 @@ async function expectNoHorizontalScroll(page: Page) {
 }
 
 test.describe('dashboard and settings', () => {
-  test('Honza sees the review card and the kanban', async ({ page }, info) => {
-    await loginAs(page, 'Honza');
-    await expect(page.getByText('Čeká na tvou kontrolu')).toBeVisible();
-    await expect(page.getByRole('link', { name: /Začít kontrolu/ })).toBeVisible();
+  test('Admin sees the dashboard with the kanban', async ({ page }, info) => {
+    await loginAs(page, 'Admin');
     await expect(page.getByText('kde co vázne')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Rozdělení cyklu 2026-11' })).toBeVisible();
     await expectNoHorizontalScroll(page);
@@ -34,9 +32,9 @@ test.describe('dashboard and settings', () => {
     await expectNoHorizontalScroll(page);
   });
 
-  test('Honza has no access to settings', async ({ page }) => {
+  test('Honza is redirected from settings to the home', async ({ page }) => {
     await loginAs(page, 'Honza');
     await page.goto('/nastaveni');
-    await expect(page.getByText('Sem nemáš přístup.')).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
   });
 });

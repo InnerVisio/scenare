@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
     <ShellProvider
       value={{
         user: { name: shell.user.name, initials: shell.user.initials, roleLabel: ROLE_LABELS[shell.user.role] },
+        leadership: shell.user.role === 'leadership',
         unread: shell.unread,
         notifications: shell.notifications.map((n) => ({
           id: n.id,
@@ -31,7 +32,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
         currentMonth: shell.currentMonth,
       }}
     >
-      <Sidebar queueCount={shell.queueCount} />
+      <Sidebar queueCount={shell.queueCount} leadership={shell.user.role === 'leadership'} />
       <main className="mx-auto w-full max-w-[1600px] px-4 pt-5 pb-28 md:pt-8 md:pr-8 md:pb-10 md:pl-[116px]">{children}</main>
     </ShellProvider>
   );

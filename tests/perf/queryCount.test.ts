@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Db } from '@/db/client';
-import { getDashboard, listVideos } from '@/server/queries';
+import { getDashboard, getLeadershipHome, listVideos } from '@/server/queries';
 import { decide } from '@/server/approvals';
 import { createComment } from '@/server/comments';
 import { loadEditorOptions } from '@/server/editorOptions';
@@ -51,6 +51,7 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
   return {
     layout: await layout(),
     'dashboard (/)': await withLayout((a) => getDashboard(db, a, NOW)),
+    'leadership home (/)': await withLayout((a) => getLeadershipHome(db, a, NOW)),
     'kontrola/[code]': await withLayout(async (a) => {
       return loadReviewPage(db, a, reviewCode, { cycleParam: undefined }, NOW);
     }),

@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import * as s from '@/db/schema';
@@ -33,6 +34,7 @@ async function timed<T>(run: () => Promise<T>): Promise<number> {
 
 export default async function DiagnosticsPage() {
   const actor = await requireActor();
+  if (actor.role === 'leadership') redirect('/');
   if (!can(actor, 'settings.manage')) {
     return (
       <>

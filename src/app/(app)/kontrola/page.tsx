@@ -26,9 +26,9 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
       <TopBar title="Ke kontrole" />
       <EmptyState
         icon={CheckCheck}
-        title="Všechno máš zkontrolované."
+        title="Všechno máš zkontrolované 🎉"
         description={queue.length > 0 ? 'Zbývá počkat na ostatní, ty tvoje schválené scénáře ještě čekají na druhý podpis.' : 'Žádný scénář teď nečeká na kontrolu.'}
-        action={<ButtonLink href="/scenare" variant="primary">Přejít na Scénáře</ButtonLink>}
+        action={<ButtonLink href="/" variant="primary">Zpět na přehled</ButtonLink>}
       />
     </>
   );

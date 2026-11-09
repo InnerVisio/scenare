@@ -242,7 +242,7 @@ test.describe('review queue', () => {
     // Next script he has not approved yet, or the empty state when that was the last one.
     await page.waitForURL((url) => /^\/kontrola(\/V0\d\d)?$/.test(url.pathname) && !url.pathname.includes(code));
     if (new URL(page.url()).pathname === '/kontrola') {
-      await expect(page.getByText('Všechno máš zkontrolované.')).toBeVisible();
+      await expect(page.getByText('Všechno máš zkontrolované 🎉')).toBeVisible();
       await page.screenshot({ path: `test-results/review-empty-${info.project.name}.png` });
     }
 

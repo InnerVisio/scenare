@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
 import { getOverview } from '@/server/overview';
@@ -10,7 +11,7 @@ export const metadata = { title: 'Čísla – GTA Scénáře' };
 export const dynamic = 'force-dynamic';
 
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireActor();
+  if ((await requireActor()).role === 'leadership') redirect('/');
   const params = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const now = new Date();

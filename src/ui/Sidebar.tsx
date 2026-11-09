@@ -37,6 +37,12 @@ const MAIN_ITEMS: NavItem[] = [
 ];
 const SETTINGS_ITEM: NavItem = { href: '/nastaveni', label: 'Nastavení', icon: SlidersHorizontal };
 
+const LEADERSHIP_ITEMS: NavItem[] = [
+  { href: '/kontrola', label: 'Ke kontrole', icon: ListChecks, badge: true },
+  { href: '/nataceni', label: 'Natáčení', icon: Video },
+  { href: '/scenare', label: 'Scénáře', icon: FileText },
+];
+
 const TAB_ITEMS: NavItem[] = [
   { href: '/', label: 'Přehled', icon: Home },
   { href: '/kontrola', label: 'Kontrola', icon: ListChecks, badge: true },
@@ -96,10 +102,12 @@ export function SidebarRail({
   pathname,
   queueCount,
   fixed = true,
+  leadership = false,
 }: {
   pathname: string;
   queueCount: number;
   fixed?: boolean;
+  leadership?: boolean;
 }) {
   return (
     <aside
@@ -117,13 +125,15 @@ export function SidebarRail({
         <ScrollText aria-hidden className="size-6" strokeWidth={2} />
       </Link>
       <nav className="flex flex-col items-center gap-3">
-        {MAIN_ITEMS.map((item) => (
+        {(leadership ? LEADERSHIP_ITEMS : MAIN_ITEMS).map((item) => (
           <RailLink key={item.href} item={item} active={isActivePath(pathname, item.href)} queueCount={queueCount} />
         ))}
       </nav>
-      <div className="mt-auto">
-        <RailLink item={SETTINGS_ITEM} active={isActivePath(pathname, SETTINGS_ITEM.href)} queueCount={0} />
-      </div>
+      {!leadership && (
+        <div className="mt-auto">
+          <RailLink item={SETTINGS_ITEM} active={isActivePath(pathname, SETTINGS_ITEM.href)} queueCount={0} />
+        </div>
+      )}
     </aside>
   );
 }
@@ -152,10 +162,12 @@ export function TabBar({
   pathname,
   queueCount,
   fixed = true,
+  leadership = false,
 }: {
   pathname: string;
   queueCount: number;
   fixed?: boolean;
+  leadership?: boolean;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = MORE_ITEMS.some((item) => isActivePath(pathname, item.href));
@@ -168,10 +180,10 @@ export function TabBar({
           fixed ? 'fixed inset-x-0 bottom-0 rounded-t-card md:hidden' : 'rounded-card',
         )}
       >
-        {TAB_ITEMS.map((item) => (
+        {(leadership ? LEADERSHIP_ITEMS : TAB_ITEMS).map((item) => (
           <TabLink key={item.href} item={item} active={isActivePath(pathname, item.href)} queueCount={queueCount} />
         ))}
-        <button
+        {!leadership && <button
           type="button"
           onClick={() => setMoreOpen(true)}
           aria-label="Více"
@@ -182,9 +194,9 @@ export function TabBar({
             <Ellipsis aria-hidden className="size-5" strokeWidth={1.75} />
           </span>
           Více
-        </button>
+        </button>}
       </nav>
-      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Více">
+      {!leadership && <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Více">
         <ul className="flex flex-col gap-2">
           {MORE_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -204,18 +216,18 @@ export function TabBar({
             );
           })}
         </ul>
-      </BottomSheet>
+      </BottomSheet>}
     </>
   );
 }
 
 /** Rail on desktop, tab bar on phones. */
-export function Sidebar({ queueCount }: { queueCount: number }) {
+export function Sidebar({ queueCount, leadership = false }: { queueCount: number; leadership?: boolean }) {
   const pathname = usePathname();
   return (
     <>
-      <SidebarRail pathname={pathname} queueCount={queueCount} />
-      {!hidesTabBar(pathname) && <TabBar pathname={pathname} queueCount={queueCount} />}
+      <SidebarRail pathname={pathname} queueCount={queueCount} leadership={leadership} />
+      {!hidesTabBar(pathname) && <TabBar pathname={pathname} queueCount={queueCount} leadership={leadership} />}
     </>
   );
 }

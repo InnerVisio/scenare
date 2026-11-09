@@ -904,6 +904,58 @@ export async function getDashboard(
   };
 }
 
+export interface LeadershipHome {
+  queue: ReviewQueueItem[];
+  categories: EditorOptions["categories"];
+  cycle: {
+    id: string;
+    shootDate: string | null;
+    approvalDeadline: string | null;
+    daysToShoot: number | null;
+    daysToDeadline: number | null;
+    approvedCount: number;
+  } | null;
+}
+
+/** Data for the leadership home: the review queue plus the upcoming cycle (4 queries, no kanban). */
+export async function getLeadershipHome(
+  db: Db,
+  actor: Actor,
+  now: Date,
+): Promise<LeadershipHome> {
+  const today = pragueDay.format(now);
+  const [cycleRows, lookups, queue] = await Promise.all([
+    db
+      .select({ cycle: s.shootingCycles, daysBefore: s.settings.approvalDaysBefore })
+      .from(s.shootingCycles)
+      .leftJoin(s.settings, eq(s.settings.id, "global"))
+      .orderBy(asc(s.shootingCycles.shootDate), asc(s.shootingCycles.id)),
+    allLookups(db),
+    getReviewQueue(db, actor, {}),
+  ]);
+  const cycles = cycleRows.map((r) => r.cycle);
+  const row =
+    cycles.find((c) => c.shootDate !== null && c.shootDate >= today) ??
+    [...cycles].sort((a, b) => b.id.localeCompare(a.id))[0];
+  let cycle: LeadershipHome["cycle"] = null;
+  if (row) {
+    const [{ n }] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(s.videos)
+      .where(and(eq(s.videos.cycleId, row.id), eq(s.videos.approvalStatus, "approved")));
+    const deadline = row.shootDate ? minusDays(row.shootDate, cycleRows[0]?.daysBefore ?? 7) : null;
+    cycle = {
+      id: row.id,
+      shootDate: row.shootDate,
+      approvalDeadline: deadline,
+      daysToShoot: row.shootDate ? daysUntil(dayAtNoon(row.shootDate), now) : null,
+      daysToDeadline: deadline ? daysUntil(dayAtNoon(deadline), now) : null,
+      approvedCount: n,
+    };
+  }
+  return { queue, categories: categoryOptions(lookups), cycle };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------------------------

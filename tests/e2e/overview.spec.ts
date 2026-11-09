@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function loginAsHonza(page: Page) {
   await page.goto('/dev-login');
-  await page.getByRole('button', { name: /Honza/ }).click();
+  await page.getByRole('button', { name: /Admin/ }).click();
   await page.waitForURL('**/');
 }
 

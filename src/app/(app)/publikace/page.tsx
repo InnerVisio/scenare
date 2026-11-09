@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { ExternalLink, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { getDb } from '@/db/client';
@@ -36,7 +37,7 @@ function Metrics({ p }: { p: PublicationVM }) {
 }
 
 export default async function PublicationsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireActor();
+  if ((await requireActor()).role === 'leadership') redirect('/');
   const params = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const now = new Date();

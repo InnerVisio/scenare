@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Layers } from 'lucide-react';
 import { getDb } from '@/db/client';
@@ -21,6 +22,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SeriesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const actor = await requireActor();
+  if (actor.role === 'leadership') redirect('/');
   const showAll = (await searchParams).vse === '1';
   const db = await getDb();
   const [all, lookups] = await Promise.all([loadSeriesList(db), listLookups(db, 'category')]);

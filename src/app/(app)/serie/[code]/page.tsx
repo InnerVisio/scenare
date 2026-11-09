@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
@@ -36,6 +37,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 
 export default async function SeriesDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const actor = await requireActor();
+  if (actor.role === 'leadership') redirect('/');
   const { code } = await params;
   const db = await getDb();
   const manage = can(actor, 'series.manage');

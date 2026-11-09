@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function EditScriptPage({ params }: { params: Promise<{ code: string }> }) {
   const actor = await requireActor();
+  if (actor.role === 'leadership') redirect('/');
   const db = await getDb();
   const { code } = await params;
 

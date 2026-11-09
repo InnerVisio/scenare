@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function loginAsHonza(page: Page) {
   await page.goto('/dev-login');
-  await page.getByRole('button', { name: /Honza/ }).click();
+  await page.getByRole('button', { name: /Admin/ }).click();
   await page.waitForURL('**/');
 }
 
@@ -56,7 +56,7 @@ test.describe('app shell', () => {
 
   test('avatar menu opens, Escape closes it and focus returns to the avatar', async ({ page }) => {
     await page.goto('/');
-    const avatar = page.getByRole('button', { name: /Účet: Honza/ });
+    const avatar = page.getByRole('button', { name: /Účet: Admin/ });
     await avatar.click();
     await expect(avatar).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByRole('button', { name: 'Odhlásit se' })).toBeVisible();

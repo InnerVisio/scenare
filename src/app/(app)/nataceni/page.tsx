@@ -39,7 +39,7 @@ export default async function ShootingDayPage({ searchParams }: { searchParams: 
     );
   }
   const { cycle } = day;
-  const manage = can(actor, 'production.update');
+  const manage = actor.role !== 'leadership' && can(actor, 'production.update');
   return (
     <div className="flex flex-col gap-4">
       <TopBar title="Natáčecí den" subtitle={`Cyklus ${cycle.id.replace('-', '–')} · ${day.approvedCount} schválených scénářů`} />

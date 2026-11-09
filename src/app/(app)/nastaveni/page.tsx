@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { getDb } from '@/db/client';
 import { can } from '@/domain/policy/can';
 import { requireActor } from '@/server/auth/session';
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
   const actor = await requireActor();
+  if (actor.role === 'leadership') redirect('/');
   if (!can(actor, 'settings.manage')) {
     return (
       <>

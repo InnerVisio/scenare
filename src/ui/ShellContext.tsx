@@ -13,6 +13,8 @@ export interface BellItem {
 
 export interface ShellState {
   user: { name: string; initials: string; roleLabel: string };
+  /** Leadership gets the minimal navigation (review, shooting, scripts). */
+  leadership: boolean;
   unread: number;
   /** Latest notifications for the bell dropdown. */
   notifications?: BellItem[];

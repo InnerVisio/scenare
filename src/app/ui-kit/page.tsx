@@ -48,7 +48,7 @@ export default function UiKitPage() {
   return (
     <ShellProvider
       value={{
-        user: { name: 'Honza', initials: 'H', roleLabel: 'Vedení' },
+        leadership: false, user: { name: 'Honza', initials: 'H', roleLabel: 'Vedení' },
         unread: 3,
         cycleIds: ['2026-11', '2026-12'],
         defaultCycleId: '2026-11',
