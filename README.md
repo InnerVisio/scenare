@@ -56,3 +56,9 @@ Vzor je v `.env.example`.
 4. Při každém buildu (`vercel-build`) se nejdřív spustí migrace databáze, volitelně seed (`SEED_DEMO=1`) a pak `next build`.
 
 Podrobný postup: [docs/nasazeni-vercel.md](docs/nasazeni-vercel.md).
+
+## Účty a přihlášení
+
+- **Osobní přihlašovací odkaz** (hlavní cesta): Nastavení → Uživatelé → u uživatele „Přihlašovací odkaz“ (jen admin). Odkaz pošli přes WhatsApp/SMS. Platí 7 dní, jde použít jednou; nový odkaz zneplatní starší nepoužitý. Po otevření a potvrzení zůstane uživatel přihlášený 90 dní (cookie se obnovuje, když je starší 7 dní).
+- **Heslo pro admina**: nastav `ADMIN_PASSWORD` (alespoň 12 znaků, jinak je funkce vypnutá). Na /login pak přibude odkaz „Přihlásit heslem (admin)“; funguje jen pro uživatele s rolí admin, 5 chybných pokusů za 15 minut e-mail zablokuje.
+- **Vývojové přihlášení**: `ALLOW_DEV_LOGIN=1` dovolí komukoli přihlásit se jako kdokoli. Po rozdání odkazů ho ve Vercelu smaž (Settings → Environment Variables) a nasaď znovu. Diagnostika (/nastaveni/diagnostika) na to upozorní.

@@ -36,11 +36,11 @@ describe('token primitives', () => {
     expect(await verifySession('', SECRET, NOW)).toBeNull();
   });
 
-  it('rejects an expired JWT (30 days)', async () => {
+  it('rejects an expired JWT (90 days)', async () => {
     const jwt = await signSession('user-1', SECRET, NOW);
     const day = 24 * 60;
-    expect(await verifySession(jwt, SECRET, minutesLater(29 * day))).toEqual({ userId: 'user-1' });
-    expect(await verifySession(jwt, SECRET, minutesLater(31 * day))).toBeNull();
+    expect(await verifySession(jwt, SECRET, minutesLater(89 * day))).toEqual({ userId: 'user-1' });
+    expect(await verifySession(jwt, SECRET, minutesLater(91 * day))).toBeNull();
   });
 });
 

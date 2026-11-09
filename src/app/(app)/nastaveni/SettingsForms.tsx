@@ -9,7 +9,7 @@ import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { Tabs } from '@/ui/Tabs';
 import { cn } from '@/ui/cn';
 import type { Role } from '@/domain/policy/can';
-import { addCycle, saveLookups, saveSettings, saveUser } from './actions';
+import { addCycle, createLoginLink, saveLookups, saveSettings, saveUser } from './actions';
 import { LOOKUP_KINDS, type DataField } from './lookupKinds';
 
 interface Result {
@@ -361,6 +361,64 @@ interface UserValue {
   notifyEmail?: boolean;
 }
 
+function LoginLink({ userId }: { userId: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  return (
+    <div className="flex flex-col gap-3 md:col-span-4">
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          pending={pending}
+          onClick={() =>
+            start(async () => {
+              setNote(null);
+              const result = await createLoginLink({ userId });
+              if (result.ok) {
+                setUrl(result.url);
+                setError(null);
+              } else setError(result.message);
+            })
+          }
+        >
+          Přihlašovací odkaz
+        </Button>
+      </div>
+      {error ? <p className="text-coral">{error}</p> : null}
+      {url ? (
+        <div className="flex flex-col gap-2 rounded-inner bg-card p-3">
+          <input readOnly aria-label="Přihlašovací odkaz" value={url} onFocus={(e) => e.currentTarget.select()} className="min-h-12 w-full rounded-inner bg-nest px-3 text-sm" />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(url)
+                  .then(() => setNote('Zkopírováno.'))
+                  .catch(() => setNote('Kopírování se nepovedlo, označ odkaz a zkopíruj ho ručně.'))
+              }
+            >
+              Kopírovat
+            </Button>
+            {canShare ? (
+              <Button type="button" variant="outline" onClick={() => void navigator.share({ url }).catch(() => undefined)}>
+                Sdílet
+              </Button>
+            ) : null}
+            {note ? <span role="status" className="text-sm text-text2">{note}</span> : null}
+          </div>
+          <p className="text-sm text-text2">Odkaz platí 7 dní a jde použít jednou. Po otevření zůstaneš přihlášený 90 dní.</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function UserRow({ initial }: { initial: UserValue }) {
   const [u, setU] = useState(initial);
   const save = useSave();
@@ -405,6 +463,7 @@ function UserRow({ initial }: { initial: UserValue }) {
         </Button>
         <Status status={save.status} />
       </div>
+      {initial.id ? <LoginLink userId={initial.id} /> : null}
     </form>
   );
 }

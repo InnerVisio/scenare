@@ -1,4 +1,8 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { can } from '@/domain/policy/can';
+import type { Actor } from '../actor';
+import { DomainError } from '../errors';
+import { logActivity } from '../activity';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { appUrl } from '../appUrl';
@@ -6,6 +10,7 @@ import { sendMail } from '../mail/send';
 import { generateToken, hashToken } from './token';
 
 export const LOGIN_LINK_MINUTES = 15;
+export const PERSONAL_LINK_DAYS = 7;
 
 const UNSAFE_CHARS = /[\u0000-\u001f\u007f\u0085\u00a0\u2028\u2029\s\\]/;
 const THROTTLE_SECONDS = 60;
@@ -104,4 +109,34 @@ export async function consumeLoginToken(db: Db, token: string, now: Date): Promi
     )
     .returning({ userId: s.loginTokens.userId });
   return row ? { userId: row.userId } : null;
+}
+
+/**
+ * Admin-only: a 7-day single-use login link for one user, to hand over by WhatsApp/SMS. Older unused
+ * personal links of that user are invalidated. Logged as activity, without notifications.
+ */
+export async function createPersonalLoginLink(db: Db, actor: Actor, userId: string, now: Date): Promise<{ url: string }> {
+  if (!can(actor, 'settings.manage')) throw new DomainError('FORBIDDEN', 'Přihlašovací odkaz smí vytvořit jen admin.');
+  const token = generateToken();
+  await db.transaction(async (tx) => {
+    const [user] = await tx.select({ id: s.users.id, name: s.users.name }).from(s.users).where(eq(s.users.id, userId));
+    if (!user) throw new DomainError('NOT_FOUND', 'Uživatel nenalezen.');
+    await tx
+      .update(s.loginTokens)
+      .set({ usedAt: now })
+      .where(and(eq(s.loginTokens.userId, userId), eq(s.loginTokens.kind, 'personal'), isNull(s.loginTokens.usedAt)));
+    await tx.insert(s.loginTokens).values({
+      tokenHash: hashToken(token),
+      userId,
+      kind: 'personal',
+      expiresAt: new Date(now.getTime() + PERSONAL_LINK_DAYS * 24 * 60 * 60_000),
+    });
+    await logActivity(
+      tx,
+      { actorId: actor.id, videoId: null, entity: 'user', entityId: userId, action: 'user.login_link_created', after: { targetName: user.name } },
+      now,
+    );
+  });
+  const base = (appUrl() ?? 'http://localhost:3000').replace(/\/+$/, '');
+  return { url: `${base}/auth/${token}` };
 }

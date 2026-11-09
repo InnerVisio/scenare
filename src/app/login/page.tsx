@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { safeNextPath } from '@/server/auth/magicLink';
+import { passwordLoginEnabled } from '@/server/auth/passwordLogin';
 import { LoginForm } from './LoginForm';
 
 export const metadata = { title: 'Přihlášení – GTA Scénáře' };
@@ -27,6 +28,11 @@ export default async function LoginPage({
         ) : null}
         <LoginForm next={next} />
       </section>
+      {passwordLoginEnabled() ? (
+        <Link href="/login/heslo" className="inline-flex min-h-12 items-center text-sm text-text2 underline">
+          Přihlásit heslem (admin)
+        </Link>
+      ) : null}
       {showDevLogin() ? (
         <Link href="/dev-login" className="inline-flex min-h-12 items-center text-violet underline">
           Vývojové přihlášení bez e-mailu

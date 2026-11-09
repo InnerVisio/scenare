@@ -4,8 +4,17 @@ import { jwtVerify } from 'jose/jwt/verify';
 /** Edge-safe (jose only): imported by middleware, so it must not touch node:* modules or the database. */
 
 export const SESSION_COOKIE = 'gta_session';
-export const SESSION_DAYS = 30;
+export const SESSION_DAYS = 90;
 export const SESSION_MAX_AGE_SECONDS = SESSION_DAYS * 24 * 60 * 60;
+
+/** A session older than this is re-issued by the middleware (sliding expiry). */
+export const SESSION_REFRESH_AFTER_SECONDS = 7 * 24 * 60 * 60;
+
+/** Pure decision for the sliding session: true when the token was issued more than 7 days ago. */
+export function shouldRefreshSession(issuedAtSeconds: number | undefined, now: Date): boolean {
+  if (typeof issuedAtSeconds !== 'number') return false;
+  return Math.floor(now.getTime() / 1000) - issuedAtSeconds > SESSION_REFRESH_AFTER_SECONDS;
+}
 
 const MIN_PRODUCTION_SECRET_LENGTH = 32;
 const DEV_SECRET = 'dev-only-secret-dev-only-secret-0123456789';
@@ -44,12 +53,22 @@ export async function signSession(userId: string, secret: string, now: Date): Pr
 
 /** The user id of a valid, unexpired session JWT, otherwise null (never throws). */
 export async function verifySession(jwt: string, secret: string, now: Date): Promise<{ userId: string } | null> {
+  const session = await verifySessionDetailed(jwt, secret, now);
+  return session ? { userId: session.userId } : null;
+}
+
+/** Like `verifySession`, also returning the issue time (seconds) for the sliding refresh. */
+export async function verifySessionDetailed(
+  jwt: string,
+  secret: string,
+  now: Date,
+): Promise<{ userId: string; issuedAt?: number } | null> {
   if (!jwt) return null;
   try {
     const { payload } = await jwtVerify(jwt, key(secret), { algorithms: ['HS256'], currentDate: now });
     // Tokens with a purpose (deep links) are not sessions.
     if (payload.purpose !== undefined) return null;
-    return typeof payload.sub === 'string' && payload.sub ? { userId: payload.sub } : null;
+    return typeof payload.sub === 'string' && payload.sub ? { userId: payload.sub, issuedAt: payload.iat } : null;
   } catch {
     return null;
   }

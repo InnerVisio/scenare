@@ -58,7 +58,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
-      'Referrer-Policy': 'no-referrer',
+      'Referrer-Policy': 'same-origin',
       'X-Robots-Tag': 'noindex',
     },
   });

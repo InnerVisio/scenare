@@ -22,6 +22,15 @@ const COMMENT_ACTIONS = new Set([
 ]);
 const LEADERSHIP_REVIEW_ACTIONS = new Set(['version.submitted']);
 
+/** Rough Czech 4th case of a first name (Radek → Radka, Honza → Honzu); unknown shapes stay as they are. */
+function accusative(name: unknown): string {
+  if (typeof name !== 'string' || !name) return 'uživatele';
+  const first = name.split(' ')[0]!;
+  if (first.endsWith('ek')) return `${first.slice(0, -2)}ka`;
+  if (first.endsWith('a')) return `${first.slice(0, -1)}u`;
+  return first;
+}
+
 function versionSuffix(after: Record<string, unknown> | null): string {
   const no = after?.versionNo;
   return typeof no === 'number' ? ` v${no}` : '';
@@ -53,6 +62,9 @@ export function describeActivity(
       break;
     case 'video.meta_updated':
       text = `${who} upravil údaje scénáře ${code}`;
+      break;
+    case 'user.login_link_created':
+      text = `${who} vytvořil přihlašovací odkaz pro ${accusative(after?.targetName)}`;
       break;
     case 'version.submitted':
       text = `${who} odeslal ${code}${v} ke kontrole`;

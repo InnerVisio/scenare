@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { createPersonalLoginLink } from '@/server/auth/magicLink';
 import { sendTestMail } from '@/server/notify/testMail';
 import { addNextCycle, updateSettings, upsertLookups, upsertUser } from '@/server/settings';
 import { runAction } from '../_actions/run';
@@ -56,4 +57,13 @@ export async function addCycle() {
 
 export async function sendTestMailToMe() {
   return runAction({}, z.object({}), (db, actor, _input, now) => sendTestMail(db, actor, now), { revalidate: false });
+}
+
+export async function createLoginLink(input: unknown) {
+  return runAction(
+    input,
+    z.object({ userId: z.string().min(1).max(64) }),
+    (db, actor, { userId }, now) => createPersonalLoginLink(db, actor, userId, now),
+    { revalidate: false },
+  );
 }

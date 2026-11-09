@@ -7,7 +7,7 @@ import { loadActor, type Actor } from '../actor';
 import { DomainError } from '../errors';
 import { authSecret, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession, verifySession } from './jwt';
 
-/** Sets the httpOnly session cookie (JWT HS256, 30 days). Call from a server action or route handler. */
+/** Sets the httpOnly session cookie (JWT HS256, 90 days, slid by the middleware). Call from a server action or route handler. */
 export async function createSession(userId: string): Promise<void> {
   const now = new Date();
   const jwt = await signSession(userId, authSecret(), now);

@@ -290,4 +290,13 @@ export const loginTokens = pgTable('login_tokens', {
     .references(() => users.id),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   usedAt: timestamp('used_at', { withTimezone: true }),
+  /** 'magic' = mailed 15-minute link, 'personal' = admin-created 7-day link. */
+  kind: text('kind').notNull().default('magic'),
+});
+
+/** Failed admin password attempts, for the 5 per 15 minutes throttle (keyed by normalised e-mail). */
+export const loginAttempts = pgTable('login_attempts', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  attemptedAt: timestamp('attempted_at', { withTimezone: true }).notNull(),
 });
