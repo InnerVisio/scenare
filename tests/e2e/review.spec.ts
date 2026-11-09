@@ -238,6 +238,10 @@ test.describe('review queue', () => {
     await page.goto(`/kontrola/${code}`);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await page.getByRole('button', { name: 'Schválit' }).click();
+    // V028 is a series episode (20–30 s rule), so its 15 s length is a blocker to confirm.
+    const confirm = page.getByRole('dialog', { name: 'Schválit i tak?' });
+    await expect(confirm.or(toast(page).filter({ hasText: 'čeká na Radka' }))).toBeVisible();
+    if (await confirm.isVisible()) await confirm.getByRole('button', { name: 'Schválit i tak' }).click();
     await expect(toast(page)).toContainText('čeká na Radka');
     // Next script he has not approved yet, or the empty state when that was the last one.
     await page.waitForURL((url) => /^\/kontrola(\/V0\d\d)?$/.test(url.pathname) && !url.pathname.includes(code));
@@ -263,6 +267,8 @@ test.describe('review queue', () => {
     await page.goto(`/kontrola/${code}`);
     await expect(page.getByText('Schváleno 1/2 · čeká na tebe').filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Schválit' }).click();
+    await expect(confirm.or(toast(page).filter({ hasText: 'Schváleno oběma' }))).toBeVisible();
+    if (await confirm.isVisible()) await confirm.getByRole('button', { name: 'Schválit i tak' }).click();
     await expect(toast(page)).toContainText('Schváleno oběma');
   });
 
