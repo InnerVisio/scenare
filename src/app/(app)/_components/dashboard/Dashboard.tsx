@@ -194,6 +194,9 @@ export function MixCard({ cycleId, mix, categories }: { cycleId: string; mix: Cy
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-h2">Rozdělení cyklu {cycleId}</h2>
         <p className="text-sm text-text2">plán {mix.plan} {scriptsLabel(mix.plan)}</p>
+        <Link href={`/prehled?cyklus=${cycleId}`} className={cn('inline-flex min-h-12 items-center font-semibold text-violet underline', focusRing)}>
+          Celý přehled →
+        </Link>
       </div>
       {mix.unassigned > 0 && (
         <Link href={`${cycleHref}&zarazeni=ne`} className={cn('rounded-inner bg-apricot-soft px-4 py-3 font-semibold text-apricot-ink underline', focusRing)}>

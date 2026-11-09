@@ -5,6 +5,7 @@ import {
   eq,
   inArray,
   isNull,
+  notInArray,
   or,
   sql,
   type AnyColumn,
@@ -120,6 +121,19 @@ export interface VideoListFilters {
   q?: string;
   /** Only scripts missing a category or a treatment. */
   unassigned?: boolean;
+  treatmentKey?: string;
+  profileKey?: string;
+  characterKey?: string;
+  /** Not postponed and not cancelled (the overview's „Navrženo“). */
+  activeOnly?: boolean;
+  /** Production status shot / editing / edited / published. */
+  shot?: boolean;
+  /** Month (`YYYY-MM`, Prague) of the script's FIRST publication. */
+  publishedMonth?: string;
+  /** Script due day before this `YYYY-MM-DD` and not approved, postponed or cancelled. */
+  overdueBefore?: string;
+  /** At least one open root comment. */
+  hasOpenComments?: boolean;
 }
 
 export interface VideoListItem {
@@ -162,8 +176,27 @@ export async function listVideos(
       ? eq(s.videos.categoryKey, filters.categoryKey)
       : undefined,
     filters.approvalStatus
-      ? eq(s.videos.approvalStatus, filters.approvalStatus)
+      ? inArray(s.videos.approvalStatus, filters.approvalStatus.split(","))
       : undefined,
+    filters.treatmentKey ? eq(s.videos.treatmentKey, filters.treatmentKey) : undefined,
+    filters.profileKey ? eq(s.videos.profileKey, filters.profileKey) : undefined,
+    filters.characterKey ? eq(s.videos.characterKey, filters.characterKey) : undefined,
+    filters.activeOnly
+      ? notInArray(s.videos.approvalStatus, ["postponed", "cancelled"])
+      : undefined,
+    filters.shot
+      ? inArray(s.videos.productionStatus, ["shot", "editing", "edited", "published"])
+      : undefined,
+    filters.publishedMonth
+      ? sql`(select to_char(min(p.published_at) at time zone 'Europe/Prague', 'YYYY-MM') from publications p where p.video_id = ${s.videos.id}) = ${filters.publishedMonth}`
+      : undefined,
+    filters.overdueBefore
+      ? and(
+          sql`${s.videos.scriptDueDate} < ${filters.overdueBefore}`,
+          notInArray(s.videos.approvalStatus, ["approved", "postponed", "cancelled"]),
+        )
+      : undefined,
+    filters.hasOpenComments ? sql`${openCommentsOfVideo} > 0` : undefined,
     filters.productionStatus
       ? eq(s.videos.productionStatus, filters.productionStatus)
       : undefined,

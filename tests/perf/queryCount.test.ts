@@ -8,6 +8,7 @@ import { loadReviewPage } from '@/server/review';
 import { loadScriptPage } from '@/server/scripts';
 import { loadSeriesDetail, loadSeriesList } from '@/server/series';
 import { listLookups } from '@/server/settings';
+import { getOverview } from '@/server/overview';
 import { loadShellData } from '@/server/shell';
 import { loadPublicationsPage } from '@/server/publications';
 import { loadCrewPackage, loadShootingDay } from '@/server/shooting';
@@ -59,6 +60,7 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
     }),
     'scenare/[code]': await withLayout(async (a) => loadScriptPage(db, a, reviewCode, NOW)),
     'publikace (list)': await withLayout(async () => loadPublicationsPage(db, '2026-11', false)),
+    'prehled': await withLayout(async () => getOverview(db, { month: '2026-11', cycleId: '2026-11' }, NOW)),
     'serie (list)': await withLayout(async () => Promise.all([loadSeriesList(db), listLookups(db, 'category')])),
     'serie/[code]': await withLayout(async () => {
       const detail = await loadSeriesDetail(db, 'S01');

@@ -33,6 +33,14 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
     productionStatus: query.vyroba,
     seriesId: query.serie,
     unassigned: query.zarazeni === 'ne',
+    treatmentKey: query.typ,
+    profileKey: query.profil,
+    characterKey: query.charakter,
+    activeOnly: query.aktivni === '1',
+    shot: query.natoceno === '1',
+    publishedMonth: query.publikovano,
+    overdueBefore: query['po-terminu'] === '1' ? pragueDay(new Date()) : undefined,
+    hasOpenComments: query.komentare === '1',
     q: query.q,
   });
   const filtered = Object.keys(query).length > 0;

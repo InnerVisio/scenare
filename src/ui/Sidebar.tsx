@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BarChart3,
   Ellipsis,
   FileText,
   Home,
@@ -29,6 +30,7 @@ const MAIN_ITEMS: NavItem[] = [
   { href: '/', label: 'Přehled', icon: Home },
   { href: '/kontrola', label: 'Ke kontrole', icon: ListChecks, badge: true },
   { href: '/scenare', label: 'Scénáře', icon: FileText },
+  { href: '/prehled', label: 'Čísla', icon: BarChart3 },
   { href: '/serie', label: 'Série', icon: Layers },
   { href: '/nataceni', label: 'Natáčecí den', icon: Video },
   { href: '/publikace', label: 'Publikace', icon: Send },
@@ -42,6 +44,7 @@ const TAB_ITEMS: NavItem[] = [
   { href: '/nataceni', label: 'Natáčení', icon: Video },
 ];
 const MORE_ITEMS: NavItem[] = [
+  { href: '/prehled', label: 'Čísla', icon: BarChart3 },
   { href: '/serie', label: 'Série', icon: Layers },
   { href: '/publikace', label: 'Publikace', icon: Send },
   SETTINGS_ITEM,
