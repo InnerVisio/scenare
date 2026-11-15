@@ -1,25 +1,17 @@
-'use client';
-
 import { Plus } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
-import { Button } from '@/ui/Button';
-import { createScriptAction } from './actions';
+import { buttonClasses } from '@/ui/Button';
+import Link from 'next/link';
 
-function Submit() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" variant="primary" pending={pending}>
-      <Plus aria-hidden className="size-5" />
-      {pending ? 'Vytvářím' : 'Nový scénář'}
-    </Button>
-  );
-}
-
-/** „+ Nový scénář“: creates an empty draft (in the filtered cycle and month, if any) and opens the editor. */
+/** „+ Nový scénář“: opens the paste-import page (keeping the list's cycle and month, if any). */
 export function NewScriptButton({ cycleId, plannedMonth }: { cycleId?: string; plannedMonth?: string }) {
+  const query = new URLSearchParams();
+  if (cycleId) query.set('cyklus', cycleId);
+  if (plannedMonth) query.set('mesic', plannedMonth);
+  const qs = query.toString();
   return (
-    <form action={() => createScriptAction({ cycleId: cycleId ?? null, plannedMonth: plannedMonth ?? null })}>
-      <Submit />
-    </form>
+    <Link href={`/scenare/novy${qs ? `?${qs}` : ''}`} className={buttonClasses('primary')}>
+      <Plus aria-hidden className="size-5" />
+      Nový scénář
+    </Link>
   );
 }

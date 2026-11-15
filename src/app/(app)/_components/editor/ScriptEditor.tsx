@@ -41,6 +41,7 @@ import { missingForSubmit } from '@/domain/metrics/submitRequirements';
 import { ReferenceForm } from '../references/ReferenceForm';
 import { ReferenceList } from '../references/ReferenceList';
 import { SaveIndicator } from './SaveIndicator';
+import { PasteDialog } from './PasteDialog';
 import { SceneRow } from './SceneRow';
 import { SubmitDialog } from './SubmitDialog';
 import { addHashtags, bodyReducer, metaPatch, speakerSuggestions } from './reducers';
@@ -236,6 +237,7 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
   );
 
   // ---- submit ----------------------------------------------------------------------------------
+  const [pasteOpen, setPasteOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -290,6 +292,29 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-4">
           <MetaForm values={values} onChange={patchValues} options={options} currentMonth={currentMonth} />
+          <div>
+            <Button variant="outline" onClick={() => setPasteOpen(true)}>
+              Vložit text znovu
+            </Button>
+          </div>
+          <PasteDialog
+            open={pasteOpen}
+            onClose={() => setPasteOpen(false)}
+            onApply={(script) => {
+              dispatch({ type: 'replace', body: script.body });
+              // Suggestions only fill what is still empty.
+              const m = script.meta;
+              const fill: Partial<EditorValues> = {};
+              if (!values.title.trim()) fill.title = m.title;
+              if (!values.categoryKey && m.categoryKey) fill.categoryKey = m.categoryKey;
+              if (!values.treatmentKey && m.treatmentKey) fill.treatmentKey = m.treatmentKey;
+              if (!values.profileKey && m.profileKey) fill.profileKey = m.profileKey;
+              if (!values.characterKey && m.characterKey) fill.characterKey = m.characterKey;
+              if (!values.formatKey && m.formatKey) fill.formatKey = m.formatKey;
+              if (!values.goalMetric && m.goalMetric) fill.goalMetric = m.goalMetric;
+              if (Object.keys(fill).length > 0) patchValues(fill);
+            }}
+          />
 
           <section ref={refSection} aria-label="Ukázky" className="flex flex-col gap-4 rounded-card bg-card p-5 lg:p-6">
             <h2 className="text-h2">Ukázky</h2>

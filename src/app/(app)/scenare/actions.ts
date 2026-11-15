@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import type { ActionResult } from '@/server/actionResult';
+import { parseScriptsText, type ParsedScript } from '@/server/scriptImport';
 import { addReference, removeReference } from '@/server/references';
 import { duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, unlockForEdit, updateVideoMeta } from '@/server/videos';
 import { runAction } from '../_actions/run';
@@ -112,6 +113,36 @@ export async function createScriptAction(prefill: z.input<typeof prefillSchema>)
   });
   if (!result.ok) throw new Error(result.message);
   redirect(`/scenare/${result.code}/upravit`);
+}
+
+const parseSchema = z.object({ text: z.string().max(40_000) });
+const importSchema = z.object({
+  cycleId: nullableKey,
+  plannedMonth: prefillSchema.shape.plannedMonth,
+  scripts: z.array(z.object({ meta: metaSchema.required({ title: true }), body: bodySchema })).min(1).max(20),
+});
+
+/** „Rozdělit scénář“: nothing is saved, the preview comes back. */
+export async function parseScriptsAction(input: z.input<typeof parseSchema>): Promise<ActionResult<{ scripts: ParsedScript[] }>> {
+  return runAction(input, parseSchema, async (db, actor, i) => ({ scripts: await parseScriptsText(db, actor, i.text) }), { revalidate: false });
+}
+
+/** „Uložit všechny“: one draft per previewed script. */
+export async function importScriptsAction(input: z.input<typeof importSchema>): Promise<ActionResult<{ codes: string[] }>> {
+  return runAction(input, importSchema, async (db, actor, i, now) => {
+    const codes: string[] = [];
+    for (const script of i.scripts) {
+      const { id, code } = await createVideo(
+        db,
+        actor,
+        { ...script.meta, title: script.meta.title, cycleId: i.cycleId, plannedMonth: i.plannedMonth ?? null },
+        now,
+      );
+      await saveDraft(db, actor, id, script.body, now);
+      codes.push(code);
+    }
+    return { codes };
+  });
 }
 
 const addReferenceSchema = z.object({

@@ -76,7 +76,8 @@ test.describe('script editor', () => {
     await loginAs(page, 'Admin');
 
     await page.goto('/scenare');
-    await page.getByRole('button', { name: 'Nový scénář' }).filter({ visible: true }).click();
+    await page.getByRole('link', { name: 'Nový scénář' }).filter({ visible: true }).click();
+    await page.getByRole('button', { name: 'Vyplnit ručně' }).click();
     await page.waitForURL(/\/scenare\/V\d+\/upravit$/);
     const code = /\/scenare\/(V\d+)\/upravit/.exec(page.url())![1];
     await expect(page.getByLabel('Název', { exact: true })).toHaveValue('Nový scénář');
