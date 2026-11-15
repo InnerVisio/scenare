@@ -73,7 +73,7 @@ export function FirstVisitTip() {
   }, []);
   if (!visible) return null;
   return (
-    <div role="note" className="flex items-center gap-3 rounded-inner bg-violet-soft px-4 py-3">
+    <div role="note" className="flex items-center gap-2 rounded-inner bg-violet-soft py-1 pr-1 pl-3 text-sm">
       <p className="min-w-0 flex-1">Tip: Označ v textu slovo nebo větu a můžeš k ní napsat komentář.</p>
       <button
         type="button"
@@ -85,7 +85,7 @@ export function FirstVisitTip() {
             /* remembering is optional */
           }
         }}
-        className={cn('inline-flex min-h-12 items-center gap-1 rounded-pill bg-card px-4 font-semibold', focusRing)}
+        className={cn('inline-flex min-h-11 items-center gap-1 rounded-pill bg-card px-3 font-semibold', focusRing)}
       >
         <X aria-hidden className="size-4" />
         Rozumím

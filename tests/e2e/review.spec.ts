@@ -70,7 +70,7 @@ test.describe('review queue', () => {
     await expectNoHorizontalScroll(page);
 
     if (project === 'mobile') {
-      await expect(page.getByText(/^\d+ ze \d+$/).first()).toBeVisible();
+      await expect(page.getByText(/^\d+ ze \d+( · |$)/).first()).toBeVisible();
       await expect(page.getByRole('button', { name: 'Vrátit' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Schválit' })).toBeVisible();
       await page.screenshot({ path: 'test-results/review-item-mobile.png' });

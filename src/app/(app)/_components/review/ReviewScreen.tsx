@@ -23,7 +23,7 @@ import type { ReviewData } from '@/server/review';
 import { Button } from '@/ui/Button';
 import { Tabs } from '@/ui/Tabs';
 import { cn, focusRing } from '@/ui/cn';
-import { ReferenceForm } from '../references/ReferenceForm';
+import { CollapsibleReferenceForm } from '../references/ReferenceForm';
 import { ReferenceBlock } from '../references/ReferenceList';
 import { ScriptView } from '../script-view/ScriptView';
 import { SelectionToolbar } from '../script-view/SelectionToolbar';
@@ -349,6 +349,8 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
 
   const cycleDate = data.cycle?.shootDate ? formatDayMonth(new Date(`${data.cycle.shootDate}T12:00:00Z`)) : null;
   const shootLine = data.cycle?.shootDate ? `Natáčení ${shootDayLabel(data.cycle.shootDate, now)}` : null;
+  // Phone header: "Natáčení pá 20. 11." on line 1, the countdown goes to the small second line.
+  const [shootHead, ...shootTail] = (shootLine ?? '').split(' · ');
   const positionLine = data.position !== null ? `${data.position} ze ${data.queue.length}` : video.code;
   const resubmitted = leadership && latestNo !== null && latestNo > 1;
 
@@ -370,11 +372,6 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
           </Button>
         </div>
       )}
-      {resubmitted && (
-        <div role="note" className="rounded-inner bg-violet-soft px-4 py-3 font-semibold text-violet-ink">
-          Scénář je upravený podle připomínek — změny jsou zvýrazněné
-        </div>
-      )}
       {leadership && (
         <div className="hidden items-center gap-3 lg:flex">
           <p className="min-w-0 flex-1 font-semibold">
@@ -384,7 +381,17 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
           <HelpButton onClick={() => setHelpOpen(true)} />
         </div>
       )}
-      {leadership && <FirstVisitTip />}
+      {/* Desktop copies of the banner and tip (phones show them inside the header below). */}
+      {resubmitted && (
+        <div role="note" className="hidden rounded-inner bg-violet-soft px-4 py-3 font-semibold text-violet-ink lg:block">
+          Scénář je upravený podle připomínek — změny jsou zvýrazněné
+        </div>
+      )}
+      {leadership && (
+        <div className="hidden lg:block">
+          <FirstVisitTip />
+        </div>
+      )}
       {/* Phone header: back, position, checks badge, progress. */}
       <header className="flex flex-col gap-3 lg:hidden">
         <div className="flex items-center gap-3">
@@ -394,8 +401,8 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
           <div className="min-w-0 flex-1 text-center">
             {leadership ? (
               <>
-                <p className="truncate font-semibold">{shootLine ?? 'Ke kontrole'}</p>
-                <p className="text-sm text-text2">{positionLine}</p>
+                <p className="font-semibold">{shootLine ? shootHead : 'Ke kontrole'}</p>
+                <p className="text-sm text-text2">{[positionLine, ...shootTail].join(' · ')}</p>
               </>
             ) : (
               <>
@@ -441,6 +448,12 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
             ))}
           </ol>
         )}
+        {resubmitted && (
+          <div role="note" className="rounded-inner bg-violet-soft px-3 py-2 text-sm font-semibold text-violet-ink">
+            Scénář je upravený podle připomínek — změny jsou zvýrazněné
+          </div>
+        )}
+        {leadership && <FirstVisitTip />}
         <Tabs
           label="Zobrazení scénáře"
           items={centerTabs}
@@ -478,7 +491,7 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
             scenes={Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]))}
             form={
               perms.addReference ? (
-                <ReferenceForm
+                <CollapsibleReferenceForm
                   videoId={data.video.id}
                   scenes={body.scenes.map((scene, i) => ({ id: scene.id, label: `Scéna ${i + 1}` }))}
                   sceneId={refScene}

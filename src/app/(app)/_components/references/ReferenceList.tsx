@@ -112,7 +112,7 @@ export function ReferenceBlock({
   if (references.length === 0 && !form) return null;
   return (
     <section aria-label="Ukázky" className={cn('flex flex-col gap-2', className)}>
-      <h2 className="text-h2">Ukázky</h2>
+      {references.length > 0 && <h2 className="text-h2">Ukázky</h2>}
       <ReferenceList videoId={videoId} references={references} scenes={scenes} />
       {form}
     </section>

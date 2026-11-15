@@ -72,3 +72,16 @@ export function ReferenceForm({
     </form>
   );
 }
+
+/** Review screen: only a small „+ Přidat ukázku“ button until the person opens the form. */
+export function CollapsibleReferenceForm(props: React.ComponentProps<typeof ReferenceForm>) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <Button variant="outline" className="w-fit" onClick={() => setOpen(true)}>
+        + Přidat ukázku
+      </Button>
+    );
+  }
+  return <ReferenceForm {...props} />;
+}
