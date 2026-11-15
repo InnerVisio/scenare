@@ -70,7 +70,7 @@ test.describe('review queue', () => {
     await expectNoHorizontalScroll(page);
 
     if (project === 'mobile') {
-      await expect(page.getByText('Ke kontrole', { exact: true })).toBeVisible();
+      await expect(page.getByText(/^\d+ ze \d+$/).first()).toBeVisible();
       await expect(page.getByRole('button', { name: 'Vrátit' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Schválit' })).toBeVisible();
       await page.screenshot({ path: 'test-results/review-item-mobile.png' });
@@ -119,7 +119,7 @@ test.describe('review queue', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Klient s chybou: fixace hypotéky' })).toBeVisible();
 
     await openComments(page);
-    await page.getByRole('tab', { name: 'Verze' }).click();
+    await page.getByRole('tab', { name: 'Změny', exact: true }).click();
     const older = page.getByRole('listitem').filter({ hasText: 'První odeslání' });
     await expect(older).toContainText('Radek vrátil');
     await older.getByRole('button', { name: 'Porovnat s aktuální' }).click();
@@ -185,7 +185,7 @@ test.describe('review queue', () => {
     await expect(toast(page)).toContainText('Číslo označeno ke kontrole');
 
     await openComments(page);
-    await page.getByRole('tab', { name: 'Kontrola' }).click();
+    await page.getByRole('tab', { name: 'Kontrolní body' }).click();
     const item = page.getByRole('listitem').filter({ hasText: `„${phrase}“` });
     await expect(item).toContainText('Čeká');
     await item.getByRole('button', { name: 'Potvrdit' }).click();

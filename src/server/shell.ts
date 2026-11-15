@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
+import { cycleLabel } from '@/domain/format/date';
 import type { Role } from '@/domain/policy/can';
 import type { Actor } from './actor';
 import { loadNotificationFeed, queueCountSql, type NotificationItem } from './queries';
@@ -13,6 +14,8 @@ export interface ShellData {
   /** Review-queue items the actor has not approved yet (leadership only, otherwise 0). */
   queueCount: number;
   cycleIds: string[];
+  /** Cycle id → „Natáčení 20. 11. (čt)“. */
+  cycleLabels: Record<string, string>;
   /** Cycle shown when the URL has no `cyklus`: the next shoot, else the latest cycle. */
   defaultCycleId: string | null;
   /** Current month in Prague, `YYYY-MM`. */
@@ -49,6 +52,7 @@ export async function loadShellData(db: Db, actor: Actor, now: Date): Promise<Sh
     notifications: feed.items,
     queueCount: head.queueCount,
     cycleIds: ids,
+    cycleLabels: Object.fromEntries(ids.map((id, i) => [id, cycleLabel({ id, shootDate: dates[i] ?? null })])),
     defaultCycleId: (upcoming >= 0 ? ids[upcoming] : latest) ?? null,
     currentMonth: today.slice(0, 7),
   };

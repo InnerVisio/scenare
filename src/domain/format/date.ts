@@ -91,3 +91,37 @@ const hourFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, ho
 export function pragueHour(d: Date): number {
   return Number(parts(hourFormatter, d).hour);
 }
+
+const WEEKDAYS_SHORT = ['ne', 'po', 'út', 'st', 'čt', 'pá', 'so'];
+const WEEKDAYS_LONG = ['neděle', 'pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota'];
+const dayParts = (day: string) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return { m, d, weekday: new Date(Date.UTC(y, m - 1, d)).getUTCDay() };
+};
+
+/** `2026-11-20` → "20. 11." */
+export const dayMonthOf = (day: string) => {
+  const { m, d } = dayParts(day);
+  return `${d}. ${m}.`;
+};
+/** `2026-11-20` → "čt 20. 11." */
+export const weekdayShortDate = (day: string) => `${WEEKDAYS_SHORT[dayParts(day).weekday]} ${dayMonthOf(day)}`;
+/** `2026-11-20` → "čtvrtek 20. 11." */
+export const weekdayLongDate = (day: string) => `${WEEKDAYS_LONG[dayParts(day).weekday]} ${dayMonthOf(day)}`;
+
+/** "1 den", "5 dní". */
+export const daysWord = (n: number) => `${n} ${n === 1 ? 'den' : n >= 2 && n <= 4 ? 'dny' : 'dní'}`;
+
+/** Shooting cycle as users see it: "Natáčení 20. 11. (čt)" or "Natáčení 2026-11 · bez data". */
+export function cycleLabel(cycle: { id: string; shootDate: string | null }): string {
+  if (!cycle.shootDate) return `Natáčení ${cycle.id} · bez data`;
+  const { weekday } = dayParts(cycle.shootDate);
+  return `Natáčení ${dayMonthOf(cycle.shootDate)} (${WEEKDAYS_SHORT[weekday]})`;
+}
+
+/** "čt 20. 11. · zbývá 5 dní" (`now` decides the countdown). */
+export function shootDayLabel(shootDate: string, now: Date): string {
+  const n = daysUntil(new Date(`${shootDate}T12:00:00Z`), now);
+  const tail = n > 0 ? `zbývá ${daysWord(n)}` : n === 0 ? 'dnes' : 'už proběhlo';
+  return `${weekdayShortDate(shootDate)} · ${tail}`;
+}

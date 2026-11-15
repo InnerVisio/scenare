@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { ButtonLink } from '@/ui/Button';
 import { useState } from 'react';
 import { formatDateTime } from '@/domain/format/date';
 import type { ScriptPageData } from '@/server/scripts';
@@ -74,6 +75,11 @@ export function ScriptDetail({ data }: { data: ScriptPageData }) {
           <p role="status" className="rounded-inner bg-apricot-soft px-4 py-3 text-apricot-ink">
             Máš rozpracované změny oproti v{latestNo}. Pokračuj v úpravách a pošli je jako další verzi.
           </p>
+        )}
+        {actions.openInReview && !data.approval.actorApproved && (
+          <ButtonLink href={`/kontrola/${video.code}`} variant="primary" className="min-h-14 w-full text-lg md:w-fit">
+            Zkontrolovat →
+          </ButtonLink>
         )}
         <DetailActions
           videoId={video.id}

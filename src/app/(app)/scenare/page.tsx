@@ -4,10 +4,12 @@ import { can } from '@/domain/policy/can';
 import { pragueDay } from '@/domain/format/date';
 import { requireActor } from '@/server/auth/session';
 import { loadEditorOptions } from '@/server/editorOptions';
+import { getLeadershipScripts } from '@/server/leadershipScripts';
 import { listVideos } from '@/server/queries';
 import { EmptyState } from '@/ui/EmptyState';
 import { TopBar } from '@/ui/TopBar';
 import { plural } from '../_components/review/model';
+import { LeadershipScriptsView } from './LeadershipScriptsView';
 import { ListFilters } from './ListFilters';
 import { NewScriptButton } from './NewScriptButton';
 import { ScriptList } from './ScriptList';
@@ -19,6 +21,11 @@ export const dynamic = 'force-dynamic';
 export default async function ScriptsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const actor = await requireActor();
   const db = await getDb();
+  if (actor.role === 'leadership') {
+    const raw = (await searchParams).zobrazit;
+    const all = (Array.isArray(raw) ? raw[0] : raw) === 'vse';
+    return <LeadershipScriptsView data={await getLeadershipScripts(db, actor, { all }, new Date())} />;
+  }
   const options = await loadEditorOptions(db);
   const query = parseListQuery(await searchParams, {
     cycleIds: options.cycles.map((c) => c.key),

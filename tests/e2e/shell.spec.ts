@@ -35,7 +35,7 @@ test.describe('app shell', () => {
     await page.goto('/publikace');
     await expect(page.getByRole('heading', { level: 1, name: 'Publikace' })).toBeVisible();
     await page.getByRole('button', { name: /Cyklus/ }).click();
-    await page.getByRole('list', { name: 'Cyklus' }).getByRole('button', { name: 'Cyklus 2026–11' }).click();
+    await page.getByRole('list', { name: 'Cyklus' }).getByRole('button', { name: 'Natáčení 20. 11. (pá)' }).click();
     await expect(page.getByRole('button', { name: /Cyklus:/ })).toBeFocused();
     await expect(page).toHaveURL(/\/publikace\?.*cyklus=2026-11/);
     await expectNoHorizontalScroll(page);
@@ -51,7 +51,7 @@ test.describe('app shell', () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Dobr/);
     await expect(page.getByRole('button', { name: /Měsíc/ })).toContainText(/\d{4}/);
-    await expect(page.getByRole('button', { name: /Cyklus/ })).toContainText('Cyklus 2026–11');
+    await expect(page.getByRole('button', { name: /Cyklus/ })).toContainText('Natáčení 20. 11.');
   });
 
   test('avatar menu opens, Escape closes it and focus returns to the avatar', async ({ page }) => {

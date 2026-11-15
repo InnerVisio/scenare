@@ -2,7 +2,7 @@ import { and, asc, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import type { MixVideo } from '@/domain/metrics/mix';
-import { cycleLabel } from '@/ui/monthParams';
+import { cycleLabel as cycleLabelOf } from '@/domain/format/date';
 
 export interface Option {
   key: string;
@@ -64,7 +64,7 @@ export async function cyclesAndSeries(db: Db): Promise<CyclesAndSeries> {
     .select({
       kind: sql<string>`'cycle'`,
       key: s.shootingCycles.id,
-      label: sql<string | null>`${s.shootingCycles.id}`,
+      label: sql<string | null>`${s.shootingCycles.shootDate}::text`,
       sort: s.shootingCycles.id,
       a: text,
       b: text,
@@ -106,7 +106,7 @@ export async function cyclesAndSeries(db: Db): Promise<CyclesAndSeries> {
     );
   const of = (kind: string) => rows.filter((r) => r.kind === kind).sort((a, b) => a.sort.localeCompare(b.sort));
   return {
-    cycles: of('cycle').map((c) => ({ key: c.key, label: cycleLabel(c.key) })),
+    cycles: of('cycle').map((c) => ({ key: c.key, label: cycleLabelOf({ id: c.key, shootDate: c.label }) })),
     series: of('series').map((x) => ({ key: x.key, label: x.label ?? '' })),
     plans: Object.fromEntries(of('cycle').map((c) => [c.key, c.n ?? 0])),
     mixVideos: of('video').map((v) => ({

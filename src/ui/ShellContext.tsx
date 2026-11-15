@@ -19,6 +19,7 @@ export interface ShellState {
   /** Latest notifications for the bell dropdown. */
   notifications?: BellItem[];
   cycleIds: string[];
+  cycleLabels?: Record<string, string>;
   defaultCycleId: string | null;
   /** Current month in Prague, `YYYY-MM`. */
   currentMonth: string;

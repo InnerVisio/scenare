@@ -35,6 +35,6 @@ test.describe('dashboard and settings', () => {
   test('Honza is redirected from settings to the home', async ({ page }) => {
     await loginAs(page, 'Honza');
     await page.goto('/nastaveni');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/$|\/kontrola/);
   });
 });

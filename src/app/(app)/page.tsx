@@ -1,10 +1,10 @@
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
-import { getDashboard, getLeadershipHome } from '@/server/queries';
+import { redirect } from 'next/navigation';
+import { getDashboard } from '@/server/queries';
 import { TopBar } from '@/ui/TopBar';
 import { ActionCard, CommentsCard, Kanban, MixCard, ShootCard } from './_components/dashboard/Dashboard';
 import { dateLine, greeting } from './_components/dashboard/model';
-import { LeadershipHomeView } from './_components/dashboard/LeadershipHome';
 
 export const metadata = { title: 'Přehled – GTA Scénáře' };
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ export default async function HomePage() {
   const db = await getDb();
   const now = new Date();
   if (actor.role === 'leadership') {
-    return <LeadershipHomeView name={actor.name} now={now} data={await getLeadershipHome(db, actor, now)} />;
+    redirect('/kontrola');
   }
   const data = await getDashboard(db, actor, now);
   return (

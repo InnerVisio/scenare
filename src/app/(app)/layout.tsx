@@ -28,6 +28,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
           when: formatRelative(n.createdAt, now),
         })),
         cycleIds: shell.cycleIds,
+        cycleLabels: shell.cycleLabels,
         defaultCycleId: shell.defaultCycleId,
         currentMonth: shell.currentMonth,
       }}

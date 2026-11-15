@@ -209,7 +209,7 @@ export function TopBar({
             label="Cyklus"
             align="right"
             value={cycle ?? ''}
-            options={cycleIds.map((id) => ({ value: id, label: cycleLabel(id) }))}
+            options={cycleIds.map((id) => ({ value: id, label: shell.cycleLabels?.[id] ?? cycleLabel(id) }))}
             onSelect={(v) => update('cyklus', v)}
           />
         </div>

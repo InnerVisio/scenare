@@ -17,7 +17,7 @@ import {
   replyToCommentAction,
   setManualCheckAction,
 } from '@/app/(app)/kontrola/actions';
-import { formatDayMonth } from '@/domain/format/date';
+import { formatDayMonth, shootDayLabel } from '@/domain/format/date';
 import type { ActionResult } from '@/server/actionResult';
 import type { ReviewData } from '@/server/review';
 import { Button } from '@/ui/Button';
@@ -34,6 +34,7 @@ import { CommentPreview, type CommentActions } from './CommentCard';
 import { CommentsPanel } from './CommentsPanel';
 import { Composer, type ComposerSubmit, type ComposerTarget } from './Composer';
 import { ConfirmDialog } from './ConfirmDialog';
+import { FirstVisitTip, HelpButton, HelpSheet } from './LeadershipHelp';
 import { QueueList } from './QueueList';
 import { ReturnDialog } from './ReturnDialog';
 import { ReviewSidebar, type SidebarTab } from './ReviewSidebar';
@@ -57,7 +58,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 }
 
-export function ReviewScreen({ data, query }: { data: ReviewData; query: string }) {
+export function ReviewScreen({ data, query, leadership = false }: { data: ReviewData; query: string; leadership?: boolean }) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const router = useRouter();
   const toast = useReviewToast();
   const desktop = useIsDesktop();
@@ -334,6 +336,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   const decideBar = (variant: 'inline' | 'fixed') => (
     <ActionBar
       variant={variant}
+      simple={leadership}
       canDecide={perms.decide}
       status={video.status}
       line={line}
@@ -345,10 +348,13 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
   );
 
   const cycleDate = data.cycle?.shootDate ? formatDayMonth(new Date(`${data.cycle.shootDate}T12:00:00Z`)) : null;
+  const shootLine = data.cycle?.shootDate ? `Natáčení ${shootDayLabel(data.cycle.shootDate, now)}` : null;
+  const positionLine = data.position !== null ? `${data.position} ze ${data.queue.length}` : video.code;
+  const resubmitted = leadership && latestNo !== null && latestNo > 1;
 
   return (
     // The layout's own bottom padding is cancelled so the total is exactly what the sheet and bar cover.
-    <div className="-mb-28 flex flex-col gap-4 pb-[calc(288px+env(safe-area-inset-bottom))] md:-mb-10 lg:mb-0 lg:pb-0">
+    <div style={leadership ? ({ '--review-pad': '312px' } as React.CSSProperties) : undefined} className="-mb-28 flex flex-col gap-4 pb-[calc(var(--review-pad,288px)+env(safe-area-inset-bottom))] md:-mb-10 lg:mb-0 lg:pb-0">
       {notice && (
         <div role="status" className="flex flex-wrap items-center gap-3 rounded-inner bg-apricot-soft px-4 py-3 text-apricot-ink">
           <p className="min-w-0 flex-1 font-semibold">Mezitím vznikla nová verze v{notice.versionNo}</p>
@@ -364,19 +370,44 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
           </Button>
         </div>
       )}
+      {resubmitted && (
+        <div role="note" className="rounded-inner bg-violet-soft px-4 py-3 font-semibold text-violet-ink">
+          Scénář je upravený podle připomínek — změny jsou zvýrazněné
+        </div>
+      )}
+      {leadership && (
+        <div className="hidden items-center gap-3 lg:flex">
+          <p className="min-w-0 flex-1 font-semibold">
+            {shootLine ? `${shootLine} · ` : ''}
+            {positionLine}
+          </p>
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
+      )}
+      {leadership && <FirstVisitTip />}
       {/* Phone header: back, position, checks badge, progress. */}
       <header className="flex flex-col gap-3 lg:hidden">
         <div className="flex items-center gap-3">
-          <Link href="/" aria-label="Zpět na přehled" className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-card', focusRing)}>
+          <Link href={leadership ? '/scenare' : '/'} aria-label={leadership ? 'Zpět na scénáře' : 'Zpět na přehled'} className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-card', focusRing)}>
             <ArrowLeft aria-hidden className="size-5" />
           </Link>
           <div className="min-w-0 flex-1 text-center">
-            <p className="text-label tracking-[0.12em] text-text2 uppercase">Ke kontrole</p>
-            <p className="truncate font-semibold">
-              {data.position !== null ? `${data.position} z ${data.queue.length}` : video.code}
-              {cycleDate ? ` · natáčení ${cycleDate}` : ''}
-            </p>
+            {leadership ? (
+              <>
+                <p className="truncate font-semibold">{shootLine ?? 'Ke kontrole'}</p>
+                <p className="text-sm text-text2">{positionLine}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-label tracking-[0.12em] text-text2 uppercase">Ke kontrole</p>
+                <p className="truncate font-semibold">
+                  {data.position !== null ? `${data.position} z ${data.queue.length}` : video.code}
+                  {cycleDate ? ` · natáčení ${cycleDate}` : ''}
+                </p>
+              </>
+            )}
           </div>
+          {leadership && <HelpButton onClick={() => setHelpOpen(true)} />}
           <button
             type="button"
             aria-label={`Kontrolní seznam, splněno ${passed} z ${total}`}
@@ -480,6 +511,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
           commentCount={data.threads.length}
           unresolved={unresolved}
           approvalLineShown={line.text !== null}
+          simple={leadership}
           scrollTo={scrollTo}
           peek={
             peekThread ? (
@@ -526,6 +558,9 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
               onActivate={activate}
             />
           )}
+          {tab === 'checks' && leadership && (
+            <p className="mb-3 text-text2">Automatická kontrola scénáře. Čísla potvrď, jen když sedí.</p>
+          )}
           {tab === 'checks' && (
             <ChecksPanel
               checks={data.checks}
@@ -553,6 +588,7 @@ export function ReviewScreen({ data, query }: { data: ReviewData; query: string 
       </div>
 
       {decideBar('fixed')}
+      {leadership && <HelpSheet open={helpOpen} onClose={() => setHelpOpen(false)} />}
 
       {selection && mode === 'read' && (
         <SelectionToolbar

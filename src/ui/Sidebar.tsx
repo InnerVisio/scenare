@@ -38,8 +38,7 @@ const MAIN_ITEMS: NavItem[] = [
 const SETTINGS_ITEM: NavItem = { href: '/nastaveni', label: 'Nastavení', icon: SlidersHorizontal };
 
 const LEADERSHIP_ITEMS: NavItem[] = [
-  { href: '/kontrola', label: 'Ke kontrole', icon: ListChecks, badge: true },
-  { href: '/nataceni', label: 'Natáčení', icon: Video },
+  { href: '/kontrola', label: 'Kontrola', icon: ListChecks, badge: true },
   { href: '/scenare', label: 'Scénáře', icon: FileText },
 ];
 

@@ -14,6 +14,7 @@ import type { ApprovalLine } from './model';
  */
 export function ActionBar({
   variant,
+  simple = false,
   canDecide,
   status,
   line,
@@ -23,6 +24,8 @@ export function ActionBar({
   onReturn,
 }: {
   variant: 'inline' | 'fixed';
+  /** Leadership mode: no keyboard-shortcut hints, one-line explanation of the buttons. */
+  simple?: boolean;
   canDecide: boolean;
   status: ApprovalStatus;
   line: ApprovalLine;
@@ -34,7 +37,7 @@ export function ActionBar({
   const fixed = variant === 'fixed';
   const nextClass = cn('shrink-0 px-0!', fixed ? 'size-14 min-w-14' : 'size-12 min-w-12');
   const next = nextHref ? (
-    <Link href={nextHref} aria-label="Další scénář" title="Další scénář (J)" className={buttonClasses(fixed ? 'primary' : 'outline', nextClass)}>
+    <Link href={nextHref} aria-label="Další scénář" title={simple ? undefined : "Další scénář (J)"} className={buttonClasses(fixed ? 'primary' : 'outline', nextClass)}>
       <ArrowRight aria-hidden className="size-5" />
     </Link>
   ) : (
@@ -43,13 +46,14 @@ export function ActionBar({
     </Button>
   );
 
+  const hint = simple && canDecide ? <p className="text-center text-xs text-text2">Schválit = můžeme točit · Vrátit = Admin upraví</p> : null;
   const buttons = canDecide ? (
     <>
       <Button
         variant="danger"
         onClick={onReturn}
         pending={busy}
-        title="Vrátit k dopracování (R)"
+        title={simple ? undefined : "Vrátit k dopracování (R)"}
         className={cn(fixed && 'min-h-14 flex-1 px-4 text-lg')}
       >
         {!fixed && <Undo2 aria-hidden className="size-5" />}
@@ -59,7 +63,7 @@ export function ActionBar({
         variant="approve"
         onClick={onApprove}
         pending={busy} disabled={line.actorApproved}
-        title="Schválit (A)"
+        title={simple ? undefined : "Schválit (A)"}
         className={cn(fixed && 'min-h-14 flex-[1.4] px-4 text-lg')}
       >
         {line.actorApproved ? 'Schváleno' : 'Schválit'}
@@ -78,6 +82,7 @@ export function ActionBar({
           <span className="ml-auto" />
           {next}
         </div>
+        {hint}
       </div>
     );
   }
@@ -88,6 +93,7 @@ export function ActionBar({
         {buttons}
         {next}
       </div>
+      {hint && <p className="text-xs text-text2">Schválit = můžeme točit · Vrátit = Admin upraví</p>}
     </div>
   );
 }

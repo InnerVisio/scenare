@@ -38,5 +38,5 @@ export default async function ReviewPage({
 
   const query = cycleId ? `?cyklus=${cycleId}` : '';
   // Keyed so that moving to another script starts with a fresh view (tabs, composer, selection).
-  return <ReviewScreen key={data.video.id} data={data} query={query} />;
+  return <ReviewScreen key={data.video.id} data={data} query={query} leadership={actor.role === 'leadership'} />;
 }

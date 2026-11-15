@@ -9,7 +9,7 @@ import { ButtonLink } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { CategoryTag } from '@/ui/CategoryTag';
 import { cn, focusRing } from '@/ui/cn';
-import { cycleLabel } from '@/ui/monthParams';
+import { cycleLabel as cycleLabelOf } from '@/domain/format/date';
 import { dayMonth, inDays, scriptsLabel, weekdayOf } from './model';
 
 const COLUMN_DOT: Record<ApprovalStatus, string> = {
@@ -247,7 +247,7 @@ export function Kanban({ data, categories }: { data: DashboardData; categories: 
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-h2">{cycleLabel(cycle.id)} · kde co vázne</h2>
+        <h2 className="text-h2">{cycleLabelOf(cycle)} · kde co vázne</h2>
         <p className="text-sm text-text2">
           {total} {scriptsLabel(total)}
         </p>

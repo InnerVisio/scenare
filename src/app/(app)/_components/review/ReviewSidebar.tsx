@@ -10,6 +10,8 @@ export type SidebarTab = 'comments' | 'checks' | 'versions';
 
 // Space the collapsed sheet needs above the fixed action bar; the approval line adds one row to the bar.
 const PEEK_HEIGHT = 'h-[calc(244px+env(safe-area-inset-bottom))]';
+const PEEK_HEIGHT_WITH_HINT = 'h-[calc(264px+env(safe-area-inset-bottom))]';
+const PEEK_HEIGHT_WITH_LINE_AND_HINT = 'h-[calc(292px+env(safe-area-inset-bottom))]';
 const PEEK_HEIGHT_WITH_LINE = 'h-[calc(272px+env(safe-area-inset-bottom))]';
 const DRAG_THRESHOLD = 36;
 
@@ -25,6 +27,7 @@ export function ReviewSidebar({
   commentCount,
   unresolved,
   approvalLineShown,
+  simple = false,
   peek,
   scrollTo,
   composer,
@@ -38,6 +41,8 @@ export function ReviewSidebar({
   unresolved: number;
   /** The action bar shows „Schváleno 1/2 · …“ above its buttons, so the peek must sit higher. */
   approvalLineShown: boolean;
+  /** Leadership mode: plain tab names and a hint line under the action buttons. */
+  simple?: boolean;
   /** One-comment summary shown in the collapsed phone sheet. */
   peek: ReactNode;
   /** Comment id to bring into view; a new object re-triggers it. */
@@ -80,8 +85,8 @@ export function ReviewSidebar({
 
   const tabs = [
     { id: 'comments', label: `Komentáře · ${commentCount}` },
-    { id: 'checks', label: 'Kontrola' },
-    { id: 'versions', label: 'Verze' },
+    { id: 'checks', label: simple ? 'Kontrolní body' : 'Kontrola' },
+    { id: 'versions', label: simple ? 'Změny' : 'Verze' },
   ];
 
   return (
@@ -98,7 +103,7 @@ export function ReviewSidebar({
         aria-label="Komentáře a kontrola"
         className={cn(
           'fixed inset-x-0 bottom-0 z-40 flex flex-col rounded-t-card bg-card shadow-[0_-8px_32px_rgba(23,21,31,0.14)] transition-[height] duration-200 md:left-[100px]',
-          expanded ? 'z-[60] h-[85dvh]' : approvalLineShown ? PEEK_HEIGHT_WITH_LINE : PEEK_HEIGHT,
+          expanded ? 'z-[60] h-[85dvh]' : simple ? (approvalLineShown ? PEEK_HEIGHT_WITH_LINE_AND_HINT : PEEK_HEIGHT_WITH_HINT) : approvalLineShown ? PEEK_HEIGHT_WITH_LINE : PEEK_HEIGHT,
           'lg:sticky lg:top-8 lg:z-auto lg:h-[calc(100dvh-4rem)] lg:rounded-none lg:bg-transparent lg:shadow-none',
         )}
       >
