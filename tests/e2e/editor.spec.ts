@@ -17,14 +17,19 @@ const saved = (page: Page) => page.getByText(/^Uloženo \d{1,2}:\d{2}$/).filter(
 
 test.describe('script list', () => {
   test('shows every script, filters by status and search, and fits the screen', async ({ page }, info) => {
+    // Leaders get their own simplified overview and never a „Nový scénář“ entry.
     await loginAs(page, 'Honza');
     await page.goto('/scenare');
     await expect(page.getByRole('heading', { level: 1, name: 'Scénáře' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nový scénář' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Nový scénář' })).toHaveCount(0);
+
+    // The full filterable list is the admin's.
+    await loginAs(page, 'Admin');
+    await page.goto('/scenare');
     const rows = page.locator(info.project.name === 'mobile' ? 'li[data-code]' : 'tr[data-code]');
     await expect(rows.first()).toBeVisible();
     await expect(rows.filter({ hasText: 'Klient s chybou: fixace hypotéky' })).toHaveCount(1);
-    // Leaders do not write scripts.
-    await expect(page.getByRole('button', { name: 'Nový scénář' })).toHaveCount(0);
     await expectNoHorizontalScroll(page);
     await page.screenshot({ path: `test-results/list-${info.project.name}.png`, fullPage: true });
 
@@ -63,7 +68,8 @@ test.describe('script detail', () => {
   test('a script outside the review cannot be opened in the editor by a leader', async ({ page }) => {
     await loginAs(page, 'Radek');
     await page.goto('/scenare/V036/upravit');
-    await expect(page).toHaveURL(/\/scenare\/V036$/);
+    // Leaders never reach the editor; they land on their review queue.
+    await expect(page).toHaveURL(/\/kontrola(\/V0\d\d)?$/);
     await page.goto('/scenare/V999');
     await expect(page.getByText('Scénář jsme nenašli.')).toBeVisible();
   });
