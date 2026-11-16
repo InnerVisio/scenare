@@ -20,7 +20,7 @@ test.describe('script list', () => {
     // Leaders get their own simplified overview and never a „Nový scénář“ entry.
     await loginAs(page, 'Honza');
     await page.goto('/scenare');
-    await expect(page.getByRole('heading', { level: 1, name: 'Scénáře' })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('a[href^="/scenare/novy"]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Nový scénář' })).toHaveCount(0);
 
@@ -70,7 +70,7 @@ test.describe('script detail', () => {
     await loginAs(page, 'Radek');
     await page.goto('/scenare/V036/upravit');
     // Leaders never reach the editor; they land on their review queue.
-    await expect(page).toHaveURL(/\/kontrola(\/V0\d\d)?$/);
+    await expect(page).toHaveURL(/\/$|\/kontrola(\/V0\d\d)?$/);
     await page.goto('/scenare/V999');
     await expect(page.getByText('Scénář jsme nenašli.')).toBeVisible();
   });

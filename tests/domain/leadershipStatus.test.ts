@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cycleLabel, shootDayLabel, weekdayShortDateYear } from '@/domain/format/date';
-import { leadershipStatus } from '@/domain/workflow/leadershipStatus';
+import { leadershipDot, leadershipStatus } from '@/domain/workflow/leadershipStatus';
 
 const approve = (userId: string) => ({ userId, decision: 'approve' as const });
 
@@ -44,5 +44,30 @@ describe('cycleLabel / shootDayLabel', () => {
 describe('weekdayShortDateYear', () => {
   it('adds weekday and year', () => {
     expect(weekdayShortDateYear('2026-11-20')).toBe('pá 20. 11. 2026');
+  });
+});
+
+describe('leadershipDot', () => {
+  const dot = (approvalStatus: Parameters<typeof leadershipDot>[0]['approvalStatus'], decisions = [] as ReturnType<typeof approve>[], other: string | null = null) =>
+    leadershipDot({ approvalStatus }, 'me', decisions, other);
+  it('yellow: awaiting and not approved by me → review', () => {
+    expect(dot('in_review')).toMatchObject({ color: 'yellow', label: 'Ke kontrole', target: 'review', rank: 0 });
+    expect(dot('final_review', [approve('other')])).toMatchObject({ color: 'yellow', target: 'review' });
+  });
+  it('red: returned → script, Admin opravuje', () => {
+    expect(dot('returned')).toMatchObject({ color: 'red', label: 'Zamítnuto – Admin opravuje', target: 'script', rank: 1 });
+  });
+  it('green: approved by me, other pending → still review, with sub', () => {
+    expect(dot('in_review', [approve('me')], 'Honza')).toMatchObject({ color: 'green', label: 'Zkontrolováno', sub: 'čeká na Honzu', target: 'review', rank: 2 });
+  });
+  it('green: fully approved → script', () => {
+    expect(dot('approved')).toMatchObject({ color: 'green', label: 'Schváleno', target: 'script' });
+  });
+  it('grey: draft → Admin ještě píše', () => {
+    expect(dot('draft')).toMatchObject({ color: 'grey', label: 'Admin ještě píše', target: 'script', rank: 3 });
+  });
+  it('postponed / cancelled have no dot', () => {
+    expect(dot('postponed')).toBeNull();
+    expect(dot('cancelled')).toBeNull();
   });
 });

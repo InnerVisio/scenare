@@ -3,7 +3,7 @@ import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { cycleLabel, daysUntil } from '@/domain/format/date';
 import { APPROVAL_STATUSES, isAwaitingDecision } from '@/domain/workflow/approval';
-import { leadershipStatus, type LeadershipGroup, type LeadershipStatus } from '@/domain/workflow/leadershipStatus';
+import { leadershipDot, leadershipStatus, type LeadershipDot, type LeadershipGroup, type LeadershipStatus } from '@/domain/workflow/leadershipStatus';
 import type { Actor } from './actor';
 import { allLookups, categoryOptions, type EditorOptions } from './editorOptions';
 import { listVideos } from './queries';
@@ -16,6 +16,8 @@ export interface LeadershipScriptItem {
   cast: string;
   cycleId: string | null;
   status: LeadershipStatus;
+  /** Traffic-light status for the home; null for postponed / cancelled. */
+  dot: LeadershipDot | null;
 }
 
 export type LeadershipGroups = Record<LeadershipGroup, LeadershipScriptItem[]>;
@@ -98,6 +100,7 @@ export async function getLeadershipScripts(
   const toItem = (v: (typeof videos)[number]): LeadershipScriptItem => {
     const decided = byVideo.get(v.id) ?? [];
     const waiting = leaders.filter((l) => l.id !== actor.id && !decided.some((d) => d.userId === l.id && d.decision === 'approve'));
+    const otherName = waiting.length === 1 ? waiting[0].name : null;
     return {
       id: v.id,
       code: v.code,
@@ -105,7 +108,8 @@ export async function getLeadershipScripts(
       categoryKey: v.categoryKey,
       cast: castOf(v.castInitials),
       cycleId: v.cycleId,
-      status: leadershipStatus(v, actor.id, decided, waiting.length === 1 ? waiting[0].name : null),
+      status: leadershipStatus(v, actor.id, decided, otherName),
+      dot: leadershipDot(v, actor.id, decided, otherName),
     };
   };
   const group = (items: LeadershipScriptItem[]): LeadershipGroups => {
@@ -144,5 +148,69 @@ export async function getLeadershipScripts(
     unscheduled: group(loose),
     unscheduledCount: loose.length,
     categories: categoryOptions(lookups),
+  };
+}
+
+export interface HomeScript {
+  id: string;
+  code: string;
+  title: string;
+  dot: LeadershipDot;
+}
+
+export interface HomeBox {
+  key: string;
+  label: string;
+  color: string | null;
+  /** Approved scripts (`done`) out of all counted scripts (`total`). */
+  done: number;
+  total: number;
+  toReview: number;
+  returned: number;
+  scripts: HomeScript[];
+}
+
+export interface LeadershipHome {
+  all: boolean;
+  shootDate: string | null;
+  daysToShoot: number | null;
+  boxes: HomeBox[];
+}
+
+/** Pure: groups the scripts in scope into one box per category (plus „Bez kategorie“ when needed). */
+export function buildHomeBoxes(items: LeadershipScriptItem[], categories: EditorOptions['categories']): HomeBox[] {
+  const known = new Set(categories.map((c) => c.key));
+  const box = (key: string, label: string, color: string | null): HomeBox => {
+    const mine = items.filter((i) => i.dot && (key === '' ? !i.categoryKey || !known.has(i.categoryKey) : i.categoryKey === key));
+    const scripts = mine
+      .map((i) => ({ id: i.id, code: i.code, title: i.title, dot: i.dot as LeadershipDot }))
+      .sort((a, b) => a.dot.rank - b.dot.rank || a.code.localeCompare(b.code));
+    return {
+      key,
+      label,
+      color,
+      done: scripts.filter((x) => x.dot.label === 'Schváleno').length,
+      total: scripts.length,
+      toReview: scripts.filter((x) => x.dot.color === 'yellow').length,
+      returned: scripts.filter((x) => x.dot.color === 'red').length,
+      scripts,
+    };
+  };
+  const boxes = categories.map((c) => box(c.key, c.label, c.color));
+  const rest = box('', 'Bez kategorie', null);
+  return rest.total > 0 ? [...boxes, rest] : boxes;
+}
+
+/** Leadership home: categories with script counts and dots. Reuses getLeadershipScripts (5 queries). */
+export async function getLeadershipHome(db: Db, actor: Actor, opts: { all: boolean }, now: Date): Promise<LeadershipHome> {
+  const data = await getLeadershipScripts(db, actor, opts, now);
+  const flat = (g: LeadershipGroups) => Object.values(g).flat();
+  const items = [...data.sections.flatMap((c) => flat(c.groups)), ...flat(data.unscheduled)];
+  const next = data.sections.find((c) => c.kind === 'next');
+  return {
+    all: opts.all,
+    shootDate: next?.shootDate ?? null,
+    daysToShoot: next?.daysToShoot ?? null,
+    boxes: buildHomeBoxes(items, data.categories),
   };
 }

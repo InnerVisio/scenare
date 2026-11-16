@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Db } from '@/db/client';
 import { getDashboard, listVideos } from '@/server/queries';
-import { getLeadershipScripts } from '@/server/leadershipScripts';
+import { getLeadershipHome, getLeadershipScripts } from '@/server/leadershipScripts';
 import { decide } from '@/server/approvals';
 import { createComment } from '@/server/comments';
 import { loadEditorOptions } from '@/server/editorOptions';
@@ -53,6 +53,8 @@ async function pages(actor: Actor, reviewCode: string): Promise<Record<string, n
     layout: await layout(),
     'dashboard (/)': await withLayout((a) => getDashboard(db, a, NOW)),
     'kontrola empty / scenare (leadership)': await withLayout((a) => getLeadershipScripts(db, a, { all: false }, NOW)),
+    'home (leadership)': await withLayout((a) => getLeadershipHome(db, a, { all: false }, NOW)),
+    'home (leadership, all)': await withLayout((a) => getLeadershipHome(db, a, { all: true }, NOW)),
     'scenare (leadership, all)': await withLayout((a) => getLeadershipScripts(db, a, { all: true }, NOW)),
     'kontrola/[code]': await withLayout(async (a) => {
       return loadReviewPage(db, a, reviewCode, { cycleParam: undefined }, NOW);

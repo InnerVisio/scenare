@@ -88,7 +88,7 @@ describe('nextUndecidedCode', () => {
 
 describe('decisionToast', () => {
   it('describes each outcome', () => {
-    expect(decisionToast('return', { state: 'returned', waitingFor: [] })).toBe('Vráceno k dopracování');
+    expect(decisionToast('return', { state: 'returned', waitingFor: [] })).toBe('Připomínky odeslány Adminovi');
     expect(decisionToast('approve', { state: 'approved', waitingFor: [] })).toBe('Schváleno oběma ✓');
     expect(decisionToast('approve', { state: 'pending', waitingFor: ['Radek'] })).toBe('Schváleno · čeká na Radka');
   });

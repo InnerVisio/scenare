@@ -379,7 +379,7 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
       {/* Phone header: back, position, checks badge, progress. */}
       <header className="flex flex-col gap-3 lg:hidden">
         <div className="flex items-center gap-3">
-          <Link href={leadership ? '/scenare' : '/'} aria-label={leadership ? 'Zpět na scénáře' : 'Zpět na přehled'} className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-card', focusRing)}>
+          <Link href="/" aria-label={leadership ? 'Zpět na scénáře' : 'Zpět na přehled'} className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-card', focusRing)}>
             <ArrowLeft aria-hidden className="size-5" />
           </Link>
           <div className="min-w-0 flex-1 text-center">
@@ -498,6 +498,7 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
           unresolved={unresolved}
           approvalLineShown={line.text !== null}
           simple={leadership}
+          onWriteComment={leadership && perms.comment ? () => openComposer({ kind: 'general' }) : undefined}
           scrollTo={scrollTo}
           peek={
             peekThread ? (

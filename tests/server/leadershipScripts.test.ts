@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { getLeadershipScripts } from '@/server/leadershipScripts';
+import { getLeadershipHome, getLeadershipScripts } from '@/server/leadershipScripts';
 import { setupWorld, type World } from './helpers';
 
 const NOW = new Date('2026-11-15T10:00:00+01:00');
@@ -30,5 +30,23 @@ describe('getLeadershipScripts', () => {
     expect(r.sections[0].kind).toBe('next');
     const total = r.sections.reduce((n, sec) => n + Object.values(sec.groups).flat().length, 0) + r.unscheduledCount;
     expect(total).toBeGreaterThan(0);
+  });
+});
+
+describe('getLeadershipHome', () => {
+  it('groups the next shooting day into category boxes whose counts match the scripts', async () => {
+    const home = await getLeadershipHome(w.db, w.radek, { all: false }, NOW);
+    const scripts = await getLeadershipScripts(w.db, w.radek, { all: false }, NOW);
+    expect(home.shootDate).toBe('2026-11-20');
+    expect(home.boxes.length).toBeGreaterThanOrEqual(4);
+    const counted = scripts.sections[0].totalCount;
+    expect(home.boxes.reduce((n, b) => n + b.total, 0)).toBe(counted);
+    expect(home.boxes.reduce((n, b) => n + b.done, 0)).toBe(scripts.sections[0].approvedCount);
+    for (const b of home.boxes) {
+      expect(b.scripts).toHaveLength(b.total);
+      expect(b.toReview).toBe(b.scripts.filter((s) => s.dot.color === 'yellow').length);
+      const ranks = b.scripts.map((s) => s.dot.rank);
+      expect(ranks).toEqual([...ranks].sort((a, c) => a - c));
+    }
   });
 });

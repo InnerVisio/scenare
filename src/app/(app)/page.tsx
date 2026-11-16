@@ -1,21 +1,25 @@
 import { cycleLabel } from '@/domain/format/date';
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
-import { redirect } from 'next/navigation';
+import { getLeadershipHome } from '@/server/leadershipScripts';
 import { getDashboard } from '@/server/queries';
 import { TopBar } from '@/ui/TopBar';
 import { ActionCard, CommentsCard, Kanban, MixCard, ShootCard } from './_components/dashboard/Dashboard';
+import { LeadershipHomeView } from './scenare/LeadershipHomeView';
 import { dateLine, greeting } from './_components/dashboard/model';
 
 export const metadata = { title: 'Přehled – GTA Scénáře' };
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const actor = await requireActor();
   const db = await getDb();
   const now = new Date();
   if (actor.role === 'leadership') {
-    redirect('/kontrola');
+    const sp = await searchParams;
+    const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+    const home = await getLeadershipHome(db, actor, { all: one(sp.zobrazit) === 'vse' }, now);
+    return <LeadershipHomeView home={home} name={actor.name} openKey={one(sp.kategorie) ?? null} />;
   }
   const data = await getDashboard(db, actor, now);
   return (

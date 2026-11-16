@@ -6,7 +6,7 @@ import { cn, focusRing } from '@/ui/cn';
 import { ReviewDialog } from './ReviewDialog';
 
 /**
- * „Vrátit k dopracování“ with the note for the author. The note is required unless the actor has
+ * „Odeslat připomínky“ (the return action) with the note for the author. The note is required unless the actor has
  * already commented on this version (those comments travel with the return).
  */
 export function ReturnDialog({
@@ -28,7 +28,7 @@ export function ReturnDialog({
   const missing = !hasOwnComments && note.trim() === '';
 
   return (
-    <ReviewDialog open={open} onClose={onCancel} title="Vrátit k dopracování">
+    <ReviewDialog open={open} onClose={onCancel} title="Odeslat připomínky Adminovi">
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -47,7 +47,7 @@ export function ReturnDialog({
           required={!hasOwnComments}
           className={cn('w-full resize-none rounded-inner bg-nest p-4 text-base', focusRing)}
         />
-        {hasOwnComments && <p className="text-sm text-text2">Tvoje komentáře k této verzi se pošlou spolu s vrácením.</p>}
+        {hasOwnComments && <p className="text-sm text-text2">Tvoje komentáře k této verzi se pošlou spolu s připomínkami.</p>}
         {error && (
           <p role="alert" className="rounded-inner bg-danger-bg px-4 py-3 text-sm font-semibold text-danger-text">
             {error}
@@ -58,7 +58,7 @@ export function ReturnDialog({
             Zrušit
           </Button>
           <Button type="submit" variant="danger" pending={busy} disabled={missing}>
-            Vrátit k dopracování
+            Odeslat připomínky
           </Button>
         </div>
       </form>

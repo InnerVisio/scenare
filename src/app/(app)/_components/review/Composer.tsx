@@ -149,7 +149,7 @@ export function Composer({
         <MentionField
           inputRef={bodyRef}
           aria-label={isSuggestion ? 'Proč návrh? (nepovinné)' : 'Komentář'}
-          placeholder={isSuggestion ? 'Proč? (nepovinné)' : 'Napiš komentář… @ pro zmínku'}
+          placeholder={isSuggestion ? 'Proč? (nepovinné)' : target.kind === 'general' ? 'Napiš obecný komentář…' : 'Napiš komentář… @ pro zmínku'}
           value={text}
           onChange={setText}
           users={users}

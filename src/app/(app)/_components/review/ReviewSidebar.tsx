@@ -28,6 +28,7 @@ export function ReviewSidebar({
   unresolved,
   approvalLineShown,
   simple = false,
+  onWriteComment,
   peek,
   scrollTo,
   composer,
@@ -43,6 +44,8 @@ export function ReviewSidebar({
   approvalLineShown: boolean;
   /** Leadership mode: plain tab names and a hint line under the action buttons. */
   simple?: boolean;
+  /** Leadership phone sheet: a visible „Napsat komentář“ button focusing the composer. */
+  onWriteComment?: () => void;
   /** One-comment summary shown in the collapsed phone sheet. */
   peek: ReactNode;
   /** Comment id to bring into view; a new object re-triggers it. */
@@ -160,6 +163,18 @@ export function ReviewSidebar({
             <ChevronDown aria-hidden className="size-5" />
           </button>
         </div>
+
+        {expanded && onWriteComment && (
+          <div className="px-4 pb-3 lg:hidden">
+            <button
+              type="button"
+              onClick={onWriteComment}
+              className={cn('inline-flex min-h-12 w-full items-center justify-center rounded-pill bg-ink px-5 font-semibold text-card', focusRing)}
+            >
+              Napsat komentář
+            </button>
+          </div>
+        )}
 
         {!expanded && (
           <div data-testid="comment-peek" className="px-4 lg:hidden">

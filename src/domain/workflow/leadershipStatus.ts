@@ -43,3 +43,39 @@ export function leadershipStatus(
   }
   return { group: 'me', label: 'Čeká na tebe', sub, tone: 'apricot' };
 }
+
+export type LeadershipDotColor = 'yellow' | 'green' | 'red' | 'grey';
+
+export interface LeadershipDot {
+  color: LeadershipDotColor;
+  label: string;
+  sub?: string;
+  /** Where the row links: the review screen (`/kontrola/[code]`) or the script detail. */
+  target: 'review' | 'script';
+  /** Sort order within a category: yellow, red, green, grey. */
+  rank: number;
+}
+
+/** Plain traffic-light status for the leadership home; `null` for postponed / cancelled scripts (not counted). */
+export function leadershipDot(
+  video: { approvalStatus: ApprovalStatus },
+  actorId: string,
+  decisionsOnLatest: Decision[],
+  otherLeaderName?: string | null,
+): LeadershipDot | null {
+  const st = leadershipStatus(video, actorId, decisionsOnLatest, otherLeaderName);
+  if (st.group === 'muted') return null;
+  if (st.group === 'me') return { color: 'yellow', label: 'Ke kontrole', target: 'review', rank: 0 };
+  if (st.group === 'other') {
+    return {
+      color: 'green',
+      label: 'Zkontrolováno',
+      sub: otherLeaderName ? `čeká na ${accusative(otherLeaderName)}` : 'čeká na druhého',
+      target: 'review',
+      rank: 2,
+    };
+  }
+  if (st.group === 'approved') return { color: 'green', label: 'Schváleno', target: 'script', rank: 2 };
+  if (video.approvalStatus === 'returned') return { color: 'red', label: 'Zamítnuto – Admin opravuje', target: 'script', rank: 1 };
+  return { color: 'grey', label: 'Admin ještě píše', target: 'script', rank: 3 };
+}

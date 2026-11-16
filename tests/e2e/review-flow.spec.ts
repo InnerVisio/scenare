@@ -114,11 +114,11 @@ test('Admin → Radek → Admin → Honza → Radek: a script goes from draft to
   await expect(toast(page)).toContainText('Návrh změny odeslán');
   await expectNoHorizontalScroll(page);
 
-  await page.getByRole('button', { name: 'Vrátit' }).click();
-  const returnDialog = page.getByRole('dialog', { name: 'Vrátit k dopracování' });
+  await page.getByRole('button', { name: 'Odeslat připomínky' }).click();
+  const returnDialog = page.getByRole('dialog', { name: 'Odeslat připomínky Adminovi' });
   await returnDialog.getByRole('textbox', { name: 'Co je potřeba upravit?' }).fill('Zpřesnit a použít moje znění.');
-  await returnDialog.getByRole('button', { name: 'Vrátit k dopracování' }).click();
-  await expect(toast(page)).toContainText('Vráceno k dopracování');
+  await returnDialog.getByRole('button', { name: 'Odeslat připomínky' }).click();
+  await expect(toast(page)).toContainText('Připomínky odeslány Adminovi');
 
   // 3. Admin accepts the suggestion, answers the comment, marks it addressed and resubmits.
   await loginAs(page, 'Admin');

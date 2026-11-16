@@ -46,18 +46,18 @@ export function ActionBar({
     </Button>
   );
 
-  const hint = simple && canDecide ? <p className="text-center text-xs text-text2">Schválit = můžeme točit · Vrátit = Admin upraví</p> : null;
+  const hint = simple && canDecide ? <p className="text-center text-xs text-text2">Schválit = je to OK · Odeslat připomínky = Admin to opraví</p> : null;
   const buttons = canDecide ? (
     <>
       <Button
         variant="danger"
         onClick={onReturn}
         pending={busy}
-        title={simple ? undefined : "Vrátit k dopracování (R)"}
-        className={cn(fixed && 'min-h-14 flex-1 px-4 text-lg')}
+        title={simple ? undefined : "Odeslat připomínky (R)"}
+        className={cn(fixed && 'min-h-14 flex-1 px-3 text-base leading-tight')}
       >
         {!fixed && <Undo2 aria-hidden className="size-5" />}
-        {fixed ? 'Vrátit' : 'Vrátit k dopracování'}
+        Odeslat připomínky
       </Button>
       <Button
         variant="approve"
@@ -93,7 +93,7 @@ export function ActionBar({
         {buttons}
         {next}
       </div>
-      {hint && <p className="text-xs text-text2">Schválit = můžeme točit · Vrátit = Admin upraví</p>}
+      {hint}
     </div>
   );
 }

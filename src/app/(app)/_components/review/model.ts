@@ -59,7 +59,7 @@ export function nextUndecidedCode(queue: Pick<QueueItemVM, 'code' | 'decidedByAc
 
 /** Toast shown after an approve / return, per the outcome the server reported. */
 export function decisionToast(decision: 'approve' | 'return', result: DecideResult): string {
-  if (decision === 'return' || result.state === 'returned') return 'Vráceno k dopracování';
+  if (decision === 'return' || result.state === 'returned') return 'Připomínky odeslány Adminovi';
   if (result.state === 'approved') return 'Schváleno oběma ✓';
   return result.waitingFor.length > 0 ? `Schváleno · čeká na ${joinAccusative(result.waitingFor)}` : 'Schváleno';
 }

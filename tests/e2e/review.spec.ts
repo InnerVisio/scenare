@@ -71,7 +71,7 @@ test.describe('review queue', () => {
 
     if (project === 'mobile') {
       await expect(page.getByText(/^\d+ ze \d+( · |$)/).first()).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Vrátit' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Odeslat připomínky' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Schválit' })).toBeVisible();
       await page.screenshot({ path: 'test-results/review-item-mobile.png' });
       // The whole header row (not just the little handle) opens the sheet.
@@ -85,7 +85,7 @@ test.describe('review queue', () => {
       await page.screenshot({ path: 'test-results/review-sheet-mobile.png' });
     } else {
       await expect(page.getByRole('navigation', { name: 'Fronta ke kontrole' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Vrátit k dopracování' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Odeslat připomínky' })).toBeVisible();
       await expect(page.getByRole('tab', { name: /Komentáře · 3/ })).toBeVisible();
       await page.screenshot({ path: 'test-results/review-desktop.png' });
       await page.screenshot({ path: 'test-results/review-desktop-full.png', fullPage: true });
@@ -94,7 +94,7 @@ test.describe('review queue', () => {
       await page.keyboard.press('j');
       await expect(page).not.toHaveURL(/V031/);
       await page.keyboard.press('r');
-      await expect(page.getByRole('dialog', { name: 'Vrátit k dopracování' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Odeslat připomínky Adminovi' })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
     }
@@ -199,17 +199,17 @@ test.describe('review queue', () => {
     await page.goto(`/kontrola/${code}`);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Vrátit' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Vrátit k dopracování' });
+    await page.getByRole('button', { name: 'Odeslat připomínky' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Odeslat připomínky Adminovi' });
     await expect(dialog).toBeVisible();
     // Without own comments on this version the note is required; with them it is optional.
-    if (project === 'mobile') await expect(dialog.getByRole('button', { name: 'Vrátit k dopracování' })).toBeDisabled();
-    else await expect(dialog).toContainText('Tvoje komentáře k této verzi se pošlou spolu s vrácením.');
+    if (project === 'mobile') await expect(dialog.getByRole('button', { name: 'Odeslat připomínky' })).toBeDisabled();
+    else await expect(dialog).toContainText('Tvoje komentáře k této verzi se pošlou spolu s připomínkami.');
     await page.screenshot({ path: `test-results/review-return-${project}.png` });
     await dialog.getByRole('textbox', { name: 'Co je potřeba upravit?' }).fill('Zkrátit úvod a ověřit zdroj.');
-    await dialog.getByRole('button', { name: 'Vrátit k dopracování' }).click();
+    await dialog.getByRole('button', { name: 'Odeslat připomínky' }).click();
 
-    await expect(toast(page)).toContainText('Vráceno k dopracování');
+    await expect(toast(page)).toContainText('Připomínky odeslány Adminovi');
     await expect(page).toHaveURL(/\/kontrola\/V0\d\d/);
     await expect(page).not.toHaveURL(new RegExp(code));
   });

@@ -49,9 +49,10 @@ export function HelpSheet({ open, onClose }: { open: boolean; onClose: () => voi
     <BottomSheet open={open} onClose={onClose} title="Jak kontrolovat">
       <ol className="flex list-decimal flex-col gap-3 pl-5 marker:font-semibold">
         <li>Přečti si scénář.</li>
+        <li>Podrž prst na slově a táhni pro označení části textu.</li>
         <li>Chceš něco změnit? Označ text prstem → „Komentovat“ nebo „Navrhnout změnu“.</li>
         <li>
-          Hotovo? „Schválit“ = je to OK, můžeme točit. „Vrátit“ = Admin to upraví podle tvých poznámek.
+          Hotovo? „Schválit“ = je to OK, můžeme točit. „Odeslat připomínky“ = Admin to opraví podle tvých poznámek.
         </li>
         <li>Scénář se točí, až ho schválíte oba.</li>
       </ol>
