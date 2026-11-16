@@ -34,11 +34,25 @@ describe('shooting days', () => {
     await expectDomainError(updateShootingDay(w.db, w.admin, '2026-12-17', { shootDate: '2026-12-10' }, NOW), 'VALIDATION');
   });
 
-  it('deletes only days without scripts', async () => {
+  it('deletes a day and keeps its scripts in their month, or moves them', async () => {
+    await expectDomainError(deleteShootingDay(w.db, w.honza, '2026-11', { moveTo: null }, NOW), 'FORBIDDEN');
     await addShootingDay(w.db, w.admin, { shootDate: '2026-12-24' }, NOW);
-    await expectDomainError(deleteShootingDay(w.db, w.admin, '2026-11', NOW), 'VALIDATION', 'Na tento den jsou přiřazené scénáře (8). Nejdřív je přesuň.');
-    await deleteShootingDay(w.db, w.admin, '2026-12-24', NOW);
+    await addShootingDay(w.db, w.admin, { shootDate: '2026-12-30' }, NOW);
+    const [v1, v2] = await w.db.select({ id: s.videos.id }).from(s.videos).limit(2);
+    await w.db.update(s.videos).set({ cycleId: '2026-12-24', plannedMonth: null }).where(eq(s.videos.id, v1.id));
+    await w.db.update(s.videos).set({ cycleId: '2026-12-24', plannedMonth: null }).where(eq(s.videos.id, v2.id));
+    const other = await w.db.select().from(s.videos).where(eq(s.videos.cycleId, '2026-11'));
+    await expectDomainError(deleteShootingDay(w.db, w.admin, '2026-12-24', { moveTo: 'nope' }, NOW), 'VALIDATION');
+    await deleteShootingDay(w.db, w.admin, '2026-12-24', { moveTo: null }, NOW);
     expect(await row('2026-12-24')).toBeUndefined();
+    const kept = await w.db.select().from(s.videos).where(eq(s.videos.id, v1.id));
+    expect(kept[0]).toMatchObject({ cycleId: null, plannedMonth: '2026-12' });
+    expect(await row('2026-12-30')).toBeDefined();
+    expect(await w.db.select().from(s.videos).where(eq(s.videos.cycleId, '2026-11'))).toHaveLength(other.length);
+
+    await w.db.update(s.videos).set({ cycleId: '2026-12-30' }).where(eq(s.videos.id, v2.id));
+    await deleteShootingDay(w.db, w.admin, '2026-12-30', { moveTo: '2026-11' }, NOW);
+    expect((await w.db.select().from(s.videos).where(eq(s.videos.id, v2.id)))[0].cycleId).toBe('2026-11');
   });
 
   it('picks the next shooting day by date, with two days in one month', async () => {

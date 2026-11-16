@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { weekdayShortDateYear } from '@/domain/format/date';
+import { weekdayShortDate, weekdayShortDateYear } from '@/domain/format/date';
 import { whatsappHref } from '../_components/ShareReview';
 import { Plus } from 'lucide-react';
 import { useState, useTransition, type ReactNode } from 'react';
@@ -10,6 +10,7 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { Tabs } from '@/ui/Tabs';
+import { ReviewDialog } from '../_components/review/ReviewDialog';
 import { cn } from '@/ui/cn';
 import type { Role } from '@/domain/policy/can';
 import { addShootingDayAction, createLoginLink, deleteShootingDayAction, updateShootingDayAction, saveLookups, saveSettings, saveUser } from './actions';
@@ -126,8 +127,20 @@ interface CycleRow {
   scripts: number;
 }
 
-function DayRow({ day }: { day: CycleRow }) {
+const MONTHS_IN = ['lednu', 'únoru', 'březnu', 'dubnu', 'květnu', 'červnu', 'červenci', 'srpnu', 'září', 'říjnu', 'listopadu', 'prosinci'];
+const scriptsWord = (n: number) => (n === 1 ? 'scénář' : n >= 2 && n <= 4 ? 'scénáře' : 'scénářů');
+
+function DayRow({ day, others }: { day: CycleRow; others: CycleRow[] }) {
   const save = useSave();
+  const [confirming, setConfirming] = useState(false);
+  const [moveTo, setMoveTo] = useState('');
+  const monthIn = MONTHS_IN[Number((day.shootDate ?? `${day.id}-01`).slice(5, 7)) - 1];
+  const dayLabel = day.shootDate ? weekdayShortDate(day.shootDate) : day.id;
+  const runDelete = (target: string | null) => save.run(async () => {
+    const r = await deleteShootingDayAction({ id: day.id, moveTo: target });
+    if (r.ok) setConfirming(false);
+    return done(r);
+  });
   const [editing, setEditing] = useState(false);
   const [date, setDate] = useState(day.shootDate ?? '');
   const [planned, setPlanned] = useState(String(day.plannedVideos));
@@ -152,15 +165,30 @@ function DayRow({ day }: { day: CycleRow }) {
         <Button variant="outline" onClick={() => setEditing(true)}>
           Upravit
         </Button>
-        <Button
-          variant="outline"
-          disabled={day.scripts > 0}
-          title={day.scripts > 0 ? `Na tento den jsou přiřazené scénáře (${day.scripts}).` : undefined}
-          pending={save.pending}
-          onClick={() => save.run(async () => done(await deleteShootingDayAction({ id: day.id })))}
-        >
+        <Button variant="outline" pending={save.pending} onClick={() => (day.scripts > 0 ? setConfirming(true) : window.confirm(`Smazat natáčecí den ${dayLabel}?`) && runDelete(null))}>
           Smazat
         </Button>
+        <ReviewDialog open={confirming} onClose={() => setConfirming(false)} title={`Smazat natáčecí den ${dayLabel}?`}>
+          <p className="text-text2">Je na něm {day.scripts} {scriptsWord(day.scripts)}. Co s nimi?</p>
+          <Field label="Scénáře">
+            <Select value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+              <option value="">Nechat bez natáčecího dne (zůstanou v {monthIn})</option>
+              {others.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.shootDate ? weekdayShortDateYear(o.shootDate) : `${o.id} · bez data`}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setConfirming(false)}>
+              Zpět
+            </Button>
+            <Button variant="danger" pending={save.pending} onClick={() => runDelete(moveTo || null)}>
+              Smazat
+            </Button>
+          </div>
+        </ReviewDialog>
         <Status status={save.status} />
       </li>
     );
@@ -214,7 +242,7 @@ function CyclesSection({ cycles, today }: { cycles: CycleRow[]; today: string })
     <Section title="Natáčecí dny">
       <ul>
         {upcoming.map((c) => (
-          <DayRow key={c.id} day={c} />
+          <DayRow key={c.id} day={c} others={sorted.filter((o) => o.id !== c.id)} />
         ))}
       </ul>
       {adding ? (
@@ -267,7 +295,7 @@ function CyclesSection({ cycles, today }: { cycles: CycleRow[]; today: string })
           <summary className="cursor-pointer font-semibold">Starší ({past.length})</summary>
           <ul>
             {past.map((c) => (
-              <DayRow key={c.id} day={c} />
+              <DayRow key={c.id} day={c} others={sorted.filter((o) => o.id !== c.id)} />
             ))}
           </ul>
         </details>

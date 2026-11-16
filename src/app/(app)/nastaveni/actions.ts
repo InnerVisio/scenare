@@ -69,7 +69,7 @@ export async function updateShootingDayAction(input: unknown) {
 }
 
 export async function deleteShootingDayAction(input: unknown) {
-  return runAction(input, z.object({ id: z.string().min(1).max(32) }), (db, actor, { id }, now) => deleteShootingDay(db, actor, id, now));
+  return runAction(input, z.object({ id: z.string().min(1).max(32), moveTo: z.string().min(1).max(32).nullable() }), (db, actor, { id, moveTo }, now) => deleteShootingDay(db, actor, id, { moveTo }, now));
 }
 
 export async function sendTestMailToMe() {

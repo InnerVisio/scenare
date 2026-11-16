@@ -53,3 +53,32 @@ test('quick add from the editor select creates and selects a new day', async ({ 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('deleting a day with scripts keeps them without a day', async ({ page }) => {
+  await loginAdmin(page);
+  const day = futureDay();
+  await openEditor(page);
+  const url = page.url().replace(/\/upravit$/, '');
+  const title = `Smazání dne ${Date.now()}`;
+  await page.getByLabel('Název', { exact: true }).fill(title);
+  const select = page.getByRole('combobox', { name: 'Natáčecí den' });
+  await select.selectOption({ label: '+ Přidat natáčecí den…' });
+  const add = page.getByRole('dialog', { name: 'Přidat natáčecí den' });
+  await add.getByLabel('Datum natáčení').fill(day.iso);
+  await add.getByRole('button', { name: 'Přidat den' }).click();
+  await expect(select).toHaveValue(day.iso);
+  await expect(page.getByText(/^Uloženo \d{1,2}:\d{2}$/).filter({ visible: true })).toBeVisible();
+
+  await page.goto('/nastaveni');
+  const item = page.getByRole('listitem').filter({ hasText: day.label });
+  await item.getByRole('button', { name: 'Smazat' }).click();
+  const dialog = page.getByRole('dialog', { name: /Smazat natáčecí den/ });
+  await expect(dialog).toContainText('Je na něm 1 scénář. Co s nimi?');
+  await dialog.getByRole('combobox').selectOption({ index: 0 });
+  await dialog.getByRole('button', { name: 'Smazat', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('listitem').filter({ hasText: day.label })).toHaveCount(0);
+
+  await page.goto(url);
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+});

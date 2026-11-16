@@ -323,17 +323,19 @@ export function LeadershipHomeView({
   home,
   name,
   openKey,
+  basePath = "/",
 }: {
   home: LeadershipHome;
   name: string;
   openKey: string | null;
+  basePath?: string;
 }) {
   const qs = (key: string | null) => {
     const p = new URLSearchParams();
     if (home.all) p.set("zobrazit", "vse");
     if (key !== null) p.set("kategorie", key || "none");
     const s = p.toString();
-    return s ? `/?${s}` : "/";
+    return s ? `${basePath}?${s}` : basePath;
   };
   const selKey =
     openKey ??
@@ -368,8 +370,8 @@ export function LeadershipHomeView({
           aria-label="Zobrazení"
           className="flex gap-1 rounded-pill bg-ink/[0.06] p-1 lg:max-w-md"
         >
-          {tab("/", home.monthName, !home.all)}
-          {tab("/?zobrazit=vse", "Všechny", home.all)}
+          {tab(basePath, home.monthName, !home.all)}
+          {tab(`${basePath}?zobrazit=vse`, "Všechny", home.all)}
         </nav>
         {home.all ? (
           <MonthsView months={home.months} />

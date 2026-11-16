@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { newId } from '@/domain/ids';
@@ -275,15 +275,35 @@ export async function updateShootingDay(db: Db, actor: Actor, id: string, patch:
   });
 }
 
-export async function deleteShootingDay(db: Db, actor: Actor, id: string, now: Date): Promise<void> {
+export async function deleteShootingDay(db: Db, actor: Actor, id: string, opts: { moveTo: string | null }, now: Date): Promise<void> {
   assertAdmin(actor);
+  const { moveTo } = opts;
+  if (moveTo === id) throw invalid('Scénáře nelze přesunout na mazaný den.');
   await db.transaction(async (tx) => {
     const [row] = await tx.select().from(s.shootingCycles).where(eq(s.shootingCycles.id, id));
     if (!row) throw new DomainError('NOT_FOUND', 'Natáčecí den nenalezen.');
+    let target: typeof row | undefined;
+    if (moveTo !== null) {
+      [target] = await tx.select().from(s.shootingCycles).where(eq(s.shootingCycles.id, moveTo));
+      if (!target) throw invalid('Cílový natáčecí den neexistuje.');
+    }
     const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(s.videos).where(eq(s.videos.cycleId, id));
-    if (n > 0) throw invalid(`Na tento den jsou přiřazené scénáře (${n}). Nejdřív je přesuň.`);
+    if (moveTo === null) {
+      const month = (row.shootDate ?? row.id).slice(0, 7);
+      await tx.update(s.videos).set({ plannedMonth: month }).where(and(eq(s.videos.cycleId, id), isNull(s.videos.plannedMonth)));
+    }
+    await tx.update(s.videos).set({ cycleId: moveTo }).where(eq(s.videos.cycleId, id));
     await tx.delete(s.shootingCycles).where(eq(s.shootingCycles.id, id));
-    await logActivity(tx, { actorId: actor.id, videoId: null, entity: 'shooting_day', entityId: id, action: 'shooting_day.deleted', before: { shootDate: row.shootDate } }, now);
+    const dm = (d: string | null, fallback: string) => {
+      const [, m, day] = (d ?? '').split('-');
+      return d && day ? `${Number(day)}. ${Number(m)}.` : fallback;
+    };
+    const tail = n === 0 ? '' : moveTo === null ? ` (${n} scénářů ponecháno bez dne)` : ` (${n} scénářů přesunuto na ${dm(target!.shootDate, target!.id)})`;
+    await logActivity(
+      tx,
+      { actorId: actor.id, videoId: null, entity: 'shooting_day', entityId: id, action: 'shooting_day.deleted', before: { shootDate: row.shootDate }, after: { moveTo, moved: n, summary: `Admin smazal natáčecí den ${dm(row.shootDate, row.id)}${tail}` } },
+      now,
+    );
   });
 }
 
