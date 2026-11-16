@@ -172,6 +172,7 @@ export function TopBar({
   hidePeriod?: boolean;
 }) {
   const shell = useShell();
+  const showPeriod = !hidePeriod && !shell.leadership;
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -196,7 +197,7 @@ export function TopBar({
         {subtitle && <p className="mt-1 text-text2">{subtitle}</p>}
       </div>
 
-      {!hidePeriod && (
+      {showPeriod && (
         <div className="order-3 flex w-full items-center gap-1 rounded-pill bg-ink/[0.06] p-1 md:order-none md:w-auto">
           <Segment
             label="Měsíc"

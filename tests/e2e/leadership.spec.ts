@@ -30,10 +30,12 @@ test.describe('leadership mode', () => {
 
   test('Scénáře: next shooting day grouped by plain status, toggle shows every cycle', async ({ page }, info) => {
     await page.goto('/scenare');
+    await expect(page.getByRole('button', { name: /Listopad|Natáčení \d/ })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Všechny scénáře', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Příští natáčení' })).toHaveAttribute('aria-current', 'page');
     await expect(page.getByRole('heading', { name: /Čeká na tebe/ })).toBeVisible();
     if (info.project.name === 'mobile') await page.screenshot({ path: 'test-results/leadership-scenare-mobile.png', fullPage: true });
-    await page.getByRole('link', { name: 'Všechny', exact: true }).click();
+    await page.getByRole('link', { name: 'Všechny scénáře', exact: true }).click();
     await page.waitForURL(/zobrazit=vse/);
     await expect(page.getByText(/Bez termínu natáčení|Starší natáčení|Natáčení [a-zá-ž]+ \d/).first()).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);

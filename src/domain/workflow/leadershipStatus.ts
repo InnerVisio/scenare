@@ -31,7 +31,7 @@ export function leadershipStatus(
   const status = video.approvalStatus;
   if (status === 'approved') return { group: 'approved', label: 'Schváleno – točíme', tone: 'lime' };
   if (status === 'returned') return { group: 'admin', label: 'Admin upravuje', tone: 'text2' };
-  if (status === 'draft') return { group: 'admin', label: 'Admin píše', tone: 'text2' };
+  if (status === 'draft') return { group: 'admin', label: 'Admin píše', sub: 'Ještě neodesláno ke kontrole', tone: 'text2' };
   if (status === 'postponed') return { group: 'muted', label: 'Odloženo', tone: 'muted' };
   if (status === 'cancelled') return { group: 'muted', label: 'Zrušeno', tone: 'muted' };
   if (!isAwaitingDecision(status)) return { group: 'admin', label: 'Admin píše', tone: 'text2' };

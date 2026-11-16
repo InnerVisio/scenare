@@ -28,6 +28,8 @@ export interface LeadershipSection {
   approvalDeadline: string | null;
   daysToDeadline: number | null;
   approvedCount: number;
+  /** Waiting for a leader's decision (groups `me` + `other`). */
+  awaitingCount: number;
   totalCount: number;
   kind: 'next' | 'later' | 'past';
   groups: LeadershipGroups;
@@ -126,6 +128,7 @@ export async function getLeadershipScripts(
       approvalDeadline: deadline,
       daysToDeadline: deadline ? daysUntil(new Date(`${deadline}T12:00:00Z`), now) : null,
       approvedCount: active.filter((i) => i.status.group === 'approved').length,
+      awaitingCount: active.filter((i) => i.status.group === 'me' || i.status.group === 'other').length,
       totalCount: active.length,
       kind: isNext ? 'next' : c.shootDate !== null && c.shootDate < today ? 'past' : 'later',
       groups: group(items),

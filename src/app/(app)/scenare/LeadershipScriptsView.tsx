@@ -7,6 +7,7 @@ import { Card } from '@/ui/Card';
 import { CategoryTag } from '@/ui/CategoryTag';
 import { TopBar } from '@/ui/TopBar';
 import { cn, focusRing } from '@/ui/cn';
+import { plural } from '../_components/review/model';
 import { StatusLegend } from '../_components/review/LeadershipHelp';
 
 const TONES: Record<LeadershipStatus['tone'], string> = {
@@ -91,7 +92,7 @@ function CycleHeader({ c }: { c: LeadershipSection }) {
       <h2 className="text-h1">{c.shootDate ? `Natáčení ${weekdayLongDate(c.shootDate)}${when(c.daysToShoot)}` : c.label}</h2>
       <div>
         <p className="mb-1 font-semibold">
-          Schváleno {c.approvedCount} ze {c.totalCount}
+          {c.totalCount} {plural(c.totalCount, 'scénář', 'scénáře', 'scénářů')} · ke kontrole {c.awaitingCount} · schváleno {c.approvedCount}
         </p>
         <div role="progressbar" aria-valuemin={0} aria-valuemax={c.totalCount} aria-valuenow={c.approvedCount} className="h-2.5 overflow-hidden rounded-full bg-ink/10">
           <div className="h-full rounded-full bg-lime-dot" style={{ width: `${pct}%` }} />
@@ -119,7 +120,7 @@ function CycleSection({ c, data }: { c: LeadershipSection; data: LeadershipScrip
   );
 }
 
-export function LeadershipScriptsView({ data }: { data: LeadershipScripts }) {
+export function LeadershipScriptsView({ data, basePath = '/scenare', withHeader = true }: { data: LeadershipScripts; basePath?: string; withHeader?: boolean }) {
   const upcoming = data.sections.filter((c) => c.kind !== 'past');
   const past = data.sections.filter((c) => c.kind === 'past');
   const tab = (href: string, label: string, active: boolean) => (
@@ -133,10 +134,10 @@ export function LeadershipScriptsView({ data }: { data: LeadershipScripts }) {
   );
   return (
     <div className="flex flex-col gap-4 md:max-w-4xl md:gap-6">
-      <TopBar title="Scénáře" hidePeriod />
+      {withHeader && <TopBar title="Scénáře" hidePeriod />}
       <nav aria-label="Zobrazení" className="flex gap-1 rounded-pill bg-ink/[0.06] p-1">
-        {tab('/scenare', 'Příští natáčení', !data.all)}
-        {tab('/scenare?zobrazit=vse', 'Všechny', data.all)}
+        {tab(basePath, 'Příští natáčení', !data.all)}
+        {tab(`${basePath}?zobrazit=vse`, 'Všechny scénáře', data.all)}
       </nav>
       {data.sections.length === 0 && <Card>Zatím tu nejsou žádná natáčení.</Card>}
       {upcoming.map((c) => (
@@ -163,7 +164,7 @@ export function LeadershipScriptsView({ data }: { data: LeadershipScripts }) {
         <StatusLegend className="mt-3" />
       </details>
       {!data.all && data.sections.length > 0 && (
-        <ButtonLink href="/scenare?zobrazit=vse" variant="outline" className="w-fit">
+        <ButtonLink href={`${basePath}?zobrazit=vse`} variant="outline" className="w-fit">
           Zobrazit všechna natáčení
         </ButtonLink>
       )}

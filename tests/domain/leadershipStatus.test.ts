@@ -21,6 +21,7 @@ describe('leadershipStatus', () => {
     expect(l('approved')).toMatchObject({ label: 'Schváleno – točíme', tone: 'lime', group: 'approved' });
     expect(l('returned')).toMatchObject({ label: 'Admin upravuje', group: 'admin' });
     expect(l('draft')).toMatchObject({ label: 'Admin píše', group: 'admin' });
+    expect(l('draft').sub).toBe('Ještě neodesláno ke kontrole');
     expect(l('postponed')).toMatchObject({ label: 'Odloženo', group: 'muted' });
     expect(l('cancelled')).toMatchObject({ label: 'Zrušeno', group: 'muted' });
   });
