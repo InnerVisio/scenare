@@ -1,3 +1,4 @@
+import { cycleLabel } from '@/domain/format/date';
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
 import { redirect } from 'next/navigation';
@@ -26,7 +27,7 @@ export default async function HomePage() {
           <ShootCard cycle={data.cycle} />
           <CommentsCard data={data} />
         </div>
-        {data.cycle && data.mix && <MixCard cycleId={data.cycle.id} mix={data.mix} categories={data.categories} />}
+        {data.cycle && data.mix && <MixCard cycleId={data.cycle.id} cycleTitle={cycleLabel(data.cycle)} mix={data.mix} categories={data.categories} />}
         <Kanban data={data} categories={data.categories} />
       </div>
     </>

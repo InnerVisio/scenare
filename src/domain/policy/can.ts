@@ -6,6 +6,7 @@ export type Action =
   | 'script.submit'
   | 'script.unlock'
   | 'script.lifecycle'
+  | 'script.delete'
   | 'comment.create'
   | 'comment.suggest'
   | 'suggestion.decide'
@@ -29,6 +30,7 @@ const ALL_ACTIONS: readonly Action[] = [
   'script.submit',
   'script.unlock',
   'script.lifecycle',
+  'script.delete',
   'comment.create',
   'comment.suggest',
   'suggestion.decide',

@@ -92,6 +92,9 @@ export function describeActivity(
     case 'video.restored':
       text = `${who} obnovil ${code}`;
       break;
+    case 'video.deleted':
+      text = `${who} smazal ${String(after?.code ?? 'scénář')} „${String(after?.title ?? '')}“`;
+      break;
     case 'comment.created':
       text = after?.hasSuggestion ? `${who} navrhl změnu ve ${code}` : `${who} okomentoval ${code}`;
       break;

@@ -1,19 +1,20 @@
 'use client';
 
-import { CopyPlus, Lock, MoreHorizontal, Pencil, RotateCcw, Send } from 'lucide-react';
+import { CopyPlus, Lock, MoreHorizontal, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { ActionResult } from '@/server/actionResult';
 import type { ScriptActions } from '@/server/scripts';
+import { BottomSheet } from '@/ui/BottomSheet';
 import { Button, ButtonLink } from '@/ui/Button';
 import { Field, Textarea } from '@/ui/Field';
 import { SubmitDialog } from '../../_components/editor/SubmitDialog';
 import { ReviewDialog } from '../../_components/review/ReviewDialog';
 import { useReviewToast } from '../../_components/review/ReviewToast';
 import { ShareReviewDialog } from '../../_components/ShareReview';
-import { duplicateEpisodeAction, lifecycleAction, submitForReviewAction, unlockScriptAction } from '../actions';
+import { deleteScriptAction, duplicateEpisodeAction, lifecycleAction, submitForReviewAction, unlockScriptAction } from '../actions';
 
-type Dialog = null | 'submit' | 'postpone' | 'cancel';
+type Dialog = null | 'submit' | 'postpone' | 'cancel' | 'delete';
 
 /** The buttons under a script's header; each one is shown only when the server says the actor may use it. */
 export function DetailActions({
@@ -34,6 +35,7 @@ export function DetailActions({
 }) {
   const router = useRouter();
   const toast = useReviewToast();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,10 +82,68 @@ export function DetailActions({
     router.refresh();
   }
 
-  const secondary = actions.pause || actions.restore || actions.duplicate;
+  const secondary = actions.pause || actions.restore || actions.duplicate || actions.delete;
+  const item = 'w-full justify-start';
+  const menuItems = (
+    <div role="menu" className="flex flex-col items-stretch gap-1">
+      {actions.restore && (
+        <Button
+          variant="ghost"
+          role="menuitem"
+          className={item}
+          pending={busy}
+          onClick={async () => {
+            if (await perform(lifecycleAction({ videoId, action: 'restore' }))) {
+              setMenuOpen(false);
+              toast('Scénář obnoven');
+              router.refresh();
+            }
+          }}
+        >
+          <RotateCcw aria-hidden className="size-4" />
+          Obnovit
+        </Button>
+      )}
+      {actions.duplicate && (
+        <Button
+          variant="ghost"
+          role="menuitem"
+          className={item}
+          pending={busy}
+          onClick={async () => {
+            const result = await perform(duplicateEpisodeAction({ videoId }));
+            if (result) {
+              setMenuOpen(false);
+              toast('Další díl série vytvořen');
+              router.push(`/scenare/${result.code}/upravit`);
+            }
+          }}
+        >
+          <CopyPlus aria-hidden className="size-4" />
+          Duplikovat jako nový díl série
+        </Button>
+      )}
+      {actions.pause && (
+        <>
+          <Button variant="ghost" role="menuitem" className={item} onClick={() => { setMenuOpen(false); setDialog('postpone'); }}>
+            Odložit
+          </Button>
+          <Button variant="ghost" role="menuitem" className={`${item} text-danger-text`} onClick={() => { setMenuOpen(false); setDialog('cancel'); }}>
+            Zrušit scénář
+          </Button>
+        </>
+      )}
+      {actions.delete && (
+        <Button variant="danger" role="menuitem" className={item} onClick={() => { setMenuOpen(false); setDialog('delete'); }}>
+          <Trash2 aria-hidden className="size-4" />
+          Smazat scénář
+        </Button>
+      )}
+    </div>
+  );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="relative flex flex-wrap items-center gap-2">
       {actions.edit && (
         <ButtonLink href={`/scenare/${code}/upravit`} variant="primary">
           <Pencil aria-hidden className="size-4" />
@@ -129,42 +189,56 @@ export function DetailActions({
         </Button>
       )}
       {secondary && (
-        <details className="group relative">
-          <summary className="inline-flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-pill border border-ink/15 bg-card px-5 font-semibold select-none marker:content-none hover:bg-nest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet [&::-webkit-details-marker]:hidden">
+        <>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="inline-flex min-h-12 items-center gap-2 rounded-pill border border-ink/15 bg-card px-5 font-semibold select-none hover:bg-nest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
+          >
             <MoreHorizontal aria-hidden className="size-5" />
             Další akce
-          </summary>
-          <div className="mt-2 flex flex-col items-stretch gap-2 rounded-inner bg-nest p-2 sm:absolute sm:top-full sm:left-0 sm:z-20 sm:mt-2 sm:w-72 sm:bg-card sm:shadow-[0_12px_40px_rgba(23,21,31,0.18)]">
-            {actions.duplicate && (
-              <Button
-                variant="ghost"
-                className="justify-start"
-                pending={busy}
-                onClick={async () => {
-                  const result = await perform(duplicateEpisodeAction({ videoId }));
-                  if (result) {
-                    toast('Další díl série vytvořen');
-                    router.push(`/scenare/${result.code}/upravit`);
-                  }
-                }}
-              >
-                <CopyPlus aria-hidden className="size-4" />
-                Duplikovat jako nový díl série
-              </Button>
-            )}
-            {actions.pause && (
-              <>
-                <Button variant="ghost" className="justify-start" onClick={() => setDialog('postpone')}>
-                  Odložit
-                </Button>
-                <Button variant="ghost" className="justify-start text-danger-text" onClick={() => setDialog('cancel')}>
-                  Zrušit scénář
-                </Button>
-              </>
-            )}
+          </button>
+          {menuOpen && (
+            <div className="hidden lg:block">
+              <div aria-hidden className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
+              <div className="absolute z-30 mt-14 w-72 rounded-inner bg-card p-2 shadow-[0_12px_40px_rgba(23,21,31,0.18)]">{menuItems}</div>
+            </div>
+          )}
+          <div className="lg:hidden">
+            <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Další akce">
+              {menuItems}
+            </BottomSheet>
           </div>
-        </details>
+        </>
       )}
+      <ReviewDialog open={dialog === 'delete'} onClose={close} title={`Smazat ${code}?`}>
+        <p className="text-text2">Scénář, jeho verze i komentáře se smažou natrvalo.</p>
+        {error && (
+          <p role="alert" className="mt-3 rounded-inner bg-danger-bg px-4 py-3 font-semibold text-danger-text">
+            {error}
+          </p>
+        )}
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={close} pending={busy}>
+            Zpět
+          </Button>
+          <Button
+            variant="danger"
+            pending={busy}
+            onClick={async () => {
+              if (await perform(deleteScriptAction({ videoId }))) {
+                close();
+                toast(`Scénář ${code} smazán`);
+                router.push('/scenare');
+              }
+            }}
+          >
+            Smazat
+          </Button>
+        </div>
+      </ReviewDialog>
 
       <SubmitDialog
         open={dialog === 'submit'}

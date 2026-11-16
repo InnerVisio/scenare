@@ -171,7 +171,7 @@ function MixBar({ row }: { row: MixRow }) {
 function MixRowView({ row, href, color }: { row: MixRow; href: string; color?: string }) {
   const proposedOnly = row.proposed - row.approved;
   return (
-    <li>
+    <li className="min-w-0">
       <Link href={href} className={cn('flex min-h-12 flex-col gap-1.5 rounded-inner bg-nest p-3', focusRing)}>
         <span className="flex items-center gap-2">
           {color && <span aria-hidden className="size-3 shrink-0 rounded-full border border-ink/15" style={{ backgroundColor: color }} />}
@@ -187,12 +187,12 @@ function MixRowView({ row, href, color }: { row: MixRow; href: string; color?: s
   );
 }
 
-export function MixCard({ cycleId, mix, categories }: { cycleId: string; mix: CycleMix; categories: EditorOptions['categories'] }) {
+export function MixCard({ cycleId, cycleTitle, mix, categories }: { cycleId: string; cycleTitle: string; mix: CycleMix; categories: EditorOptions['categories'] }) {
   const cycleHref = `/scenare?cyklus=${cycleId}`;
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-h2">Rozdělení cyklu {cycleId}</h2>
+        <h2 className="text-h2">Rozdělení cyklu · {cycleTitle}</h2>
         <p className="text-sm text-text2">plán {mix.plan} {scriptsLabel(mix.plan)}</p>
         <Link href={`/prehled?cyklus=${cycleId}`} className={cn('inline-flex min-h-12 items-center font-semibold text-violet underline', focusRing)}>
           Celý přehled →
@@ -203,7 +203,7 @@ export function MixCard({ cycleId, mix, categories }: { cycleId: string; mix: Cy
           {mix.unassigned} {mix.unassigned === 1 ? 'scénář není zařazený' : mix.unassigned <= 4 ? 'scénáře nejsou zařazené' : 'scénářů není zařazených'}
         </Link>
       )}
-      <ul aria-label="Kategorie" className="grid list-none gap-2 md:grid-cols-2">
+      <ul aria-label="Kategorie" className="grid list-none grid-cols-1 gap-2 md:grid-cols-2">
         {mix.categories.rows.map((row) => (
           <MixRowView key={row.key} row={row} href={`${cycleHref}&kategorie=${row.key}`} color={categories.find((c) => c.key === row.key)?.color} />
         ))}

@@ -8,7 +8,7 @@ import { addReference, removeReference } from '@/server/references';
 import { appUrl } from '@/server/appUrl';
 import { eq } from 'drizzle-orm';
 import * as schema from '@/db/schema';
-import { duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, submitManyForReview, type BulkSubmitResult, unlockForEdit, updateVideoMeta } from '@/server/videos';
+import { deleteManyVideos, deleteVideo, type BulkDeleteResult, duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, submitManyForReview, type BulkSubmitResult, unlockForEdit, updateVideoMeta } from '@/server/videos';
 import { runAction } from '../_actions/run';
 
 // Thin wrappers around the use cases, like the review actions. Autosave writes (draft and meta) skip
@@ -94,6 +94,14 @@ const bulkSchema = z.object({ videoIds: z.array(id).min(1).max(50) });
 /** Bulk „Odeslat ke kontrole“ from the list: per-script failures come back as Czech messages. */
 export async function bulkSubmitAction(input: z.input<typeof bulkSchema>): Promise<ActionResult<BulkSubmitResult & { shareUrl: string | null }>> {
   return runAction(input, bulkSchema, async (db, actor, i, now) => ({ ...(await submitManyForReview(db, actor, i.videoIds, now)), shareUrl: appUrl() }));
+}
+
+export async function deleteScriptAction(input: z.input<typeof videoIdSchema>): Promise<ActionResult> {
+  return runAction(input, videoIdSchema, (db, actor, i, now) => deleteVideo(db, actor, i.videoId, now));
+}
+
+export async function bulkDeleteAction(input: z.input<typeof bulkSchema>): Promise<ActionResult<BulkDeleteResult>> {
+  return runAction(input, bulkSchema, (db, actor, i, now) => deleteManyVideos(db, actor, i.videoIds, now));
 }
 
 export async function unlockScriptAction(input: z.input<typeof videoIdSchema>): Promise<ActionResult> {

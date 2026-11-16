@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { remapAnchor } from '@/domain/anchors/remap';
@@ -495,6 +495,50 @@ export async function submitManyForReview(db: Db, actor: Actor, videoIds: string
       result.failed.push(
         error.code === 'VALIDATION' && error.details.length > 0 ? `${code}: doplň ${error.details.join(', ')}` : `${code}: ${error.message}`,
       );
+    }
+  }
+  return result;
+}
+
+/** Admin only, any status: removes the script with every row that references it, then logs a video-less activity. */
+export async function deleteVideo(db: Db, actor: Actor, videoId: string, now: Date): Promise<void> {
+  await db.transaction(async (tx) => {
+    const video = await loadVideo(tx, videoId, { lock: true });
+    if (!can(actor, 'script.delete', { ownerId: video.ownerId })) throw forbidden();
+    const versionIds = (await tx.select({ id: s.scriptVersions.id }).from(s.scriptVersions).where(eq(s.scriptVersions.videoId, videoId))).map((r) => r.id);
+    const activityIds = (await tx.select({ id: s.activityLog.id }).from(s.activityLog).where(eq(s.activityLog.videoId, videoId))).map((r) => r.id);
+    if (activityIds.length > 0) await tx.delete(s.notifications).where(inArray(s.notifications.activityId, activityIds));
+    await tx.delete(s.activityLog).where(eq(s.activityLog.videoId, videoId));
+    await tx.delete(s.comments).where(eq(s.comments.videoId, videoId));
+    if (versionIds.length > 0) await tx.delete(s.approvalDecisions).where(inArray(s.approvalDecisions.versionId, versionIds));
+    await tx.delete(s.numberChecks).where(eq(s.numberChecks.videoId, videoId));
+    await tx.delete(s.viewMarks).where(eq(s.viewMarks.videoId, videoId));
+    await tx.delete(s.publications).where(eq(s.publications.videoId, videoId));
+    await tx.delete(s.scriptVersions).where(eq(s.scriptVersions.videoId, videoId));
+    await tx.delete(s.videos).where(eq(s.videos.id, videoId));
+    await logActivity(
+      tx,
+      { actorId: actor.id, videoId: null, entity: 'video', entityId: videoId, action: 'video.deleted', after: { code: video.code, title: video.title } },
+      now,
+    );
+  });
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+  failed: string[];
+}
+
+/** Deletes each script in its own transaction. */
+export async function deleteManyVideos(db: Db, actor: Actor, videoIds: string[], now: Date): Promise<BulkDeleteResult> {
+  const result: BulkDeleteResult = { deleted: 0, failed: [] };
+  for (const id of videoIds) {
+    try {
+      await deleteVideo(db, actor, id, now);
+      result.deleted += 1;
+    } catch (error) {
+      if (!(error instanceof DomainError)) throw error;
+      result.failed.push(`${id}: ${error.message}`);
     }
   }
   return result;

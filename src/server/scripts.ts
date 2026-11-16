@@ -56,6 +56,8 @@ export interface ScriptActions {
   pause: boolean;
   restore: boolean;
   duplicate: boolean;
+  /** Admin only, any status. */
+  delete: boolean;
   openInReview: boolean;
   /** Change the production status. */
   production: boolean;
@@ -159,6 +161,7 @@ export async function loadScriptPage(
     pause: can(actor, 'script.lifecycle', owner) && !paused,
     restore: can(actor, 'script.lifecycle', owner) && paused,
     duplicate: can(actor, 'script.create') && video.seriesId !== null,
+    delete: can(actor, 'script.delete'),
     openInReview: can(actor, 'approval.decide') && isAwaitingDecision(status),
     production: can(actor, 'production.update'),
     publication: can(actor, 'publication.manage'),

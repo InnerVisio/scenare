@@ -1,6 +1,7 @@
 import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { ApprovalStatus } from '@/domain/workflow/approval';
+import { dayMonthOf } from '@/domain/format/date';
 import { PRODUCTION_STATUS_LABELS, type ProductionStatus } from '@/domain/workflow/production';
 import type { EditorOptions } from '@/server/editorOptions';
 import type { VideoListItem } from '@/server/queries';
@@ -17,11 +18,8 @@ const STRIPE: Record<Exclude<RowTone, null>, { bar: string; label: string }> = {
   lime: { bar: 'bg-lime-dot', label: 'Schváleno' },
 };
 
-type Options = Pick<EditorOptions, 'categories' | 'formats' | 'series'>;
+type Options = Pick<EditorOptions, 'categories' | 'formats' | 'series' | 'cycles'>;
 
-function cycleText(id: string | null) {
-  return id ? id.replace('-', '–') : '—';
-}
 
 function Stripe({ tone, className }: { tone: RowTone; className: string }) {
   if (!tone) return null;
@@ -52,9 +50,11 @@ export function ScriptList({ items, options, today, selectable = false }: { item
   const formats = new Map(options.formats.map((f) => [f.key, f]));
   const seriesCode = new Map(options.series.map((s) => [s.key, s.label.split(' · ')[0]]));
 
+  const cycleDays = new Map(options.cycles.map((c) => [c.key, c.date ? dayMonthOf(c.date) : c.key]));
+
   const duration = (item: VideoListItem) => (item.durationSec === null ? '—' : `${item.durationSec} s`);
   const production = (item: VideoListItem) => PRODUCTION_STATUS_LABELS[item.productionStatus as ProductionStatus] ?? item.productionStatus;
-  const sendable = (item: VideoListItem) => selectable && (item.approvalStatus === 'draft' || item.approvalStatus === 'returned');
+  const sendable = (item: VideoListItem) => item.approvalStatus === 'draft' || item.approvalStatus === 'returned';
   const tone = (item: VideoListItem) => rowTone(item, today);
 
   const categoryTag = (item: VideoListItem) => {
@@ -86,7 +86,7 @@ export function ScriptList({ items, options, today, selectable = false }: { item
           <tbody>
             {items.map((item) => (
               <tr key={item.id} data-code={item.code} className="relative border-t border-ink/10 hover:bg-nest">
-                {selectable && <td className="py-4 pl-4">{sendable(item) && <RowCheck id={item.id} label={item.code} />}</td>}
+                {selectable && <td className="py-4 pl-4">{selectable && <RowCheck id={item.id} label={item.code} sendable={sendable(item)} />}</td>}
                 <td className="relative py-4 pr-3 pl-7 font-semibold whitespace-nowrap text-text2">
                   <Stripe tone={tone(item)} className="inset-y-3 left-0 w-1.5 rounded-l-none" />
                   {item.code}
@@ -101,7 +101,7 @@ export function ScriptList({ items, options, today, selectable = false }: { item
                   <StatusPill status={item.approvalStatus as ApprovalStatus} />
                 </td>
                 <td className="px-3 py-4 text-text2">{production(item)}</td>
-                <td className="px-3 py-4 whitespace-nowrap text-text2">{cycleText(item.cycleId)}</td>
+                <td className="px-3 py-4 whitespace-nowrap text-text2">{item.cycleId ? (cycleDays.get(item.cycleId) ?? item.cycleId) : '—'}</td>
                 <td className="px-3 py-4 whitespace-nowrap">{duration(item)}</td>
                 <td className="py-4 pr-6 pl-3">
                   <Comments count={item.openComments} />
@@ -120,7 +120,7 @@ export function ScriptList({ items, options, today, selectable = false }: { item
             <li key={item.id} data-code={item.code} className="relative flex flex-col gap-3 rounded-card bg-card p-5 pl-7">
               <Stripe tone={tone(item)} className="inset-y-5 left-0 w-1.5 rounded-l-none" />
               <div className="flex items-center justify-between gap-3">
-                {sendable(item) && <RowCheck id={item.id} label={item.code} />}
+                {selectable && <RowCheck id={item.id} label={item.code} sendable={sendable(item)} />}
                 <p className="text-sm font-semibold tracking-[0.04em] text-text2">
                   {item.code}
                   {item.latestVersionNo ? ` · v${item.latestVersionNo}` : ''} · {duration(item)}

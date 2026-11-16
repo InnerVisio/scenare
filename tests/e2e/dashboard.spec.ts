@@ -15,7 +15,7 @@ test.describe('dashboard and settings', () => {
   test('Admin sees the dashboard with the kanban', async ({ page }, info) => {
     await loginAs(page, 'Admin');
     await expect(page.getByText('kde co vázne')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Rozdělení cyklu 2026-11' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Rozdělení cyklu · Natáčení/ })).toBeVisible();
     await expectNoHorizontalScroll(page);
     await page.screenshot({ path: `test-results/dashboard-${info.project.name}.png`, fullPage: true });
   });

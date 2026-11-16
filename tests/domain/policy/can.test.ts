@@ -7,6 +7,7 @@ const ACTIONS: Action[] = [
   'script.submit',
   'script.unlock',
   'script.lifecycle',
+  'script.delete',
   'comment.create',
   'comment.suggest',
   'suggestion.decide',
@@ -36,6 +37,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'script.submit': T,
     'script.unlock': T,
     'script.lifecycle': T,
+    'script.delete': T,
     'comment.create': T,
     'comment.suggest': T,
     'suggestion.decide': T,
@@ -59,6 +61,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'script.submit': F,
     'script.unlock': F,
     'script.lifecycle': T,
+    'script.delete': F,
     'comment.create': T,
     'comment.suggest': T,
     'suggestion.decide': F,
@@ -82,6 +85,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'script.submit': T, // owner only
     'script.unlock': T, // owner only
     'script.lifecycle': F,
+    'script.delete': F,
     'comment.create': T,
     'comment.suggest': T,
     'suggestion.decide': T, // owner only
@@ -105,6 +109,7 @@ const EXPECTED: Record<Role, Record<Action, boolean>> = {
     'script.submit': F,
     'script.unlock': F,
     'script.lifecycle': F,
+    'script.delete': F,
     'comment.create': F,
     'comment.suggest': F,
     'suggestion.decide': F,

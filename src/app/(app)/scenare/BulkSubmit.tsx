@@ -5,12 +5,13 @@ import { createContext, useContext, useState, useTransition, type ReactNode } fr
 import { Button } from '@/ui/Button';
 import { ShareReviewCard } from '../_components/ShareReview';
 import { useReviewToast } from '../_components/review/ReviewToast';
-import { bulkSubmitAction } from './actions';
+import { ReviewDialog } from '../_components/review/ReviewDialog';
+import { bulkDeleteAction, bulkSubmitAction } from './actions';
 
-const Ctx = createContext<{ selected: Set<string>; toggle: (id: string) => void } | null>(null);
+const Ctx = createContext<{ selected: Map<string, boolean>; toggle: (id: string, sendable: boolean) => void } | null>(null);
 
 /** Checkbox of one script row (only for scripts that can be sent). */
-export function RowCheck({ id, label }: { id: string; label: string }) {
+export function RowCheck({ id, label, sendable }: { id: string; label: string; sendable: boolean }) {
   const ctx = useContext(Ctx);
   if (!ctx) return null;
   return (
@@ -18,7 +19,7 @@ export function RowCheck({ id, label }: { id: string; label: string }) {
       type="checkbox"
       aria-label={`Vybrat ${label}`}
       checked={ctx.selected.has(id)}
-      onChange={() => ctx.toggle(id)}
+      onChange={() => ctx.toggle(id, sendable)}
       className="relative z-10 size-5"
     />
   );
@@ -28,23 +29,36 @@ export function RowCheck({ id, label }: { id: string; label: string }) {
 export function BulkSubmitProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const toast = useReviewToast();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Map<string, boolean>>(new Map());
   const [pending, start] = useTransition();
   const [failed, setFailed] = useState<string[]>([]);
   const [shared, setShared] = useState<{ titles: string[]; shareUrl: string | null } | null>(null);
-  const toggle = (id: string) =>
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const toggle = (id: string, sendable: boolean) =>
     setSelected((cur) => {
-      const next = new Set(cur);
-      if (!next.delete(id)) next.add(id);
+      const next = new Map(cur);
+      if (!next.delete(id)) next.set(id, sendable);
       return next;
+    });
+  const sendIds = [...selected].filter(([, ok]) => ok).map(([id]) => id);
+
+  const remove = () =>
+    start(async () => {
+      const result = await bulkDeleteAction({ videoIds: [...selected.keys()] });
+      setConfirmDelete(false);
+      if (!result.ok) return toast(result.message, 'error');
+      setFailed(result.failed);
+      setSelected(new Map());
+      toast(`Smazáno scénářů: ${result.deleted}`);
+      router.refresh();
     });
 
   const send = () =>
     start(async () => {
-      const result = await bulkSubmitAction({ videoIds: [...selected] });
+      const result = await bulkSubmitAction({ videoIds: sendIds });
       if (!result.ok) return toast(result.message, 'error');
       setFailed(result.failed);
-      setSelected(new Set());
+      setSelected(new Map());
       if (result.submitted.length > 0) {
         toast(`Odesláno ke kontrole: ${result.submitted.length}`);
         setShared({ titles: result.submitted.map((x) => x.title), shareUrl: result.shareUrl });
@@ -66,15 +80,33 @@ export function BulkSubmitProvider({ children }: { children: ReactNode }) {
       {shared && <ShareReviewCard titles={shared.titles} shareUrl={shared.shareUrl} onClose={() => setShared(null)} />}
       {children}
       {selected.size > 0 && (
-        <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-card bg-ink p-4 text-white shadow-lg">
-          <Button variant="primary" pending={pending} onClick={send}>
-            Odeslat ke kontrole ({selected.size})
-          </Button>
-          <Button variant="outline" disabled={pending} onClick={() => setSelected(new Set())}>
+        <div className="sticky bottom-24 z-20 md:bottom-4 flex items-center justify-between gap-3 rounded-card bg-ink p-4 text-white shadow-lg">
+          <div className="flex flex-wrap gap-2">
+            {sendIds.length > 0 && (
+              <Button variant="primary" pending={pending} onClick={send}>
+                Odeslat ke kontrole ({sendIds.length})
+              </Button>
+            )}
+            <Button variant="danger" disabled={pending} onClick={() => setConfirmDelete(true)}>
+              Smazat ({selected.size})
+            </Button>
+          </div>
+          <Button variant="outline" disabled={pending} onClick={() => setSelected(new Map())}>
             Zrušit výběr
           </Button>
         </div>
       )}
+      <ReviewDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title={`Smazat ${selected.size} ${selected.size === 1 ? 'scénář' : 'scénářů'}?`}>
+        <p className="text-text2">Scénáře, jejich verze i komentáře se smažou natrvalo.</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => setConfirmDelete(false)} pending={pending}>
+            Zpět
+          </Button>
+          <Button variant="danger" onClick={remove} pending={pending}>
+            Smazat
+          </Button>
+        </div>
+      </ReviewDialog>
     </Ctx.Provider>
   );
 }
