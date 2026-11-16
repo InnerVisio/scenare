@@ -71,7 +71,7 @@ test.describe("leadership mode", () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page
-        .getByText(/\d+ z \d+ hotových/)
+        .getByText(/\d+ scénář\S* připraven\S* · \d+ schváleno/)
         .filter({ visible: true })
         .first(),
     ).toBeVisible();
@@ -141,14 +141,14 @@ test.describe("leadership mode", () => {
     }
   });
 
-  test("„Všechny“: scripts grouped by month, no „hotových“ counters", async ({
+  test("„Všechny“: scripts grouped by month, no „připraveno“ counters", async ({
     page,
   }) => {
     await page.goto("/?zobrazit=vse");
     await expect(
       page.getByRole("heading", { name: /^Listopad 2026/ }).first(),
     ).toBeVisible();
-    await expect(page.getByText(/hotových/)).toHaveCount(0);
+    await expect(page.getByText(/připraven.* · \d+ schváleno/)).toHaveCount(0);
     await expect(page.getByText(/\d+ scénář/).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Všechny" })).toHaveAttribute(
       "aria-current",

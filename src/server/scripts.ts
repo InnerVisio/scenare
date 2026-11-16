@@ -51,6 +51,8 @@ export interface ScriptActions {
   /** Open the editor: the author on a draft, a returned or an unlocked approved script. */
   edit: boolean;
   unlock: boolean;
+  /** Admin/owner: pull the script out of review back to the draft. */
+  withdraw: boolean;
   submit: boolean;
   /** Postpone or cancel. */
   pause: boolean;
@@ -155,8 +157,9 @@ export async function loadScriptPage(
   const paused = status === 'postponed' || status === 'cancelled';
   const mayEdit = can(actor, 'script.edit', owner);
   const actions: ScriptActions = {
-    edit: mayEdit && (status === 'draft' || status === 'returned' || (status === 'approved' && video.editingAfterApproval)),
+    edit: mayEdit && (status === 'draft' || status === 'returned' || (status === 'approved' && video.editingAfterApproval) || isAwaitingDecision(status)),
     unlock: can(actor, 'script.unlock', owner) && status === 'approved' && !video.editingAfterApproval,
+    withdraw: mayEdit && isAwaitingDecision(status),
     submit: can(actor, 'script.submit', owner) && canSubmit({ status, editingAfterApproval: video.editingAfterApproval }),
     pause: can(actor, 'script.lifecycle', owner) && !paused,
     restore: can(actor, 'script.lifecycle', owner) && paused,

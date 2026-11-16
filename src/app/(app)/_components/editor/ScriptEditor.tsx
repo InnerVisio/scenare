@@ -234,15 +234,17 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
       toast(`Odesláno ke kontrole (v${result.versionNo})`);
       setSubmitOpen(false);
       setShared({ titles: [result.title || values.title], shareUrl: result.shareUrl });
+      router.push(`/scenare/${data.video.code}`);
     } finally {
       setSubmitBusy(false);
     }
   }
 
+  const inReview = data.video.status === 'in_review' || data.video.status === 'final_review';
   const submitButton = (className?: string) => (
     <Button variant="primary" className={className} onClick={() => setSubmitOpen(true)}>
       <Send aria-hidden className="size-4" />
-      Odeslat ke kontrole
+      {inReview ? 'Odeslat novou verzi' : 'Odeslat ke kontrole'}
     </Button>
   );
 
@@ -297,6 +299,11 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
           <div className="hidden shrink-0 lg:block">{submitButton()}</div>
         </header>
       </div>
+      {inReview && (
+        <p role="status" className="rounded-card bg-apricot-soft px-5 py-4 text-apricot-ink">
+          <b>Scénář je právě v kontrole.</b> Změny uvidí Honza a Radek až po odeslání nové verze.
+        </p>
+      )}
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-4">

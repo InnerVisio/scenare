@@ -175,9 +175,9 @@ function BoxHeader({
           {box.label}
         </span>
         <span className="font-semibold">
-          {box.done} z {box.total} hotových
+          {box.total} {box.total === 1 ? "scénář připraven" : box.total >= 2 && box.total <= 4 ? "scénáře připraveny" : "scénářů připraveno"} · {box.done} schváleno
         </span>
-        {(box.toReview > 0 || box.returned > 0) && (
+        {(box.toReview > 0 || box.returned > 0 || box.adminWriting > 0 || box.done > 0) && (
           <span className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text2">
             {box.toReview > 0 && (
               <span className="inline-flex items-center gap-1.5">
@@ -189,6 +189,18 @@ function BoxHeader({
               <span className="inline-flex items-center gap-1.5">
                 <Dot color="red" className="size-2.5" />
                 {box.returned} vráceno
+              </span>
+            )}
+            {box.adminWriting > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <Dot color="grey" className="size-2.5" />
+                {box.adminWriting} Admin píše
+              </span>
+            )}
+            {box.done > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <Dot color="green" className="size-2.5" />
+                {box.done} schváleno
               </span>
             )}
           </span>

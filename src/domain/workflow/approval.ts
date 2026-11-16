@@ -33,6 +33,16 @@ export function statusAfterSubmit(hasPreviousVersion: boolean): 'in_review' | 'f
   return hasPreviousVersion ? 'final_review' : 'in_review';
 }
 
+/** Admin/owner may pull a script that awaits a decision back to the draft. */
+export function canWithdraw(status: ApprovalStatus): boolean {
+  return status === 'in_review' || status === 'final_review';
+}
+
+/** Resubmitting from review: a script with earlier decisions or comments goes to the final review. */
+export function statusAfterResubmitInReview(hasDecisionsOrComments: boolean): 'in_review' | 'final_review' {
+  return hasDecisionsOrComments ? 'final_review' : 'in_review';
+}
+
 export function isAwaitingDecision(status: ApprovalStatus): boolean {
   return status === 'in_review' || status === 'final_review';
 }

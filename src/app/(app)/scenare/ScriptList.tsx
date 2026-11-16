@@ -54,7 +54,6 @@ export function ScriptList({ items, options, today, selectable = false }: { item
 
   const duration = (item: VideoListItem) => (item.durationSec === null ? '—' : `${item.durationSec} s`);
   const production = (item: VideoListItem) => PRODUCTION_STATUS_LABELS[item.productionStatus as ProductionStatus] ?? item.productionStatus;
-  const sendable = (item: VideoListItem) => item.approvalStatus === 'draft' || item.approvalStatus === 'returned';
   const tone = (item: VideoListItem) => rowTone(item, today);
 
   const categoryTag = (item: VideoListItem) => {
@@ -86,7 +85,7 @@ export function ScriptList({ items, options, today, selectable = false }: { item
           <tbody>
             {items.map((item) => (
               <tr key={item.id} data-code={item.code} className="relative border-t border-ink/10 hover:bg-nest">
-                {selectable && <td className="py-4 pl-4">{selectable && <RowCheck id={item.id} label={item.code} sendable={sendable(item)} />}</td>}
+                {selectable && <td className="py-4 pl-4">{selectable && <RowCheck id={item.id} label={item.code} status={item.approvalStatus} />}</td>}
                 <td className="relative py-4 pr-3 pl-7 font-semibold whitespace-nowrap text-text2">
                   <Stripe tone={tone(item)} className="inset-y-3 left-0 w-1.5 rounded-l-none" />
                   {item.code}
@@ -120,7 +119,7 @@ export function ScriptList({ items, options, today, selectable = false }: { item
             <li key={item.id} data-code={item.code} className="relative flex flex-col gap-3 rounded-card bg-card p-5 pl-7">
               <Stripe tone={tone(item)} className="inset-y-5 left-0 w-1.5 rounded-l-none" />
               <div className="flex items-center justify-between gap-3">
-                {selectable && <RowCheck id={item.id} label={item.code} sendable={sendable(item)} />}
+                {selectable && <RowCheck id={item.id} label={item.code} status={item.approvalStatus} />}
                 <p className="text-sm font-semibold tracking-[0.04em] text-text2">
                   {item.code}
                   {item.latestVersionNo ? ` · v${item.latestVersionNo}` : ''} · {duration(item)}

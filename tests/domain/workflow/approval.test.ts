@@ -3,6 +3,8 @@ import {
   APPROVAL_STATUSES,
   APPROVAL_STATUS_LABELS,
   canSubmit,
+  canWithdraw,
+  statusAfterResubmitInReview,
   evaluateDecisions,
   isAwaitingDecision,
   statusAfterSubmit,
@@ -233,5 +235,16 @@ describe('evaluateDecisions: edge cases', () => {
     expect(evaluate('series_guarantor', [{ userId: 'x', decision: 'approve' }], 'x').state).toBe(
       'pending',
     );
+  });
+});
+
+describe('withdraw and resubmit from review', () => {
+  it('only scripts awaiting a decision can be withdrawn', () => {
+    const allowed = APPROVAL_STATUSES.filter((s) => canWithdraw(s));
+    expect(allowed).toEqual(['in_review', 'final_review']);
+  });
+  it('resubmitting goes to final_review only when something happened on earlier versions', () => {
+    expect(statusAfterResubmitInReview(true)).toBe('final_review');
+    expect(statusAfterResubmitInReview(false)).toBe('in_review');
   });
 });

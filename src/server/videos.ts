@@ -7,7 +7,7 @@ import { can } from '@/domain/policy/can';
 import { emptyScript } from '@/domain/script/template';
 import type { ScriptBody } from '@/domain/script/types';
 import { missingForSubmit, submitMissingMessage } from '@/domain/metrics/submitRequirements';
-import { canSubmit, statusAfterSubmit } from '@/domain/workflow/approval';
+import { canSubmit, canWithdraw, isAwaitingDecision, statusAfterResubmitInReview, statusAfterSubmit } from '@/domain/workflow/approval';
 import { logActivity } from './activity';
 import type { Actor } from './actor';
 import { loadRules } from './checkContext';
@@ -293,7 +293,8 @@ export async function submitForReview(
     const video = await loadVideo(tx, videoId, { lock: true });
     if (!can(actor, 'script.submit', { ownerId: video.ownerId })) throw forbidden();
     const status = statusOf(video);
-    if (!canSubmit({ status, editingAfterApproval: video.editingAfterApproval })) {
+    const inReview = isAwaitingDecision(status);
+    if (!inReview && !canSubmit({ status, editingAfterApproval: video.editingAfterApproval })) {
       throw new DomainError('INVALID_TRANSITION', 'Scénář teď nejde odeslat ke schválení.');
     }
     if (!video.draft) throw new DomainError('VALIDATION', 'Scénář je prázdný.');
@@ -304,7 +305,20 @@ export async function submitForReview(
     const previous = await latestVersion(tx, videoId);
     const versionNo = (previous?.versionNo ?? 0) + 1;
     const versionId = newId();
-    const nextStatus = statusAfterSubmit(previous !== undefined);
+    let nextStatus: 'in_review' | 'final_review' = statusAfterSubmit(previous !== undefined);
+    if (inReview) {
+      if (previous && JSON.stringify(previous.body) === JSON.stringify(video.draft)) {
+        throw new DomainError('VALIDATION', 'Žádné změny k odeslání.');
+      }
+      const decisions = await tx
+        .select({ id: s.approvalDecisions.id })
+        .from(s.approvalDecisions)
+        .innerJoin(s.scriptVersions, eq(s.scriptVersions.id, s.approvalDecisions.versionId))
+        .where(eq(s.scriptVersions.videoId, videoId))
+        .limit(1);
+      const comments = await tx.select({ id: s.comments.id }).from(s.comments).where(eq(s.comments.videoId, videoId)).limit(1);
+      nextStatus = statusAfterResubmitInReview(decisions.length + comments.length > 0);
+    }
 
     await tx.insert(s.scriptVersions).values({
       id: versionId,
@@ -364,6 +378,53 @@ export async function remapOpenAnchors(
     if (JSON.stringify(anchor) === JSON.stringify(comment.anchor)) continue;
     await tx.update(s.comments).set({ anchor, updatedAt: now }).where(eq(s.comments.id, comment.id));
   }
+}
+
+/** Admin/owner pulls a script out of review back to the draft; versions, comments and decisions stay as history. */
+export async function withdrawFromReview(db: Db, actor: Actor, videoId: string, now: Date): Promise<void> {
+  await db.transaction(async (tx) => {
+    const video = await loadVideo(tx, videoId, { lock: true });
+    if (!can(actor, 'script.edit', { ownerId: video.ownerId })) throw forbidden();
+    const status = statusOf(video);
+    if (!canWithdraw(status)) throw new DomainError('INVALID_TRANSITION', 'Z kontroly jde stáhnout jen scénář, který v ní je.');
+    const previous = await latestVersion(tx, videoId);
+    await tx
+      .update(s.videos)
+      .set({ approvalStatus: 'draft', editingAfterApproval: false, approvedBy: [], approvedAt: null, updatedAt: now })
+      .where(eq(s.videos.id, videoId));
+    await logActivity(
+      tx,
+      {
+        actorId: actor.id,
+        videoId,
+        entity: 'video',
+        entityId: videoId,
+        action: 'version.withdrawn',
+        before: { status },
+        after: { status: 'draft', versionNo: previous?.versionNo ?? null },
+      },
+      now,
+    );
+  });
+}
+
+export interface BulkWithdrawResult {
+  withdrawn: number;
+  failed: string[];
+}
+
+export async function withdrawManyFromReview(db: Db, actor: Actor, videoIds: string[], now: Date): Promise<BulkWithdrawResult> {
+  const result: BulkWithdrawResult = { withdrawn: 0, failed: [] };
+  for (const id of videoIds) {
+    try {
+      await withdrawFromReview(db, actor, id, now);
+      result.withdrawn += 1;
+    } catch (error) {
+      if (!(error instanceof DomainError)) throw error;
+      result.failed.push(`${id}: ${error.message}`);
+    }
+  }
+  return result;
 }
 
 export async function unlockForEdit(db: Db, actor: Actor, videoId: string, now: Date): Promise<void> {

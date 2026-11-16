@@ -17,7 +17,7 @@ describe('loadScriptPage', () => {
     expect(page.latest).toBeNull();
     expect(page.draftAhead).toBe(false);
     expect(page.body).toEqual(page.draft);
-    expect(page.actions).toEqual({ edit: true, unlock: false, submit: true, pause: true, restore: false, duplicate: false, delete: true, openInReview: false, production: true, publication: true });
+    expect(page.actions).toEqual({ edit: true, unlock: false, withdraw: false, submit: true, pause: true, restore: false, duplicate: false, delete: true, openInReview: false, production: true, publication: true });
     expect(page.values).toMatchObject({ title: 'Radek vs. Honza: kdo dřív', categoryKey: 'lifestyle', formatKey: 'radek-vs-honza', goalMetric: 'shares' });
     expect(page.checkInput.personHashtags).toEqual({ Honza: '#honzagizicky', Radek: '#radekteichmann' });
     expect(page.checkInput.formatStatuses['kancelarsky-sketch']).toBe('verified');
@@ -40,7 +40,7 @@ describe('loadScriptPage', () => {
     await saveDraft(w.db, w.admin, videoId, withLineText(video.draft!, video.draft!.scenes[0].lines[0].id, 'Jiný text'), NOW);
     const page = await loadScriptPage(w.db, w.admin, code, NOW);
     expect(page.draftAhead).toBe(true);
-    expect(page.actions.edit).toBe(false); // in review: wait for the decision
+    expect(page.actions).toMatchObject({ edit: true, withdraw: true }); // in review: admin may edit or withdraw
   });
 
   it('offers unlock on an approved, locked script and edit once unlocked', async () => {

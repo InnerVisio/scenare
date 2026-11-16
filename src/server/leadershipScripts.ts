@@ -248,6 +248,8 @@ export interface HomeBox {
   total: number;
   toReview: number;
   returned: number;
+  /** Admin is still writing (grey). */
+  adminWriting: number;
   scripts: HomeScript[];
 }
 
@@ -319,6 +321,7 @@ export function buildHomeBoxes(
       total: scripts.length,
       toReview: scripts.filter((x) => x.dot.color === "yellow").length,
       returned: scripts.filter((x) => x.dot.color === "red").length,
+      adminWriting: scripts.filter((x) => x.dot.color === "grey").length,
       scripts,
     };
   };

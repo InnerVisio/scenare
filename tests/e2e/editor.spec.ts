@@ -129,8 +129,8 @@ test.describe('script editor', () => {
     await expect(page.getByText('K připomínkám').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Verze' })).toContainText('v1');
     await expect(page.getByRole('region', { name: 'Verze' })).toContainText('První verze');
-    // In review the author waits: no editing.
-    await expect(page.getByRole('link', { name: 'Upravit' })).toHaveCount(0);
+    // In review the admin may still edit (a new version is sent from the editor).
+    await expect(page.getByRole('link', { name: 'Upravit (scénář je v kontrole)' })).toBeVisible();
 
     await loginAs(page, 'Honza');
     await page.goto(`/scenare/${code}`);

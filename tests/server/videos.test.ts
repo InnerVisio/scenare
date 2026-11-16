@@ -219,7 +219,7 @@ describe('submitForReview', () => {
 
   it('is refused while awaiting decision, for leadership, and without draft', async () => {
     const { videoId } = await createSubmitted(w);
-    await expectDomainError(submitForReview(w.db, w.admin, videoId, {}, NOW), 'INVALID_TRANSITION');
+    await expectDomainError(submitForReview(w.db, w.admin, videoId, {}, NOW), 'VALIDATION', 'Žádné změny k odeslání.');
     const other = await newVideo();
     await expectDomainError(submitForReview(w.db, w.honza, other.id, {}, NOW), 'FORBIDDEN');
     await w.db.update(s.videos).set({ draft: null }).where(eq(s.videos.id, other.id));

@@ -72,6 +72,9 @@ export function describeActivity(
     case 'version.submitted':
       text = `${who} odeslal ${code}${v} ke kontrole`;
       break;
+    case 'version.withdrawn':
+      text = `${who} stáhl ${code} z kontroly`;
+      break;
     case 'approval.returned':
       text = `${who} vrátil ${code}${v} k dopracování`;
       break;

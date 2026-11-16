@@ -29,7 +29,7 @@ async function recipientsFor(tx: Executor, input: ActivityInput): Promise<string
     return video?.ownerId ? [video.ownerId] : [];
   };
 
-  if (input.action === 'version.submitted') return (await leadershipUsers(tx)).map((u) => u.id);
+  if (input.action === 'version.submitted' || input.action === 'version.withdrawn') return (await leadershipUsers(tx)).map((u) => u.id);
   if (OWNER_ONLY.has(input.action)) return ownerId();
 
   if (input.action === 'comment.created' || input.action === 'comment.replied') {

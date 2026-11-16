@@ -1,6 +1,6 @@
 'use client';
 
-import { CopyPlus, Lock, MoreHorizontal, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react';
+import { CopyPlus, Lock, Undo2, MoreHorizontal, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { ActionResult } from '@/server/actionResult';
@@ -12,9 +12,9 @@ import { SubmitDialog } from '../../_components/editor/SubmitDialog';
 import { ReviewDialog } from '../../_components/review/ReviewDialog';
 import { useReviewToast } from '../../_components/review/ReviewToast';
 import { ShareReviewDialog } from '../../_components/ShareReview';
-import { deleteScriptAction, duplicateEpisodeAction, lifecycleAction, submitForReviewAction, unlockScriptAction } from '../actions';
+import { deleteScriptAction, duplicateEpisodeAction, lifecycleAction, submitForReviewAction, unlockScriptAction, withdrawScriptAction } from '../actions';
 
-type Dialog = null | 'submit' | 'postpone' | 'cancel' | 'delete';
+type Dialog = null | 'submit' | 'postpone' | 'cancel' | 'delete' | 'withdraw';
 
 /** The buttons under a script's header; each one is shown only when the server says the actor may use it. */
 export function DetailActions({
@@ -82,7 +82,7 @@ export function DetailActions({
     router.refresh();
   }
 
-  const secondary = actions.pause || actions.restore || actions.duplicate || actions.delete;
+  const secondary = actions.withdraw || actions.unlock || actions.pause || actions.restore || actions.duplicate || actions.delete;
   const item = 'w-full justify-start';
   const menuItems = (
     <div role="menu" className="flex flex-col items-stretch gap-1">
@@ -123,6 +123,26 @@ export function DetailActions({
           Duplikovat jako nový díl série
         </Button>
       )}
+      {actions.unlock && (
+        <Button
+          variant="ghost"
+          role="menuitem"
+          className={item}
+          pending={busy}
+          onClick={async () => {
+            if (await perform(unlockScriptAction({ videoId }))) router.push(`/scenare/${code}/upravit`);
+          }}
+        >
+          <Lock aria-hidden className="size-4" />
+          Odemknout pro úpravu
+        </Button>
+      )}
+      {actions.withdraw && (
+        <Button variant="ghost" role="menuitem" className={item} onClick={() => { setMenuOpen(false); setDialog('withdraw'); }}>
+          <Undo2 aria-hidden className="size-4" />
+          Stáhnout z kontroly
+        </Button>
+      )}
       {actions.pause && (
         <>
           <Button variant="ghost" role="menuitem" className={item} onClick={() => { setMenuOpen(false); setDialog('postpone'); }}>
@@ -147,7 +167,7 @@ export function DetailActions({
       {actions.edit && (
         <ButtonLink href={`/scenare/${code}/upravit`} variant="primary">
           <Pencil aria-hidden className="size-4" />
-          Upravit
+          {actions.withdraw ? 'Upravit (scénář je v kontrole)' : 'Upravit'}
         </ButtonLink>
       )}
       {actions.unlock && (
@@ -213,6 +233,32 @@ export function DetailActions({
           </div>
         </>
       )}
+      <ReviewDialog open={dialog === 'withdraw'} onClose={close} title={`Stáhnout ${code} z kontroly?`}>
+        <p className="text-text2">Stáhnout {code} z kontroly? Honza a Radek ho přestanou vidět ke kontrole, dokud ho znovu neodešleš.</p>
+        {error && (
+          <p role="alert" className="mt-3 rounded-inner bg-danger-bg px-4 py-3 font-semibold text-danger-text">
+            {error}
+          </p>
+        )}
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={close} pending={busy}>
+            Zpět
+          </Button>
+          <Button
+            variant="primary"
+            pending={busy}
+            onClick={async () => {
+              if (await perform(withdrawScriptAction({ videoId }))) {
+                close();
+                toast(`Scénář ${code} stažen z kontroly`);
+                router.refresh();
+              }
+            }}
+          >
+            Stáhnout z kontroly
+          </Button>
+        </div>
+      </ReviewDialog>
       <ReviewDialog open={dialog === 'delete'} onClose={close} title={`Smazat ${code}?`}>
         <p className="text-text2">Scénář, jeho verze i komentáře se smažou natrvalo.</p>
         {error && (
