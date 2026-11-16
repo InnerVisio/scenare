@@ -19,6 +19,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
       value={{
         user: { name: shell.user.name, initials: shell.user.initials, roleLabel: ROLE_LABELS[shell.user.role] },
         leadership: shell.user.role === 'leadership',
+        admin: shell.user.role === 'admin',
         unread: shell.unread,
         notifications: shell.notifications.map((n) => ({
           id: n.id,

@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { weekdayShortDateYear } from '@/domain/format/date';
 import { whatsappHref } from '../_components/ShareReview';
 import { Plus } from 'lucide-react';
 import { useState, useTransition, type ReactNode } from 'react';
@@ -10,7 +12,7 @@ import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { Tabs } from '@/ui/Tabs';
 import { cn } from '@/ui/cn';
 import type { Role } from '@/domain/policy/can';
-import { addCycle, createLoginLink, saveLookups, saveSettings, saveUser } from './actions';
+import { addShootingDayAction, createLoginLink, deleteShootingDayAction, updateShootingDayAction, saveLookups, saveSettings, saveUser } from './actions';
 import { LOOKUP_KINDS, type DataField } from './lookupKinds';
 
 interface Result {
@@ -120,40 +122,156 @@ interface CycleRow {
   id: string;
   shootDate: string | null;
   plannedVideos: number;
-  clipTarget: string;
+  note: string;
+  scripts: number;
 }
 
-function CyclesSection({ cycles }: { cycles: CycleRow[] }) {
+function DayRow({ day }: { day: CycleRow }) {
   const save = useSave();
-  return (
-    <Section title="Natáčecí cykly">
-      <table className="w-full text-left text-sm md:text-base">
-        <thead className="text-text2">
-          <tr>
-            <th className="py-2 pr-2 font-semibold">Cyklus</th>
-            <th className="py-2 pr-2 font-semibold">Natáčení</th>
-            <th className="py-2 pr-2 font-semibold">Videí</th>
-            <th className="py-2 font-semibold">Klipů</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cycles.map((c) => (
-            <tr key={c.id} className="border-t border-ink/10">
-              <td className="py-3 pr-2 font-semibold">{c.id}</td>
-              <td className="py-3 pr-2">{c.shootDate ? c.shootDate.split('-').reverse().join('. ').replace(/^0/, '') : 'termín není'}</td>
-              <td className="py-3 pr-2">{c.plannedVideos}</td>
-              <td className="py-3">{c.clipTarget}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" pending={save.pending} onClick={() => save.run(() => addCycle())}>
-          <Plus aria-hidden className="size-5" />
-          Přidat další měsíc
+  const [editing, setEditing] = useState(false);
+  const [date, setDate] = useState(day.shootDate ?? '');
+  const [planned, setPlanned] = useState(String(day.plannedVideos));
+  const [note, setNote] = useState(day.note);
+  const title = day.shootDate ? weekdayShortDateYear(day.shootDate) : `${day.id} · bez data`;
+  const router = useRouter();
+  const done = (r: Result) => {
+    if (r.ok) {
+      setEditing(false);
+      router.refresh();
+    }
+    return r;
+  };
+
+  if (!editing) {
+    return (
+      <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink/10 py-3">
+        <span className="min-w-36 font-semibold">{title}</span>
+        <span>{day.plannedVideos} videí</span>
+        <span className="text-text2">{day.scripts} scénářů</span>
+        <span className="min-w-0 flex-1 text-text2">{day.note}</span>
+        <Button variant="outline" onClick={() => setEditing(true)}>
+          Upravit
+        </Button>
+        <Button
+          variant="outline"
+          disabled={day.scripts > 0}
+          title={day.scripts > 0 ? `Na tento den jsou přiřazené scénáře (${day.scripts}).` : undefined}
+          pending={save.pending}
+          onClick={() => save.run(async () => done(await deleteShootingDayAction({ id: day.id })))}
+        >
+          Smazat
         </Button>
         <Status status={save.status} />
-      </div>
+      </li>
+    );
+  }
+  return (
+    <li className="border-t border-ink/10 py-3">
+      <form
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.run(async () =>
+            done(await updateShootingDayAction({ id: day.id, shootDate: date, plannedVideos: Number(planned), note })),
+          );
+        }}
+      >
+        <Field label="Datum">
+          <TextInput type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Plán videí">
+          <TextInput type="number" min={0} max={200} required value={planned} onChange={(e) => setPlanned(e.target.value)} />
+        </Field>
+        <Field label="Poznámka (kde se točí)">
+          <TextInput value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+        </Field>
+        <div className="flex items-end gap-3">
+          <Button type="submit" pending={save.pending}>
+            Uložit den
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setEditing(false)}>
+            Zrušit
+          </Button>
+        </div>
+        <Status status={save.status} />
+      </form>
+    </li>
+  );
+}
+
+function CyclesSection({ cycles, today }: { cycles: CycleRow[]; today: string }) {
+  const save = useSave();
+  const router = useRouter();
+  const [adding, setAdding] = useState(false);
+  const [date, setDate] = useState('');
+  const [planned, setPlanned] = useState('');
+  const [note, setNote] = useState('');
+  const sorted = [...cycles].sort((a, b) => (a.shootDate ?? a.id).localeCompare(b.shootDate ?? b.id));
+  const isPast = (c: CycleRow) => (c.shootDate ?? `${c.id}-01`) < today;
+  const upcoming = sorted.filter((c) => !isPast(c));
+  const past = sorted.filter(isPast).reverse();
+  return (
+    <Section title="Natáčecí dny">
+      <ul>
+        {upcoming.map((c) => (
+          <DayRow key={c.id} day={c} />
+        ))}
+      </ul>
+      {adding ? (
+        <form
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save.run(async () => {
+              const r = await addShootingDayAction({ shootDate: date, ...(planned ? { plannedVideos: Number(planned) } : {}), note });
+              if (r.ok) {
+                setAdding(false);
+                setDate('');
+                setPlanned('');
+                setNote('');
+                router.refresh();
+              }
+              return r;
+            });
+          }}
+        >
+          <Field label="Datum natáčení">
+            <TextInput type="date" required min={today} value={date} onChange={(e) => setDate(e.target.value)} />
+          </Field>
+          <Field label="Plán videí">
+            <TextInput type="number" min={0} max={200} placeholder="podle měsíčního cíle" value={planned} onChange={(e) => setPlanned(e.target.value)} />
+          </Field>
+          <Field label="Poznámka (kde se točí)">
+            <TextInput value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+          </Field>
+          <div className="flex items-end gap-3">
+            <Button type="submit" pending={save.pending}>
+              Přidat den
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setAdding(false)}>
+              Zrušit
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <div>
+          <Button variant="outline" onClick={() => setAdding(true)}>
+            <Plus aria-hidden className="size-5" />
+            Přidat natáčecí den
+          </Button>
+        </div>
+      )}
+      <Status status={save.status} />
+      {past.length > 0 && (
+        <details>
+          <summary className="cursor-pointer font-semibold">Starší ({past.length})</summary>
+          <ul>
+            {past.map((c) => (
+              <DayRow key={c.id} day={c} />
+            ))}
+          </ul>
+        </details>
+      )}
     </Section>
   );
 }
@@ -500,12 +618,14 @@ function UsersSection({ users }: { users: UserValue[] }) {
 export function SettingsForms({
   settings,
   cycles,
+  today,
   users,
   rules,
   lookups,
 }: {
   settings: SettingsValue;
   cycles: CycleRow[];
+  today: string;
   users: UserValue[];
   rules: LookupRowValue[];
   lookups: Record<string, LookupRowValue[]>;
@@ -513,7 +633,7 @@ export function SettingsForms({
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <ParamsSection settings={settings} />
-      <CyclesSection cycles={cycles} />
+      <CyclesSection cycles={cycles} today={today} />
       <LookupsSection lookups={lookups} />
       {/* Pravidla kontroly are hidden for now; RulesSection and the data stay. */}
       <UsersSection users={users} />

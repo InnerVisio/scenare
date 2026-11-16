@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getDb } from '@/db/client';
 import { can } from '@/domain/policy/can';
 import { requireActor } from '@/server/auth/session';
-import { getSettings, listCycles, listLookups, listUsers } from '@/server/settings';
+import { countScriptsPerCycle, getSettings, listCycles, listLookups, listUsers } from '@/server/settings';
 import { EmptyState } from '@/ui/EmptyState';
 import { TopBar } from '@/ui/TopBar';
 import { LOOKUP_KINDS } from './lookupKinds';
@@ -23,9 +23,10 @@ export default async function SettingsPage() {
     );
   }
   const db = await getDb();
-  const [settings, cycles, users, rules, ...lookups] = await Promise.all([
+  const [settings, cycles, scriptCounts, users, rules, ...lookups] = await Promise.all([
     getSettings(db),
     listCycles(db),
+    countScriptsPerCycle(db),
     listUsers(db),
     listLookups(db, 'check_rule'),
     ...LOOKUP_KINDS.map((k) => listLookups(db, k.kind)),
@@ -34,8 +35,9 @@ export default async function SettingsPage() {
     <>
       <TopBar title="Nastavení" hidePeriod />
       <SettingsForms
+        today={new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Prague' }).format(new Date())}
         settings={settings}
-        cycles={cycles.map((c) => ({ id: c.id, shootDate: c.shootDate, plannedVideos: c.plannedVideos, clipTarget: c.clipTarget }))}
+        cycles={cycles.map((c) => ({ id: c.id, shootDate: c.shootDate, plannedVideos: c.plannedVideos, note: c.note, scripts: scriptCounts[c.id] ?? 0 }))}
         users={users}
         rules={rules}
         lookups={Object.fromEntries(LOOKUP_KINDS.map((k, i) => [k.kind, lookups[i]]))}

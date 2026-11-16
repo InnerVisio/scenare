@@ -7,13 +7,13 @@ export function parseMonthParam(value: string | null | undefined, fallback: stri
   return isMonthKey(value) ? value : fallback;
 }
 
-/** `?cyklus=` value if it is a valid `YYYY-MM` AND a known cycle id, otherwise the fallback. */
+/** `?cyklus=` value if it is a known cycle id (`YYYY-MM` or `YYYY-MM-DD`), otherwise the fallback. */
 export function parseCycleParam(
   value: string | null | undefined,
   knownIds: readonly string[],
   fallback: string | null,
 ): string | null {
-  return isMonthKey(value) && knownIds.includes(value) ? value : fallback;
+  return value && knownIds.includes(value) ? value : fallback;
 }
 
 const monthFormatter = new Intl.DateTimeFormat('cs-CZ', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -26,7 +26,7 @@ export function monthLabel(month: string): string {
 }
 
 /** `2026-11` → „Cyklus 2026–11“ (en dash). */
-export const cycleLabel = (id: string) => `Cyklus ${id.replace('-', '–')}`;
+export const cycleLabel = (id: string) => `Cyklus ${id.replace(/^(\d{4})-(\d{2})$/, '$1–$2')}`;
 
 /** `current` ± `radius` months, as `YYYY-MM`. */
 export function monthsAround(current: string, radius = 6): string[] {

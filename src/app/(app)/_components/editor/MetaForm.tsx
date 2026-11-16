@@ -6,6 +6,7 @@ import type { EditorValues } from '@/server/scripts';
 import { cn, focusRing } from '@/ui/cn';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { monthLabel, monthsAround } from '@/ui/monthParams';
+import { CycleSelect } from '../CycleSelect';
 import { ChipInput } from './ChipInput';
 import { mixHints } from './mixHints';
 import { addNames, applyFormat } from './reducers';
@@ -59,11 +60,7 @@ export function MetaForm({ values, onChange, options }: { values: EditorValues; 
             <Options items={options.categories} missing={hints.categoryMissing} />
           </Select>
         </Field>
-        <Field label="Natáčecí den">
-          <Select value={values.cycleId ?? ''} onChange={(event) => onChange({ cycleId: orNull(event.target.value) })}>
-            <Options items={options.cycles} />
-          </Select>
-        </Field>
+        <CycleSelect label="Natáčecí den" value={values.cycleId} cycles={options.cycles} onChange={(id) => onChange({ cycleId: id })} />
         <Field label="Profil (nepovinné)">
           <Select value={values.profileKey ?? ''} onChange={(event) => onChange({ profileKey: orNull(event.target.value) })}>
             <Options items={options.profiles} />

@@ -15,6 +15,8 @@ export interface ShellState {
   user: { name: string; initials: string; roleLabel: string };
   /** Leadership gets the minimal navigation (review, shooting, scripts). */
   leadership: boolean;
+  /** Admins may add shooting days from the script pickers. */
+  admin?: boolean;
   unread: number;
   /** Latest notifications for the bell dropdown. */
   notifications?: BellItem[];

@@ -35,7 +35,7 @@ describe('loadEditorOptions', () => {
 
   it('lists cycles, series (by code) and users (by name)', async () => {
     const o = await loadEditorOptions(w.db);
-    expect(o.cycles).toEqual([{ key: '2026-11', label: 'Natáčení 20. 11. (pá)' }]);
+    expect(o.cycles).toEqual([{ key: '2026-11', label: 'Natáčení 20. 11. (pá)', date: '2026-11-20' }]);
     expect(o.series.map((x) => [x.key, x.label])).toEqual([
       ['demo-series-s01', 'S01 · Mýty o hypotékách'],
       ['ser-a', 'S91 · První'],

@@ -4,7 +4,7 @@ import { requireActor } from '@/server/auth/session';
 import { getOverview } from '@/server/overview';
 import { currentMonthOf } from '@/server/publications';
 import { TopBar } from '@/ui/TopBar';
-import { monthLabel, parseMonthParam, isMonthKey } from '@/ui/monthParams';
+import { monthLabel, parseMonthParam } from '@/ui/monthParams';
 import { OverviewSections } from './Overview';
 
 export const metadata = { title: 'Čísla – GTA Scénáře' };
@@ -17,7 +17,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const now = new Date();
   const month = parseMonthParam(first(params.mesic), currentMonthOf(now));
   const cyklus = first(params.cyklus);
-  const overview = await getOverview(await getDb(), { month, cycleId: isMonthKey(cyklus) ? cyklus : null }, now);
+  const overview = await getOverview(await getDb(), { month, cycleId: cyklus && /^\d{4}-\d{2}(-\d{2})?$/.test(cyklus) ? cyklus : null }, now);
   return (
     <div className="flex flex-col gap-4">
       <TopBar title="Čísla" subtitle={`${monthLabel(month)}${overview.cycleId ? ` · cyklus ${overview.cycleId}` : ''}`} />

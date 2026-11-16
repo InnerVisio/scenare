@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cycleLabel, shootDayLabel } from '@/domain/format/date';
+import { cycleLabel, shootDayLabel, weekdayShortDateYear } from '@/domain/format/date';
 import { leadershipStatus } from '@/domain/workflow/leadershipStatus';
 
 const approve = (userId: string) => ({ userId, decision: 'approve' as const });
@@ -37,5 +37,11 @@ describe('cycleLabel / shootDayLabel', () => {
     expect(shootDayLabel('2026-11-16', now)).toBe('po 16. 11. · zbývá 1 den');
     expect(shootDayLabel('2026-11-15', now)).toBe('ne 15. 11. · dnes');
     expect(shootDayLabel('2026-11-10', now)).toBe('út 10. 11. · už proběhlo');
+  });
+});
+
+describe('weekdayShortDateYear', () => {
+  it('adds weekday and year', () => {
+    expect(weekdayShortDateYear('2026-11-20')).toBe('pá 20. 11. 2026');
   });
 });

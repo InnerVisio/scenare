@@ -8,8 +8,8 @@ import type { ScriptBody } from '@/domain/script/types';
 import type { EditorOptions } from '@/server/editorOptions';
 import { Button } from '@/ui/Button';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
-import { useShell } from '@/ui/ShellContext';
 import { ScriptView, type ScriptMeta } from '../../_components/script-view/ScriptView';
+import { CycleSelect } from '../../_components/CycleSelect';
 import { ShareReviewCard } from '../../_components/ShareReview';
 import { useReviewToast } from '../../_components/review/ReviewToast';
 import { createScriptAction, importScriptsAction, parseScriptsAction } from '../actions';
@@ -58,7 +58,6 @@ function Opts({ items }: { items: { key: string; label: string }[] }) {
 /** „Vložit scénář“: paste the text, check the split, save the drafts. */
 export function ImportForm({ options, cycleId, plannedMonth }: { options: EditorOptions; cycleId: string | null; plannedMonth: string | null }) {
   const router = useRouter();
-  const { currentMonth } = useShell();
   const [pending, start] = useTransition();
   const [text, setText] = useState('');
   const [items, setItems] = useState<Item[] | null>(null);
@@ -66,7 +65,8 @@ export function ImportForm({ options, cycleId, plannedMonth }: { options: Editor
   const [sendNow, setSendNow] = useState(false);
   const [sent, setSent] = useState<{ titles: string[]; failed: string[]; shareUrl: string | null; codes: string[] } | null>(null);
   const toast = useReviewToast();
-  const nextCycle = options.cycles.find((c) => c.key >= currentMonth) ?? options.cycles[options.cycles.length - 1];
+  const today = new Date().toISOString().slice(0, 10);
+  const nextCycle = options.cycles.find((c) => (c.date ?? `${c.key}-01`) >= today) ?? options.cycles[options.cycles.length - 1];
   const [cycle, setCycle] = useState<string>(cycleId ?? nextCycle?.key ?? '');
 
   const split = () =>
@@ -165,11 +165,7 @@ export function ImportForm({ options, cycleId, plannedMonth }: { options: Editor
     <div className="flex flex-col gap-4">
       <h1 className="text-h1">{items.length === 1 ? 'Zkontroluj scénář' : `Zkontroluj scénáře (${items.length})`}</h1>
       <section aria-label="Společné údaje" className="rounded-card bg-card p-5 lg:p-6">
-        <Field label="Cyklus natáčení (pro všechny)">
-          <Select value={cycle} onChange={(e) => setCycle(e.target.value)}>
-            <Opts items={options.cycles} />
-          </Select>
-        </Field>
+        <CycleSelect label="Cyklus natáčení (pro všechny)" value={cycle || null} cycles={options.cycles} onChange={(id) => setCycle(id ?? '')} />
       </section>
       {items.map((item, index) => (
         <details key={index} open={items.length === 1} className="rounded-card bg-card p-5 lg:p-6">

@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { createPersonalLoginLink } from '@/server/auth/magicLink';
 import { sendTestMail } from '@/server/notify/testMail';
-import { addNextCycle, updateSettings, upsertLookups, upsertUser } from '@/server/settings';
+import { addShootingDay, deleteShootingDay, updateSettings, updateShootingDay, upsertLookups, upsertUser } from '@/server/settings';
 import { runAction } from '../_actions/run';
 
 // Thin wrappers around the admin use cases in `src/server/settings.ts`.
@@ -51,8 +51,25 @@ export async function saveUser(input: unknown) {
   return runAction(input, userSchema, (db, actor, user, now) => upsertUser(db, actor, user, now));
 }
 
-export async function addCycle() {
-  return runAction({}, z.object({}), (db, actor, _input, now) => addNextCycle(db, actor, now));
+const dayFields = {
+  plannedVideos: z.number().int().optional(),
+  note: z.string().max(300).optional(),
+};
+
+export async function addShootingDayAction(input: unknown) {
+  return runAction(input, z.object({ shootDate: z.string().max(10), ...dayFields }), (db, actor, day, now) => addShootingDay(db, actor, day, now));
+}
+
+export async function updateShootingDayAction(input: unknown) {
+  return runAction(
+    input,
+    z.object({ id: z.string().min(1).max(32), shootDate: z.string().max(10).optional(), ...dayFields }),
+    (db, actor, { id, ...patch }, now) => updateShootingDay(db, actor, id, patch, now),
+  );
+}
+
+export async function deleteShootingDayAction(input: unknown) {
+  return runAction(input, z.object({ id: z.string().min(1).max(32) }), (db, actor, { id }, now) => deleteShootingDay(db, actor, id, now));
 }
 
 export async function sendTestMailToMe() {

@@ -106,6 +106,8 @@ export const dayMonthOf = (day: string) => {
 };
 /** `2026-11-20` → "čt 20. 11." */
 export const weekdayShortDate = (day: string) => `${WEEKDAYS_SHORT[dayParts(day).weekday]} ${dayMonthOf(day)}`;
+/** `2026-11-20` → "pá 20. 11. 2026" */
+export const weekdayShortDateYear = (day: string) => `${weekdayShortDate(day)} ${day.slice(0, 4)}`;
 /** `2026-11-20` → "čtvrtek 20. 11." */
 export const weekdayLongDate = (day: string) => `${WEEKDAYS_LONG[dayParts(day).weekday]} ${dayMonthOf(day)}`;
 

@@ -17,7 +17,9 @@ describe('parseCycleParam', () => {
   it('requires a valid format and a known cycle', () => {
     expect(parseCycleParam('2026-11', ['2026-11'], '2026-12')).toBe('2026-11');
     expect(parseCycleParam('2027-01', ['2026-11'], '2026-12')).toBe('2026-12');
-    expect(parseCycleParam('abc', ['abc'], null)).toBeNull();
+    expect(parseCycleParam('abc', ['abc'], null)).toBe('abc');
+    expect(parseCycleParam('2026-11-20', ['2026-11', '2026-11-20'], null)).toBe('2026-11-20');
+    expect(cycleLabel('2026-11-20')).toBe('Cyklus 2026-11-20');
   });
 });
 

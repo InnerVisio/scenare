@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { newId } from '@/domain/ids';
+import { logActivity } from './activity';
 import { can, type Role } from '@/domain/policy/can';
 import type { ApprovalPolicy } from '@/domain/workflow/approval';
 import type { Actor } from './actor';
@@ -186,6 +187,7 @@ export async function listCycles(db: Db) {
   return db.select().from(s.shootingCycles).orderBy(asc(s.shootingCycles.id));
 }
 
+/** @deprecated kept for compatibility; the UI adds single shooting days instead. */
 export async function addNextCycle(db: Db, actor: Actor, now: Date): Promise<{ id: string }> {
   void now; // reserved for activity logging
   assertAdmin(actor);
@@ -196,4 +198,101 @@ export async function addNextCycle(db: Db, actor: Actor, now: Date): Promise<{ i
   const id = nextMonth(latest.id);
   await db.insert(s.shootingCycles).values({ id, plannedVideos: settings.monthlyTarget, coversMonths: [id] });
   return { id };
+}
+
+// Shooting days: one row per day, id = the date `YYYY-MM-DD` (legacy rows keep their `YYYY-MM` id).
+
+const DATE_RE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+function validDate(value: string): void {
+  const ok = DATE_RE.test(value) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
+  if (!ok) throw invalid('Zadej platné datum natáčení.');
+}
+
+export interface ShootingDayInput {
+  shootDate?: string;
+  plannedVideos?: number;
+  note?: string;
+}
+
+function validateDayFields(input: ShootingDayInput): void {
+  if (input.shootDate !== undefined) validDate(input.shootDate);
+  intInRange(input.plannedVideos, 0, 200, 'Plán videí');
+  if (input.note !== undefined && input.note.length > 300) throw invalid('Poznámka je příliš dlouhá.');
+}
+
+export async function addShootingDay(
+  db: Db,
+  actor: Actor,
+  input: ShootingDayInput & { shootDate: string },
+  now: Date,
+): Promise<{ id: string }> {
+  assertAdmin(actor);
+  validateDayFields(input);
+  const id = input.shootDate;
+  const settings = await getSettings(db);
+  return db.transaction(async (tx) => {
+    const [dup] = await tx.select({ id: s.shootingCycles.id }).from(s.shootingCycles).where(eq(s.shootingCycles.shootDate, id));
+    const [sameId] = await tx.select({ id: s.shootingCycles.id }).from(s.shootingCycles).where(eq(s.shootingCycles.id, id));
+    if (dup || sameId) throw invalid('Na tento den už natáčení je.');
+    const values = {
+      id,
+      shootDate: id,
+      plannedVideos: input.plannedVideos ?? settings.monthlyTarget,
+      coversMonths: [id.slice(0, 7)],
+      note: (input.note ?? '').trim(),
+    };
+    await tx.insert(s.shootingCycles).values(values);
+    await logActivity(tx, { actorId: actor.id, videoId: null, entity: 'shooting_day', entityId: id, action: 'shooting_day.added', after: { shootDate: id, plannedVideos: values.plannedVideos } }, now);
+    return { id };
+  });
+}
+
+export async function updateShootingDay(db: Db, actor: Actor, id: string, patch: ShootingDayInput, now: Date): Promise<void> {
+  assertAdmin(actor);
+  validateDayFields(patch);
+  await db.transaction(async (tx) => {
+    const [row] = await tx.select().from(s.shootingCycles).where(eq(s.shootingCycles.id, id));
+    if (!row) throw new DomainError('NOT_FOUND', 'Natáčecí den nenalezen.');
+    if (patch.shootDate !== undefined && patch.shootDate !== row.shootDate) {
+      const [dup] = await tx.select({ id: s.shootingCycles.id }).from(s.shootingCycles).where(eq(s.shootingCycles.shootDate, patch.shootDate));
+      if (dup) throw invalid('Na tento den už natáčení je.');
+    }
+    const set: Partial<typeof s.shootingCycles.$inferInsert> = {};
+    if (patch.shootDate !== undefined) {
+      set.shootDate = patch.shootDate;
+      set.coversMonths = [patch.shootDate.slice(0, 7)];
+    }
+    if (patch.plannedVideos !== undefined) set.plannedVideos = patch.plannedVideos;
+    if (patch.note !== undefined) set.note = patch.note.trim();
+    if (Object.keys(set).length === 0) return;
+    await tx.update(s.shootingCycles).set(set).where(eq(s.shootingCycles.id, id));
+    await logActivity(
+      tx,
+      { actorId: actor.id, videoId: null, entity: 'shooting_day', entityId: id, action: 'shooting_day.updated', before: { shootDate: row.shootDate, plannedVideos: row.plannedVideos, note: row.note }, after: { ...patch } },
+      now,
+    );
+  });
+}
+
+export async function deleteShootingDay(db: Db, actor: Actor, id: string, now: Date): Promise<void> {
+  assertAdmin(actor);
+  await db.transaction(async (tx) => {
+    const [row] = await tx.select().from(s.shootingCycles).where(eq(s.shootingCycles.id, id));
+    if (!row) throw new DomainError('NOT_FOUND', 'Natáčecí den nenalezen.');
+    const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(s.videos).where(eq(s.videos.cycleId, id));
+    if (n > 0) throw invalid(`Na tento den jsou přiřazené scénáře (${n}). Nejdřív je přesuň.`);
+    await tx.delete(s.shootingCycles).where(eq(s.shootingCycles.id, id));
+    await logActivity(tx, { actorId: actor.id, videoId: null, entity: 'shooting_day', entityId: id, action: 'shooting_day.deleted', before: { shootDate: row.shootDate } }, now);
+  });
+}
+
+/** Scripts assigned per cycle id (for the settings list). */
+export async function countScriptsPerCycle(db: Db): Promise<Record<string, number>> {
+  const rows = await db
+    .select({ id: s.videos.cycleId, n: sql<number>`count(*)::int` })
+    .from(s.videos)
+    .where(sql`${s.videos.cycleId} is not null`)
+    .groupBy(s.videos.cycleId);
+  return Object.fromEntries(rows.map((r) => [r.id as string, r.n]));
 }
