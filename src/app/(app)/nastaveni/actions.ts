@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { createPersonalLoginLink } from '@/server/auth/magicLink';
 import { sendTestMail } from '@/server/notify/testMail';
-import { addShootingDay, deleteShootingDay, updateSettings, updateShootingDay, upsertLookups, upsertUser } from '@/server/settings';
+import { addShootingDay, disableTeamLink, regenerateTeamLink, deleteShootingDay, updateSettings, updateShootingDay, upsertLookups, upsertUser } from '@/server/settings';
 import { runAction } from '../_actions/run';
 
 // Thin wrappers around the admin use cases in `src/server/settings.ts`.
@@ -83,4 +83,12 @@ export async function createLoginLink(input: unknown) {
     (db, actor, { userId }, now) => createPersonalLoginLink(db, actor, userId, now),
     { revalidate: false },
   );
+}
+
+export async function regenerateTeamLinkAction() {
+  return runAction({}, z.object({}), (db, actor, _input, now) => regenerateTeamLink(db, actor, now));
+}
+
+export async function disableTeamLinkAction() {
+  return runAction({}, z.object({}), (db, actor, _input, now) => disableTeamLink(db, actor, now));
 }

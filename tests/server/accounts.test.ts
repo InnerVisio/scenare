@@ -5,6 +5,7 @@ import { SESSION_MAX_AGE_SECONDS, shouldRefreshSession } from '@/server/auth/jwt
 import { consumeLoginToken, createPersonalLoginLink, PERSONAL_LINK_DAYS } from '@/server/auth/magicLink';
 import { passwordLoginEnabled, PASSWORD_MAX_FAILURES, verifyAdminPassword } from '@/server/auth/passwordLogin';
 import { describeActivity } from '@/server/activityText';
+import { disableTeamLink, isTeamLinkSecret, listTeamLinkUsers, regenerateTeamLink, resolveTeamLinkUser } from '@/server/settings';
 import { expectDomainError, minutesLater, NOW, setupWorld, type World } from './helpers';
 
 let w: World;
@@ -84,5 +85,34 @@ describe('sliding session', () => {
     expect(shouldRefreshSession(iat, at(6))).toBe(false);
     expect(shouldRefreshSession(iat, at(8))).toBe(true);
     expect(shouldRefreshSession(undefined, at(8))).toBe(false);
+  });
+});
+
+describe('team link', () => {
+  it('only an admin can regenerate or disable it', async () => {
+    await expectDomainError(regenerateTeamLink(w.db, w.honza, NOW), 'FORBIDDEN');
+    await expectDomainError(disableTeamLink(w.db, w.honza, NOW), 'FORBIDDEN');
+  });
+
+  it('old secret stops working after regeneration and everything after disabling', async () => {
+    const first = await regenerateTeamLink(w.db, w.admin, NOW);
+    expect(first.secret).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(await isTeamLinkSecret(w.db, first.secret)).toBe(true);
+    const second = await regenerateTeamLink(w.db, w.admin, minutesLater(5));
+    expect(await isTeamLinkSecret(w.db, first.secret)).toBe(false);
+    expect(await isTeamLinkSecret(w.db, second.secret)).toBe(true);
+    const [log] = await w.db.select().from(s.activityLog).where(eq(s.activityLog.action, 'team_link.created'));
+    expect(describeActivity({ ...log!, videoCode: null } as never, new Map([[w.admin.id, 'Admin']])).text).toBe('Admin vytvořil nový odkaz pro vedení');
+    await disableTeamLink(w.db, w.admin, minutesLater(6));
+    expect(await isTeamLinkSecret(w.db, second.secret)).toBe(false);
+  });
+
+  it('signs in only leadership users and only with a valid secret', async () => {
+    const { secret } = await regenerateTeamLink(w.db, w.admin, NOW);
+    expect(await resolveTeamLinkUser(w.db, secret, w.radek.id)).toBe(w.radek.id);
+    expect(await resolveTeamLinkUser(w.db, secret, w.admin.id)).toBeNull();
+    expect(await resolveTeamLinkUser(w.db, secret, 'nope')).toBeNull();
+    expect(await resolveTeamLinkUser(w.db, 'wrong', w.radek.id)).toBeNull();
+    expect((await listTeamLinkUsers(w.db)).map((u) => u.id)).not.toContain(w.admin.id);
   });
 });

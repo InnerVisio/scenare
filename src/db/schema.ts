@@ -62,6 +62,7 @@ export const settings = pgTable('settings', {
   approvalDaysBefore: integer('approval_days_before').notNull().default(7),
   tolerancePp: integer('tolerance_pp').notNull().default(10),
   approvalPolicy: text('approval_policy').notNull().default('all_leadership'),
+  teamLinkSecret: text('team_link_secret'),
 });
 
 export const shootingCycles = pgTable('shooting_cycles', {

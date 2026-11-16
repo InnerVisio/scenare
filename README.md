@@ -62,5 +62,6 @@ Podrobný postup: [docs/nasazeni-vercel.md](docs/nasazeni-vercel.md).
 ## Účty a přihlášení
 
 - **Osobní přihlašovací odkaz** (hlavní cesta): Nastavení → Uživatelé → u uživatele „Přihlašovací odkaz“ (jen admin). Odkaz pošli přes WhatsApp/SMS. Platí 7 dní, jde použít jednou; nový odkaz zneplatní starší nepoužitý. Po otevření a potvrzení zůstane uživatel přihlášený 90 dní (cookie se obnovuje, když je starší 7 dní).
+- **Odkaz pro vedení**: Nastavení → „Odkaz pro Honzu a Radka“ (jen admin) vytvoří jeden sdílitelný odkaz `/tym/…`; kdo ho otevře, vybere Honzu nebo Radka a rovnou kontroluje (admina odkaz nenabídne). Posílej ho jen jim; „Vytvořit nový odkaz“ starý zneplatní, „Vypnout odkaz“ ho zruší. Stav ukazuje Diagnostika. S ním už `ALLOW_DEV_LOGIN` nepotřebuješ a můžeš ho odstranit.
 - **Heslo pro admina**: nastav `ADMIN_PASSWORD` (alespoň 12 znaků, jinak je funkce vypnutá). Na /login pak přibude odkaz „Přihlásit heslem (admin)“; funguje jen pro uživatele s rolí admin, 5 chybných pokusů za 15 minut e-mail zablokuje.
 - **Vývojové přihlášení**: `ALLOW_DEV_LOGIN=1` dovolí komukoli přihlásit se jako kdokoli. Po rozdání odkazů ho ve Vercelu smaž (Settings → Environment Variables) a nasaď znovu. Diagnostika (/nastaveni/diagnostika) na to upozorní.

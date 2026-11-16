@@ -5,6 +5,7 @@ import * as s from '@/db/schema';
 import { formatDate } from '@/domain/format/date';
 import { can } from '@/domain/policy/can';
 import { passwordLoginEnabled } from '@/server/auth/passwordLogin';
+import { getTeamLinkSecret } from '@/server/settings';
 import { requireActor } from '@/server/auth/session';
 import { getDashboard } from '@/server/queries';
 import { Card } from '@/ui/Card';
@@ -61,6 +62,7 @@ export default async function DiagnosticsPage() {
     ['Poslední denní souhrn', dailyRun ? formatDate(new Date(`${dailyRun.ranOn}T12:00:00Z`)) : 'zatím neběžel'],
   ];
   rows.push(['Přihlášení heslem', passwordLoginEnabled() ? 'zapnuté' : 'vypnuté']);
+  rows.push(['Odkaz pro vedení', (await getTeamLinkSecret(db)) ? 'zapnutý' : 'vypnutý']);
   const devLoginOpen = process.env.NODE_ENV === 'production' && process.env.ALLOW_DEV_LOGIN === '1';
   return (
     <>

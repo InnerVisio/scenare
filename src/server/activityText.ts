@@ -63,6 +63,9 @@ export function describeActivity(
     case 'video.meta_updated':
       text = `${who} upravil údaje scénáře ${code}`;
       break;
+    case 'team_link.created':
+      text = `${who} vytvořil nový odkaz pro vedení`;
+      break;
     case 'user.login_link_created':
       text = `${who} vytvořil přihlašovací odkaz pro ${accusative(after?.targetName)}`;
       break;

@@ -13,7 +13,7 @@ import { Tabs } from '@/ui/Tabs';
 import { ReviewDialog } from '../_components/review/ReviewDialog';
 import { cn } from '@/ui/cn';
 import type { Role } from '@/domain/policy/can';
-import { addShootingDayAction, createLoginLink, deleteShootingDayAction, updateShootingDayAction, saveLookups, saveSettings, saveUser } from './actions';
+import { addShootingDayAction, createLoginLink, disableTeamLinkAction, regenerateTeamLinkAction, deleteShootingDayAction, updateShootingDayAction, saveLookups, saveSettings, saveUser } from './actions';
 import { LOOKUP_KINDS, type DataField } from './lookupKinds';
 
 interface Result {
@@ -643,8 +643,88 @@ function UsersSection({ users }: { users: UserValue[] }) {
 
 // ---------------------------------------------------------------------------------------------
 
+function TeamLinkSection({ initialUrl, base }: { initialUrl: string | null; base: string }) {
+  const [url, setUrl] = useState<string | null>(initialUrl);
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const create = (confirmText?: string) => {
+    if (confirmText && !window.confirm(confirmText)) return;
+    start(async () => {
+      setNote(null);
+      const result = await regenerateTeamLinkAction();
+      if (result.ok) {
+        setUrl(`${base}/tym/${result.secret}`);
+        setError(null);
+      } else setError(result.message);
+    });
+  };
+  const message = url ? `Odkaz do aplikace na kontrolu scénářů: ${url} — klikni a vyber svoje jméno.` : '';
+  return (
+    <Section title="Odkaz pro Honzu a Radka" hint="Kdo má odkaz, může se přihlásit jako Honza nebo Radek. Posílej ho jen jim.">
+      {error ? <p role="alert" className="text-coral">{error}</p> : null}
+      {url ? (
+        <div className="flex flex-col gap-3">
+          <input readOnly aria-label="Odkaz pro vedení" value={url} onFocus={(e) => e.currentTarget.select()} className="min-h-12 w-full rounded-inner bg-nest px-3 text-sm" />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(url)
+                  .then(() => setNote('Zkopírováno.'))
+                  .catch(() => setNote('Kopírování se nepovedlo, označ odkaz a zkopíruj ho ručně.'))
+              }
+            >
+              Kopírovat
+            </Button>
+            <a href={whatsappHref(message)} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center rounded-full border border-ink/20 px-5 font-semibold">
+              WhatsApp
+            </a>
+            {canShare ? (
+              <Button type="button" variant="outline" onClick={() => void navigator.share({ text: message }).catch(() => undefined)}>
+                Sdílet
+              </Button>
+            ) : null}
+            {note ? <span role="status" className="text-sm text-text2">{note}</span> : null}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="outline" pending={pending} onClick={() => create('Starý odkaz přestane platit. Vytvořit nový?')}>
+              Vytvořit nový odkaz (starý přestane platit)
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              pending={pending}
+              onClick={() => {
+                if (!window.confirm('Odkaz přestane platit. Vypnout?')) return;
+                start(async () => {
+                  const result = await disableTeamLinkAction();
+                  if (result.ok) setUrl(null);
+                  else setError(result.message);
+                });
+              }}
+            >
+              Vypnout odkaz
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Button type="button" pending={pending} onClick={() => create()}>
+            Vytvořit odkaz
+          </Button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export function SettingsForms({
   settings,
+  teamLink,
   cycles,
   today,
   users,
@@ -652,6 +732,7 @@ export function SettingsForms({
   lookups,
 }: {
   settings: SettingsValue;
+  teamLink: { url: string | null; base: string };
   cycles: CycleRow[];
   today: string;
   users: UserValue[];
@@ -660,6 +741,7 @@ export function SettingsForms({
 }) {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
+      <TeamLinkSection initialUrl={teamLink.url} base={teamLink.base} />
       <ParamsSection settings={settings} />
       <CyclesSection cycles={cycles} today={today} />
       <LookupsSection lookups={lookups} />

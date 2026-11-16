@@ -1,8 +1,10 @@
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { newId } from '@/domain/ids';
 import { logActivity } from './activity';
+import type { Executor } from './loaders';
 import { can, type Role } from '@/domain/policy/can';
 import type { ApprovalPolicy } from '@/domain/workflow/approval';
 import type { Actor } from './actor';
@@ -315,4 +317,62 @@ export async function countScriptsPerCycle(db: Db): Promise<Record<string, numbe
     .where(sql`${s.videos.cycleId} is not null`)
     .groupBy(s.videos.cycleId);
   return Object.fromEntries(rows.map((r) => [r.id as string, r.n]));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Team link (shared sign-in link for leadership)
+// ---------------------------------------------------------------------------------------------
+
+async function setTeamLinkSecret(db: Executor, secret: string | null): Promise<void> {
+  await db
+    .insert(s.settings)
+    .values({ id: SETTINGS_ID, teamLinkSecret: secret })
+    .onConflictDoUpdate({ target: s.settings.id, set: { teamLinkSecret: secret } });
+}
+
+export async function getTeamLinkSecret(db: Db): Promise<string | null> {
+  const [row] = await db.select({ secret: s.settings.teamLinkSecret }).from(s.settings).where(eq(s.settings.id, SETTINGS_ID));
+  return row?.secret ?? null;
+}
+
+/** Timing-safe check of a secret from the URL against the stored one (false when the link is off). */
+export async function isTeamLinkSecret(db: Db, candidate: string): Promise<boolean> {
+  const stored = await getTeamLinkSecret(db);
+  if (!stored) return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(stored);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** Admin-only: creates (or replaces) the shared leadership link secret. The old one stops working. */
+export async function regenerateTeamLink(db: Db, actor: Actor, now: Date): Promise<{ secret: string }> {
+  assertAdmin(actor);
+  const secret = randomBytes(24).toString('base64url');
+  await db.transaction(async (tx) => {
+    await setTeamLinkSecret(tx, secret);
+    await logActivity(tx, { actorId: actor.id, videoId: null, entity: 'settings', entityId: SETTINGS_ID, action: 'team_link.created' }, now);
+  });
+  return { secret };
+}
+
+/** Admin-only: turns the shared leadership link off. */
+export async function disableTeamLink(db: Db, actor: Actor, now: Date): Promise<void> {
+  assertAdmin(actor);
+  void now;
+  await setTeamLinkSecret(db, null);
+}
+
+/** Leadership users the shared link may sign in as (never admins). */
+export async function listTeamLinkUsers(db: Db): Promise<{ id: string; name: string; initials: string }[]> {
+  return db
+    .select({ id: s.users.id, name: s.users.name, initials: s.users.initials })
+    .from(s.users)
+    .where(eq(s.users.role, 'leadership'))
+    .orderBy(asc(s.users.name));
+}
+
+/** The user id the shared link may sign in as: only with a valid secret and only a leadership user, else null. */
+export async function resolveTeamLinkUser(db: Db, secret: string, userId: string): Promise<string | null> {
+  if (!(await isTeamLinkSecret(db, secret))) return null;
+  return (await listTeamLinkUsers(db)).find((u) => u.id === userId)?.id ?? null;
 }

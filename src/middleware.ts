@@ -10,6 +10,8 @@ function isPublic(pathname: string): boolean {
     pathname.startsWith('/auth/') ||
     // The shooting crew's read-only page; the signed link in the path is the credential.
     pathname.startsWith('/stab/') ||
+    // The shared leadership link; the secret in the path is the credential.
+    pathname.startsWith('/tym/') ||
     // The scheduler authenticates with its own bearer secret.
     pathname.startsWith('/api/cron/')
   );
