@@ -36,6 +36,13 @@
       "when": 1794786694809,
       "tag": "0004_disable_check_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794798492855,
+      "tag": "0005_remove_demo_data",
+      "breakpoints": true
     }
   ]
 }

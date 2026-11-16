@@ -8,6 +8,7 @@ import { CategoryTag } from '@/ui/CategoryTag';
 import { cn, focusRing } from '@/ui/cn';
 import { FormatTag } from '@/ui/FormatTag';
 import { StatusPill } from '@/ui/StatusPill';
+import { RowCheck } from './BulkSubmit';
 import { rowTone, type RowTone } from './listModel';
 
 const STRIPE: Record<Exclude<RowTone, null>, { bar: string; label: string }> = {
@@ -46,13 +47,14 @@ function Comments({ count }: { count: number }) {
 }
 
 /** Table (desktop) and „Karta scénáře“ cards (phones and tablets) of the same scripts. */
-export function ScriptList({ items, options, today }: { items: VideoListItem[]; options: Options; today: string }) {
+export function ScriptList({ items, options, today, selectable = false }: { items: VideoListItem[]; options: Options; today: string; selectable?: boolean }) {
   const categories = new Map(options.categories.map((c) => [c.key, c]));
   const formats = new Map(options.formats.map((f) => [f.key, f]));
   const seriesCode = new Map(options.series.map((s) => [s.key, s.label.split(' · ')[0]]));
 
   const duration = (item: VideoListItem) => (item.durationSec === null ? '—' : `${item.durationSec} s`);
   const production = (item: VideoListItem) => PRODUCTION_STATUS_LABELS[item.productionStatus as ProductionStatus] ?? item.productionStatus;
+  const sendable = (item: VideoListItem) => selectable && (item.approvalStatus === 'draft' || item.approvalStatus === 'returned');
   const tone = (item: VideoListItem) => rowTone(item, today);
 
   const categoryTag = (item: VideoListItem) => {
@@ -70,6 +72,7 @@ export function ScriptList({ items, options, today }: { items: VideoListItem[]; 
         <table className="w-full text-left">
           <thead>
             <tr className="text-label tracking-[0.06em] text-text2 uppercase">
+              {selectable && <th className="w-10 py-4 pl-4" />}
               <th className="py-4 pr-3 pl-7 font-semibold">Kód</th>
               <th className="px-3 py-4 font-semibold">Název</th>
               <th className="px-3 py-4 font-semibold">Kategorie</th>
@@ -83,6 +86,7 @@ export function ScriptList({ items, options, today }: { items: VideoListItem[]; 
           <tbody>
             {items.map((item) => (
               <tr key={item.id} data-code={item.code} className="relative border-t border-ink/10 hover:bg-nest">
+                {selectable && <td className="py-4 pl-4">{sendable(item) && <RowCheck id={item.id} label={item.code} />}</td>}
                 <td className="relative py-4 pr-3 pl-7 font-semibold whitespace-nowrap text-text2">
                   <Stripe tone={tone(item)} className="inset-y-3 left-0 w-1.5 rounded-l-none" />
                   {item.code}
@@ -116,6 +120,7 @@ export function ScriptList({ items, options, today }: { items: VideoListItem[]; 
             <li key={item.id} data-code={item.code} className="relative flex flex-col gap-3 rounded-card bg-card p-5 pl-7">
               <Stripe tone={tone(item)} className="inset-y-5 left-0 w-1.5 rounded-l-none" />
               <div className="flex items-center justify-between gap-3">
+                {sendable(item) && <RowCheck id={item.id} label={item.code} />}
                 <p className="text-sm font-semibold tracking-[0.04em] text-text2">
                   {item.code}
                   {item.latestVersionNo ? ` · v${item.latestVersionNo}` : ''} · {duration(item)}

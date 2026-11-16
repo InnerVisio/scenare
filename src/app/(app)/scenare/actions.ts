@@ -5,7 +5,10 @@ import { z } from 'zod';
 import type { ActionResult } from '@/server/actionResult';
 import { parseScriptsText, type ParsedScript } from '@/server/scriptImport';
 import { addReference, removeReference } from '@/server/references';
-import { duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, unlockForEdit, updateVideoMeta } from '@/server/videos';
+import { appUrl } from '@/server/appUrl';
+import { eq } from 'drizzle-orm';
+import * as schema from '@/db/schema';
+import { duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, submitManyForReview, type BulkSubmitResult, unlockForEdit, updateVideoMeta } from '@/server/videos';
 import { runAction } from '../_actions/run';
 
 // Thin wrappers around the use cases, like the review actions. Autosave writes (draft and meta) skip
@@ -76,11 +79,21 @@ export async function updateVideoMetaAction(input: z.input<typeof metaPatchSchem
   return runAction(input, metaPatchSchema, (db, actor, i, now) => updateVideoMeta(db, actor, i.videoId, i.patch, now), { revalidate: false });
 }
 
-export async function submitForReviewAction(input: z.input<typeof submitSchema>): Promise<ActionResult<{ versionNo: number }>> {
+export async function submitForReviewAction(
+  input: z.input<typeof submitSchema>,
+): Promise<ActionResult<{ versionNo: number; title: string; shareUrl: string | null }>> {
   return runAction(input, submitSchema, async (db, actor, i, now) => {
     const { versionNo } = await submitForReview(db, actor, i.videoId, { changeSummary: i.changeSummary }, now);
-    return { versionNo };
+    const [row] = await db.select({ title: schema.videos.title }).from(schema.videos).where(eq(schema.videos.id, i.videoId));
+    return { versionNo, title: row?.title ?? '', shareUrl: appUrl() };
   });
+}
+
+const bulkSchema = z.object({ videoIds: z.array(id).min(1).max(50) });
+
+/** Bulk „Odeslat ke kontrole“ from the list: per-script failures come back as Czech messages. */
+export async function bulkSubmitAction(input: z.input<typeof bulkSchema>): Promise<ActionResult<BulkSubmitResult & { shareUrl: string | null }>> {
+  return runAction(input, bulkSchema, async (db, actor, i, now) => ({ ...(await submitManyForReview(db, actor, i.videoIds, now)), shareUrl: appUrl() }));
 }
 
 export async function unlockScriptAction(input: z.input<typeof videoIdSchema>): Promise<ActionResult> {
@@ -119,6 +132,7 @@ const parseSchema = z.object({ text: z.string().max(40_000) });
 const importSchema = z.object({
   cycleId: nullableKey,
   plannedMonth: prefillSchema.shape.plannedMonth,
+  submit: z.boolean().optional(),
   scripts: z.array(z.object({ meta: metaSchema.required({ title: true }), body: bodySchema })).min(1).max(20),
 });
 
@@ -128,9 +142,12 @@ export async function parseScriptsAction(input: z.input<typeof parseSchema>): Pr
 }
 
 /** „Uložit všechny“: one draft per previewed script. */
-export async function importScriptsAction(input: z.input<typeof importSchema>): Promise<ActionResult<{ codes: string[] }>> {
+export async function importScriptsAction(
+  input: z.input<typeof importSchema>,
+): Promise<ActionResult<{ codes: string[]; submitted: BulkSubmitResult['submitted']; failed: string[]; shareUrl: string | null }>> {
   return runAction(input, importSchema, async (db, actor, i, now) => {
     const codes: string[] = [];
+    const ids: string[] = [];
     for (const script of i.scripts) {
       const { id, code } = await createVideo(
         db,
@@ -140,8 +157,10 @@ export async function importScriptsAction(input: z.input<typeof importSchema>): 
       );
       await saveDraft(db, actor, id, script.body, now);
       codes.push(code);
+      ids.push(id);
     }
-    return { codes };
+    const sent = i.submit ? await submitManyForReview(db, actor, ids, now) : { submitted: [], failed: [] };
+    return { codes, ...sent, shareUrl: appUrl() };
   });
 }
 

@@ -18,6 +18,7 @@ import { cn, focusRing } from '@/ui/cn';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { useShell } from '@/ui/ShellContext';
 import { StatusPill } from '@/ui/StatusPill';
+import { ShareReviewDialog } from '../ShareReview';
 import { saveDraftAction, submitForReviewAction, updateVideoMetaAction } from '@/app/(app)/scenare/actions';
 import type { CommentActions } from '../review/CommentCard';
 import { CommentsPanel } from '../review/CommentsPanel';
@@ -219,6 +220,7 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
   const [pasteOpen, setPasteOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
+  const [shared, setShared] = useState<{ titles: string[]; shareUrl: string | null } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function submit(changeSummary: string) {
@@ -230,7 +232,8 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
       const result = await submitForReviewAction({ videoId, changeSummary });
       if (!result.ok) return setSubmitError(result.message);
       toast(`Odesláno ke kontrole (v${result.versionNo})`);
-      router.push(`/scenare/${data.video.code}`);
+      setSubmitOpen(false);
+      setShared({ titles: [result.title || values.title], shareUrl: result.shareUrl });
     } finally {
       setSubmitBusy(false);
     }
@@ -583,6 +586,12 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
           setSubmitOpen(false);
           setSubmitError(null);
         }}
+      />
+      <ShareReviewDialog
+        open={shared !== null}
+        titles={shared?.titles ?? []}
+        shareUrl={shared?.shareUrl ?? null}
+        onClose={() => router.push(`/scenare/${data.video.code}`)}
       />
     </div>
   );

@@ -231,12 +231,6 @@ export function OverviewSections({ o }: { o: Overview }) {
       <Section title={`1. Tematický mix – měsíc ${month}`} hint={`${monthLabel(month)}. Plán = kolik videí má vyjít; Publikováno = skutečně zveřejněno v tomto měsíci.`}>
         <MixTable label="Tematický mix" mix={o.categories} base={monthBase} dim="kategorie" publication />
       </Section>
-      <Section title={`2. Odborně hodnotná vs. Instagramová videa – měsíc ${month}`}>
-        <MixTable label="Typ zpracování" mix={o.treatments} base={monthBase} dim="typ" publication />
-      </Section>
-      <Section title={`3. Charakter osobních profilů – měsíc ${month}`} hint={`Tolerance ±${o.tolerancePp} p. b. Firemní profil se nevyhodnocuje.`}>
-        {o.characters.length === 0 ? <p className="text-text2">Žádné osobní profily.</p> : <DataTable label="Charakter osobních profilů" columns={characterColumns(month)} rows={o.characters} rowKey={(r) => `${r.profileKey}/${r.characterKey}`} />}
-      </Section>
       <Section title={o.cycleId ? `4. Stav scénářů a schvalování – cyklus ${o.cycleId}` : '4. Stav scénářů a schvalování'} hint={o.cycle ? `${cycleLabel(o.cycleId!)}: natáčení ${o.cycle.shootDate ?? '–'}${o.cycle.daysToShoot !== null ? ` (za ${o.cycle.daysToShoot} dní)` : ''}, termín schválení ${o.cycle.approvalDeadline ?? '–'}${o.cycle.daysToDeadline !== null ? ` (za ${o.cycle.daysToDeadline} dní)` : ''}.` : undefined}>
         {o.cycleStatus ? (
           <DataTable<Indicator>

@@ -6,7 +6,6 @@ import {
   inArray,
   isNull,
   notInArray,
-  or,
   sql,
   type AnyColumn,
 } from "drizzle-orm";
@@ -201,9 +200,7 @@ export async function listVideos(
       ? eq(s.videos.productionStatus, filters.productionStatus)
       : undefined,
     filters.seriesId ? eq(s.videos.seriesId, filters.seriesId) : undefined,
-    filters.unassigned
-      ? or(isNull(s.videos.categoryKey), isNull(s.videos.treatmentKey))
-      : undefined,
+    filters.unassigned ? isNull(s.videos.categoryKey) : undefined,
   ].filter((c) => c !== undefined);
 
   // Latest version, owner and open-comment count come with the videos: no query per video.

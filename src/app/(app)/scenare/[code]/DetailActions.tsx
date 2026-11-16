@@ -10,6 +10,7 @@ import { Field, Textarea } from '@/ui/Field';
 import { SubmitDialog } from '../../_components/editor/SubmitDialog';
 import { ReviewDialog } from '../../_components/review/ReviewDialog';
 import { useReviewToast } from '../../_components/review/ReviewToast';
+import { ShareReviewDialog } from '../../_components/ShareReview';
 import { duplicateEpisodeAction, lifecycleAction, submitForReviewAction, unlockScriptAction } from '../actions';
 
 type Dialog = null | 'submit' | 'postpone' | 'cancel';
@@ -60,12 +61,14 @@ export function DetailActions({
     setReason('');
   };
 
+  const [shared, setShared] = useState<{ titles: string[]; shareUrl: string | null } | null>(null);
+
   async function submit(changeSummary: string) {
     const result = await perform(submitForReviewAction({ videoId, changeSummary }));
     if (!result) return;
     close();
     toast(`Odesláno ke kontrole (v${result.versionNo})`);
-    router.refresh();
+    setShared({ titles: [result.title], shareUrl: result.shareUrl });
   }
 
   async function pause(action: 'postpone' | 'cancel') {
@@ -199,6 +202,15 @@ export function DetailActions({
           </div>
         </form>
       </ReviewDialog>
+      <ShareReviewDialog
+        open={shared !== null}
+        titles={shared?.titles ?? []}
+        shareUrl={shared?.shareUrl ?? null}
+        onClose={() => {
+          setShared(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

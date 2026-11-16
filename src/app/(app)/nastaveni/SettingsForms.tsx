@@ -1,5 +1,6 @@
 'use client';
 
+import { whatsappHref } from '../_components/ShareReview';
 import { Plus } from 'lucide-react';
 import { useState, useTransition, type ReactNode } from 'react';
 import { ROLE_LABELS } from '@/ui/roles';
@@ -411,6 +412,9 @@ function LoginLink({ userId }: { userId: string }) {
                 Sdílet
               </Button>
             ) : null}
+            <a href={whatsappHref(url)} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center rounded-full border border-ink/20 px-5 font-semibold">
+              WhatsApp
+            </a>
             {note ? <span role="status" className="text-sm text-text2">{note}</span> : null}
           </div>
           <p className="text-sm text-text2">Odkaz platí 7 dní a jde použít jednou. Po otevření zůstaneš přihlášený 90 dní.</p>

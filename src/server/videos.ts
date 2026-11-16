@@ -474,3 +474,28 @@ export async function setManualCheck(
       .where(eq(s.videos.id, video.id));
   });
 }
+
+export interface BulkSubmitResult {
+  submitted: { id: string; code: string; title: string }[];
+  /** Czech, one per failed script, e.g. „V041: doplň kategorii“. */
+  failed: string[];
+}
+
+/** Submits each script in its own transaction; a failure (missing category/cycle, wrong status) never stops the rest. */
+export async function submitManyForReview(db: Db, actor: Actor, videoIds: string[], now: Date): Promise<BulkSubmitResult> {
+  const result: BulkSubmitResult = { submitted: [], failed: [] };
+  for (const id of videoIds) {
+    const [row] = await db.select({ code: s.videos.code, title: s.videos.title }).from(s.videos).where(eq(s.videos.id, id));
+    const code = row?.code ?? id;
+    try {
+      await submitForReview(db, actor, id, {}, now);
+      result.submitted.push({ id, code, title: row?.title ?? code });
+    } catch (error) {
+      if (!(error instanceof DomainError)) throw error;
+      result.failed.push(
+        error.code === 'VALIDATION' && error.details.length > 0 ? `${code}: doplň ${error.details.join(', ')}` : `${code}: ${error.message}`,
+      );
+    }
+  }
+  return result;
+}

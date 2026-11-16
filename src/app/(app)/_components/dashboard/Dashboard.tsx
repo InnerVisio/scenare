@@ -208,30 +208,6 @@ export function MixCard({ cycleId, mix, categories }: { cycleId: string; mix: Cy
           <MixRowView key={row.key} row={row} href={`${cycleHref}&kategorie=${row.key}`} color={categories.find((c) => c.key === row.key)?.color} />
         ))}
       </ul>
-      <ul aria-label="Typ zpracování" className="grid list-none gap-2 md:grid-cols-2">
-        {mix.treatments.rows.map((row) => (
-          <MixRowView key={row.key} row={row} href={cycleHref} />
-        ))}
-      </ul>
-      {mix.characters.length > 0 && (
-        <ul aria-label="Osobní a pracovní" className="grid list-none gap-2 md:grid-cols-2">
-          {mix.characters.map((c) => (
-            <li key={c.profileKey} className="flex flex-col gap-1 rounded-inner bg-nest p-3">
-              <span className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 font-semibold">{c.label}</span>
-                <span className={cn('shrink-0 rounded-pill px-3 py-1 text-sm font-semibold', c.status === 'out' ? STATUS_STYLE.missing : STATUS_STYLE[c.status === 'ok' ? 'approved' : 'none'])}>
-                  {c.status === 'ok' ? 'OK' : c.status === 'out' ? 'Mimo poměr' : '—'}
-                </span>
-              </span>
-              <span className="text-sm text-text2">
-                {c.total === 0
-                  ? 'Zatím žádný scénář'
-                  : c.characters.map((x) => `${x.label.toLowerCase()} ${x.count} (${Math.round((x.share ?? 0) * 100)} %, cíl ${Math.round(x.target * 100)} %)`).join(' · ')}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
     </Card>
   );
 }

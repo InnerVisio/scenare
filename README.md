@@ -55,6 +55,8 @@ Vzor je v `.env.example`.
 3. Pro e-maily nastav i `CRON_SECRET` a v GitHubu repozitářové secrets `APP_URL` (např. `https://scenare.vercel.app`) a `CRON_SECRET` (stejná hodnota), viz docs.
 4. Při každém buildu (`vercel-build`) se nejdřív spustí migrace databáze, volitelně seed (`SEED_DEMO=1`) a pak `next build`.
 
+Ukázková data se v produkci nenahrávají; SEED_DEMO platí jen pro náhledy.
+
 Podrobný postup: [docs/nasazeni-vercel.md](docs/nasazeni-vercel.md).
 
 ## Účty a přihlášení

@@ -12,6 +12,7 @@ import { plural } from '../_components/review/model';
 import { LeadershipScriptsView } from './LeadershipScriptsView';
 import { ListFilters } from './ListFilters';
 import { NewScriptButton } from './NewScriptButton';
+import { BulkSubmitProvider } from './BulkSubmit';
 import { ScriptList } from './ScriptList';
 import { parseListQuery } from './listModel';
 
@@ -71,7 +72,9 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
           description={filtered ? 'Zkus filtry uvolnit nebo je zrušit.' : can(actor, 'script.create') ? 'Začni tlačítkem „Nový scénář“.' : undefined}
         />
       ) : (
-        <ScriptList items={items} options={options} today={pragueDay(new Date())} />
+        <BulkSubmitProvider>
+          <ScriptList items={items} options={options} today={pragueDay(new Date())} selectable={actor.role === 'admin'} />
+        </BulkSubmitProvider>
       )}
     </div>
   );

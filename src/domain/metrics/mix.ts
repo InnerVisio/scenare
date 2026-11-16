@@ -166,7 +166,7 @@ export interface CycleMix {
   categories: Mix;
   treatments: Mix;
   characters: CharacterMixRow[];
-  /** Counted scripts without a category or without a treatment. */
+  /** Counted scripts without a category. */
   unassigned: number;
 }
 
@@ -187,6 +187,6 @@ export function buildCycleMix(input: {
     categories: buildMix(videos, input.categories, plan, (v) => v.categoryKey),
     treatments: buildMix(videos, input.treatments, plan, (v) => v.treatmentKey),
     characters: buildCharacterMix(videos, input.profiles, input.characters, tolerancePp),
-    unassigned: videos.filter((v) => countsTowardsMix(v.approvalStatus) && (!v.categoryKey || !v.treatmentKey)).length,
+    unassigned: videos.filter((v) => countsTowardsMix(v.approvalStatus) && !v.categoryKey).length,
   };
 }

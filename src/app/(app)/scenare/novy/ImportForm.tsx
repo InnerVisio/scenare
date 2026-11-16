@@ -10,6 +10,8 @@ import { Button } from '@/ui/Button';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { useShell } from '@/ui/ShellContext';
 import { ScriptView, type ScriptMeta } from '../../_components/script-view/ScriptView';
+import { ShareReviewCard } from '../../_components/ShareReview';
+import { useReviewToast } from '../../_components/review/ReviewToast';
 import { createScriptAction, importScriptsAction, parseScriptsAction } from '../actions';
 
 interface Item {
@@ -61,6 +63,9 @@ export function ImportForm({ options, cycleId, plannedMonth }: { options: Editor
   const [text, setText] = useState('');
   const [items, setItems] = useState<Item[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sendNow, setSendNow] = useState(false);
+  const [sent, setSent] = useState<{ titles: string[]; failed: string[]; shareUrl: string | null; codes: string[] } | null>(null);
+  const toast = useReviewToast();
   const nextCycle = options.cycles.find((c) => c.key >= currentMonth) ?? options.cycles[options.cycles.length - 1];
   const [cycle, setCycle] = useState<string>(cycleId ?? nextCycle?.key ?? '');
 
@@ -78,9 +83,15 @@ export function ImportForm({ options, cycleId, plannedMonth }: { options: Editor
       const result = await importScriptsAction({
         cycleId: cycle || null,
         plannedMonth,
+        submit: sendNow,
         scripts: (items ?? []).map(({ body, meta }) => ({ body, meta: { ...meta, title: meta.title.trim() || 'Nový scénář' } })),
       });
       if (!result.ok) return setError(result.message);
+      if (sendNow) {
+        if (result.submitted.length > 0) toast(`Odesláno ke kontrole: ${result.submitted.length}`);
+        setSent({ titles: result.submitted.map((x) => x.title), failed: result.failed, shareUrl: result.shareUrl, codes: result.codes });
+        return;
+      }
       router.push(result.codes.length === 1 ? `/scenare/${result.codes[0]}/upravit` : '/scenare');
     });
 
@@ -103,6 +114,30 @@ export function ImportForm({ options, cycleId, plannedMonth }: { options: Editor
       {error}
     </p>
   );
+
+  if (sent) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-h1">Scénáře uloženy ({sent.codes.length})</h1>
+        {sent.failed.length > 0 && (
+          <div role="alert" className="rounded-inner bg-apricot-soft p-4 text-apricot-ink">
+            <p className="font-semibold">Uloženo jako koncept, neodesláno:</p>
+            <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-5">
+              {sent.failed.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {sent.titles.length > 0 && <ShareReviewCard titles={sent.titles} shareUrl={sent.shareUrl} />}
+        <div>
+          <Button variant="outline" onClick={() => router.push('/scenare')}>
+            Ke scénářům
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!items) {
     return (
@@ -196,6 +231,10 @@ export function ImportForm({ options, cycleId, plannedMonth }: { options: Editor
         </details>
       ))}
       {errorBox}
+      <label className="flex items-center gap-3 font-semibold">
+        <input type="checkbox" checked={sendNow} onChange={(e) => setSendNow(e.target.checked)} className="size-5" />
+        Rovnou odeslat ke kontrole
+      </label>
       <div className="flex flex-wrap gap-3">
         <Button variant="primary" pending={pending} disabled={pending} onClick={save}>
           {items.length === 1 ? 'Uložit a otevřít editor' : `Uložit všechny (${items.length})`}
