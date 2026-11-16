@@ -51,7 +51,7 @@ test('Admin → Radek → Admin → Honza → Radek: a script goes from draft to
   // 1. Admin writes the script in the editor and sends it to review.
   await loginAs(page, 'Admin');
   await page.goto('/scenare');
-  await page.getByRole('link', { name: 'Nový scénář' }).filter({ visible: true }).click();
+  await page.locator('a[href^="/scenare/novy"]').filter({ visible: true }).first().click();
   await page.getByRole('button', { name: 'Vyplnit ručně' }).click();
   await page.waitForURL(/\/scenare\/V\d+\/upravit$/);
   const code = /\/scenare\/(V\d+)\/upravit/.exec(page.url())![1];

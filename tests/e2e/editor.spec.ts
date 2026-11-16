@@ -21,7 +21,7 @@ test.describe('script list', () => {
     await loginAs(page, 'Honza');
     await page.goto('/scenare');
     await expect(page.getByRole('heading', { level: 1, name: 'Scénáře' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Nový scénář' })).toHaveCount(0);
+    await expect(page.locator('a[href^="/scenare/novy"]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Nový scénář' })).toHaveCount(0);
 
     // The full filterable list is the admin's.
@@ -29,7 +29,8 @@ test.describe('script list', () => {
     await page.goto('/scenare');
     const rows = page.locator(info.project.name === 'mobile' ? 'li[data-code]' : 'tr[data-code]');
     await expect(rows.first()).toBeVisible();
-    await expect(rows.filter({ hasText: 'Klient s chybou: fixace hypotéky' })).toHaveCount(1);
+    // Other specs may add scripts with similar titles to the shared e2e DB, so match by code.
+    await expect(rows.and(page.locator('[data-code="V031"]'))).toContainText('Klient s chybou: fixace hypotéky');
     await expectNoHorizontalScroll(page);
     await page.screenshot({ path: `test-results/list-${info.project.name}.png`, fullPage: true });
 
@@ -82,7 +83,7 @@ test.describe('script editor', () => {
     await loginAs(page, 'Admin');
 
     await page.goto('/scenare');
-    await page.getByRole('link', { name: 'Nový scénář' }).filter({ visible: true }).click();
+    await page.locator('a[href^="/scenare/novy"]').filter({ visible: true }).first().click();
     await page.getByRole('button', { name: 'Vyplnit ručně' }).click();
     await page.waitForURL(/\/scenare\/V\d+\/upravit$/);
     const code = /\/scenare\/(V\d+)\/upravit/.exec(page.url())![1];

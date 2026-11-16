@@ -23,7 +23,7 @@ test('admin pastes a script, checks the split and saves it as a draft', async ({
   await page.getByRole('button', { name: /Admin/ }).click();
   await page.waitForURL('**/');
   await page.goto('/scenare');
-  await page.getByRole('link', { name: 'Nový scénář' }).click();
+  await page.locator('a[href^="/scenare/novy"]').filter({ visible: true }).first().click();
   await page.waitForURL('**/scenare/novy**');
 
   await page.getByLabel(/Vlož celý text scénáře/).fill(SCRIPT);
