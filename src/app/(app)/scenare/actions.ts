@@ -8,7 +8,7 @@ import { addReference, removeReference } from '@/server/references';
 import { appUrl } from '@/server/appUrl';
 import { eq } from 'drizzle-orm';
 import * as schema from '@/db/schema';
-import { deleteManyVideos, deleteVideo, type BulkDeleteResult, duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, submitManyForReview, type BulkSubmitResult, unlockForEdit, updateVideoMeta, withdrawFromReview, withdrawManyFromReview, type BulkWithdrawResult } from '@/server/videos';
+import { moveToShootingDay, deleteManyVideos, deleteVideo, type BulkDeleteResult, duplicateAsEpisode, createVideo, saveDraft, setLifecycle, submitForReview, submitManyForReview, type BulkSubmitResult, unlockForEdit, updateVideoMeta, withdrawFromReview, withdrawManyFromReview, type BulkWithdrawResult } from '@/server/videos';
 import { runAction } from '../_actions/run';
 
 // Thin wrappers around the use cases, like the review actions. Autosave writes (draft and meta) skip
@@ -102,6 +102,12 @@ export async function deleteScriptAction(input: z.input<typeof videoIdSchema>): 
 
 export async function bulkDeleteAction(input: z.input<typeof bulkSchema>): Promise<ActionResult<BulkDeleteResult>> {
   return runAction(input, bulkSchema, (db, actor, i, now) => deleteManyVideos(db, actor, i.videoIds, now));
+}
+
+const moveSchema = z.object({ videoIds: z.array(id).min(1).max(50), cycleId: id.nullable() });
+
+export async function moveToShootingDayAction(input: z.input<typeof moveSchema>): Promise<ActionResult> {
+  return runAction(input, moveSchema, (db, actor, i, now) => moveToShootingDay(db, actor, i.videoIds, i.cycleId, now));
 }
 
 export async function withdrawScriptAction(input: z.input<typeof videoIdSchema>): Promise<ActionResult> {

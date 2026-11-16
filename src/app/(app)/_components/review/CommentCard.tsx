@@ -157,7 +157,7 @@ export function CommentCard({
           onSubmit={(event) => {
             event.preventDefault();
             const text = draft.trim();
-            if (!text) return;
+            if (mode === 'reply' && !text) return;
             if (mode === 'reply') void run(() => actions.reply(thread.id, text, mentionedIds(text, users)));
             else void run(() => actions.reject(thread.id, text));
           }}
@@ -165,14 +165,14 @@ export function CommentCard({
         >
           <MentionField
             aria-label={mode === 'reply' ? 'Odpověď' : 'Důvod odmítnutí'}
-            placeholder={mode === 'reply' ? 'Napiš odpověď…' : 'Proč návrh odmítáš?'}
+            placeholder={mode === 'reply' ? 'Napiš odpověď…' : 'Proč návrh odmítáš? (nepovinné)'}
             value={draft}
             onChange={setDraft}
             users={mode === 'reply' ? users : []}
             autoFocus
           />
           <div className="flex gap-2">
-            <Button type="submit" variant={mode === 'reply' ? 'primary' : 'danger'} pending={busy} disabled={draft.trim() === ''}>
+            <Button type="submit" variant={mode === 'reply' ? 'primary' : 'danger'} pending={busy} disabled={mode === 'reply' && draft.trim() === ''}>
               {mode === 'reply' ? 'Odeslat odpověď' : 'Odmítnout návrh'}
             </Button>
             <Button

@@ -202,9 +202,9 @@ test.describe('review queue', () => {
     await page.getByRole('button', { name: 'Odeslat připomínky' }).click();
     const dialog = page.getByRole('dialog', { name: 'Odeslat připomínky Adminovi' });
     await expect(dialog).toBeVisible();
-    // Without own comments on this version the note is required; with them it is optional.
-    if (project === 'mobile') await expect(dialog.getByRole('button', { name: 'Odeslat připomínky' })).toBeDisabled();
-    else await expect(dialog).toContainText('Tvoje komentáře k této verzi se pošlou spolu s připomínkami.');
+    // The note is optional either way.
+    await expect(dialog.getByRole('button', { name: 'Odeslat připomínky' })).toBeEnabled();
+    if (project !== 'mobile') await expect(dialog).toContainText('Tvoje komentáře k této verzi se pošlou spolu s připomínkami.');
     await page.screenshot({ path: `test-results/review-return-${project}.png` });
     await dialog.getByRole('textbox', { name: 'Co je potřeba upravit?' }).fill('Zkrátit úvod a ověřit zdroj.');
     await dialog.getByRole('button', { name: 'Odeslat připomínky' }).click();

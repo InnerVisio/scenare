@@ -32,7 +32,7 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
   });
   const items = await listVideos(db, actor, {
     cycleId: query.cyklus,
-    plannedMonth: query.mesic,
+    month: query.mesic,
     categoryKey: query.kategorie,
     approvalStatus: query.stav,
     productionStatus: query.vyroba,
@@ -69,7 +69,7 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
           description={filtered ? 'Zkus filtry uvolnit nebo je zrušit.' : can(actor, 'script.create') ? 'Začni tlačítkem „Nový scénář“.' : undefined}
         />
       ) : (
-        <BulkSubmitProvider>
+        <BulkSubmitProvider days={options.cycles.filter((c) => c.date && c.date >= pragueDay(new Date())).map((c) => ({ id: c.key, label: c.label }))}>
           <ScriptList items={items} options={options} today={pragueDay(new Date())} selectable={actor.role === 'admin'} />
         </BulkSubmitProvider>
       )}

@@ -250,10 +250,15 @@ describe('decideSuggestion', () => {
     expect(await activityFor(w.db, videoId, 'suggestion.accepted')).toHaveLength(0);
   });
 
-  it('reject requires a reason, adds it as a reply, marks the suggestion rejected and the comment addressed', async () => {
+  it('reject without a reason adds no reply', async () => {
+    const { id } = await suggestion();
+    await decideSuggestion(w.db, w.admin, { commentId: id, accept: false, reason: '  ' }, NOW);
+    expect((await getComment(w.db, id)).suggestion).toMatchObject({ state: 'rejected' });
+    expect(await w.db.select().from(s.comments).where(eq(s.comments.parentId, id))).toHaveLength(0);
+  });
+
+  it('reject with a reason adds it as a reply, marks the suggestion rejected and the comment addressed', async () => {
     const { videoId, id } = await suggestion();
-    await expectDomainError(decideSuggestion(w.db, w.admin, { commentId: id, accept: false }, NOW), 'VALIDATION', 'Napiš důvod odmítnutí.');
-    await expectDomainError(decideSuggestion(w.db, w.admin, { commentId: id, accept: false, reason: '  ' }, NOW), 'VALIDATION');
 
     const draftBefore = (await getVideo(w.db, videoId)).draft;
     await decideSuggestion(w.db, w.admin, { commentId: id, accept: false, reason: 'Slovo je záměrné.' }, minutesLater(2));

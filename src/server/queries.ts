@@ -16,6 +16,8 @@ import type { Db } from "@/db/client";
 import * as s from "@/db/schema";
 import { runChecks, type CheckResult } from "@/domain/checks/runChecks";
 import { daysUntil } from "@/domain/format/date";
+import { nextShootingDay, sortCycles } from "@/domain/shooting/month";
+import { isMonthKey } from "@/ui/monthParams";
 import type { Role } from "@/domain/policy/can";
 import { durationSec, speakers } from "@/domain/script/metrics";
 import type { ScriptBody } from "@/domain/script/types";
@@ -112,6 +114,8 @@ const fold = (value: string) =>
 export interface VideoListFilters {
   cycleId?: string;
   plannedMonth?: string;
+  /** `YYYY-MM` script month: the shooting day's month, else the planned month. */
+  month?: string;
   categoryKey?: string;
   approvalStatus?: string;
   productionStatus?: string;
@@ -170,6 +174,9 @@ export async function listVideos(
     filters.cycleId ? eq(s.videos.cycleId, filters.cycleId) : undefined,
     filters.plannedMonth
       ? eq(s.videos.plannedMonth, filters.plannedMonth)
+      : undefined,
+    filters.month
+      ? sql`coalesce((select to_char(c.shoot_date, 'YYYY-MM') from shooting_cycles c where c.id = ${s.videos.cycleId}), ${s.videos.plannedMonth}) = ${filters.month}`
       : undefined,
     filters.categoryKey
       ? eq(s.videos.categoryKey, filters.categoryKey)
@@ -752,8 +759,19 @@ export interface DashboardCycle {
   approvedCount: number;
 }
 
+export interface DashboardShootDay {
+  id: string;
+  shootDate: string;
+  scriptCount: number;
+}
+
 export interface Dashboard {
   awaitingMe: number;
+  /** Selected month, `YYYY-MM`. */
+  month: string;
+  /** Every shooting day of the month, ascending. */
+  shootDays: DashboardShootDay[];
+  /** The month's next shooting day (else its last one); null without any. */
   cycle: DashboardCycle | null;
   openComments: {
     videoCode: string;
@@ -766,8 +784,8 @@ export interface Dashboard {
   returnedToMe: number;
   /** Category pickers, from the same lookups query as the cards. */
   categories: EditorOptions["categories"];
-  /** Mix of the shown cycle, computed from the cycle's videos and lookups already loaded. */
-  mix: CycleMix | null;
+  /** Mix of the selected month (monthlyTarget split by shares), from the videos and lookups already loaded. */
+  mix: CycleMix;
 }
 
 const pragueDay = new Intl.DateTimeFormat("en-CA", {
@@ -791,13 +809,14 @@ export async function getDashboard(
   db: Db,
   actor: Actor,
   now: Date,
+  monthParam?: string | null,
 ): Promise<Dashboard> {
   const today = pragueDay.format(now);
   const openRoots = and(
     isNull(s.comments.parentId),
     eq(s.comments.status, "open"),
   );
-  // Round 1: everything that does not depend on the chosen cycle, in parallel.
+  // Round 1: everything that does not depend on the chosen month, in parallel.
   const [cycleRows, lookups, queue, [totals], latestComments] =
     await Promise.all([
       db
@@ -805,6 +824,7 @@ export async function getDashboard(
           cycle: s.shootingCycles,
           daysBefore: s.settings.approvalDaysBefore,
           tolerancePp: s.settings.tolerancePp,
+          monthlyTarget: s.settings.monthlyTarget,
         })
         .from(s.shootingCycles)
         .leftJoin(s.settings, eq(s.settings.id, "global"))
@@ -833,52 +853,54 @@ export async function getDashboard(
         .orderBy(desc(s.comments.createdAt), desc(s.comments.id))
         .limit(LATEST_OPEN_COMMENTS),
     ]);
-  const cycles = cycleRows.map((r) => r.cycle);
+  const cycles = sortCycles(cycleRows.map((r) => r.cycle));
   const approvalDaysBefore = cycleRows[0]?.daysBefore ?? 7;
-  const upcoming = cycles.find(
-    (c) => c.shootDate !== null && c.shootDate >= today,
-  );
-  const cycleRow =
-    upcoming ?? [...cycles].sort((a, b) => b.id.localeCompare(a.id))[0];
+  const monthlyTarget = cycleRows[0]?.monthlyTarget ?? 16;
+  const upcoming = nextShootingDay(cycles, today);
+  const monthKey = isMonthKey(monthParam)
+    ? monthParam
+    : (upcoming?.shootDate?.slice(0, 7) ?? today.slice(0, 7));
 
-  let cycle: DashboardCycle | null = null;
-  let mix: CycleMix | null = null;
+  const days = cycles.filter((c) => c.shootDate?.slice(0, 7) === monthKey);
   const kanban = Object.fromEntries(
     APPROVAL_STATUSES.map((status) => [status, [] as VideoListItem[]]),
   ) as Record<ApprovalStatus, VideoListItem[]>;
-  if (cycleRow) {
-    const items = await listVideos(
-      db,
-      actor,
-      { cycleId: cycleRow.id },
-      lookups,
-    );
-    for (const item of items) kanban[item.approvalStatus].push(item);
-    mix = cycleMixFrom({
-      videos: items,
-      lookups,
-      plan: cycleRow.plannedVideos,
-      tolerancePp: cycleRows[0]?.tolerancePp ?? 10,
-    });
+  const items = await listVideos(db, actor, { month: monthKey }, lookups);
+  for (const item of items) kanban[item.approvalStatus].push(item);
+  const mix = cycleMixFrom({
+    videos: items,
+    lookups,
+    plan: monthlyTarget,
+    tolerancePp: cycleRows[0]?.tolerancePp ?? 10,
+  });
+  const shootDays: DashboardShootDay[] = days.map((c) => ({
+    id: c.id,
+    shootDate: c.shootDate as string,
+    scriptCount: items.filter((v) => v.cycleId === c.id).length,
+  }));
 
-    const approved = kanban.approved;
+  // The day the action card talks about: the next one in the month, else the last one.
+  const focus =
+    days.find((c) => (c.shootDate as string) >= today) ?? days.at(-1);
+  let cycle: DashboardCycle | null = null;
+  if (focus) {
+    const approved = kanban.approved.filter((v) => v.cycleId === focus.id);
     const keys = [...new Set(approved.flatMap((v) => v.locationKeys))];
     const labelOf = new Map(
       lookups.filter((l) => l.kind === "location").map((l) => [l.key, l.label]),
     );
-
-    const deadline = cycleRow.shootDate
-      ? minusDays(cycleRow.shootDate, approvalDaysBefore)
+    const deadline = focus.shootDate
+      ? minusDays(focus.shootDate, approvalDaysBefore)
       : null;
     cycle = {
-      id: cycleRow.id,
-      shootDate: cycleRow.shootDate,
+      id: focus.id,
+      shootDate: focus.shootDate,
       approvalDeadline: deadline,
-      daysToShoot: cycleRow.shootDate
-        ? daysUntil(dayAtNoon(cycleRow.shootDate), now)
+      daysToShoot: focus.shootDate
+        ? daysUntil(dayAtNoon(focus.shootDate), now)
         : null,
       daysToDeadline: deadline ? daysUntil(dayAtNoon(deadline), now) : null,
-      clipTarget: cycleRow.clipTarget,
+      clipTarget: focus.clipTarget,
       locations: keys.map((key) => labelOf.get(key) ?? key),
       approvedCount: approved.length,
     };
@@ -886,6 +908,8 @@ export async function getDashboard(
 
   return {
     awaitingMe: queue.filter((i) => !i.decidedByActor).length,
+    month: monthKey,
+    shootDays,
     cycle,
     openComments: latestComments.map((c) => ({
       videoCode: c.videoCode,

@@ -266,8 +266,7 @@ export async function decideSuggestion(
 
     if (!input.accept) {
       const reason = input.reason?.trim() ?? '';
-      if (!reason) throw new DomainError('VALIDATION', 'Napiš důvod odmítnutí.');
-      await tx.insert(s.comments).values({
+      if (reason) await tx.insert(s.comments).values({
         id: newId(),
         videoId: comment.videoId,
         versionId: comment.versionId,
@@ -281,7 +280,7 @@ export async function decideSuggestion(
       });
       await tx
         .update(s.comments)
-        .set({ suggestion: { ...suggestion, state: 'rejected', decidedBy: actor.id, decidedAt, reason }, status: nextStatus, updatedAt: now })
+        .set({ suggestion: { ...suggestion, state: 'rejected', decidedBy: actor.id, decidedAt, reason: reason || null }, status: nextStatus, updatedAt: now })
         .where(eq(s.comments.id, comment.id));
       await logActivity(
         tx,
@@ -291,7 +290,7 @@ export async function decideSuggestion(
           entity: 'comment',
           entityId: comment.id,
           action: 'suggestion.rejected',
-          after: { reason },
+          after: reason ? { reason } : {},
         },
         now,
       );

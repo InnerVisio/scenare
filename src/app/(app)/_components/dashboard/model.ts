@@ -35,6 +35,13 @@ export function weekdayOf(iso: string): string {
   return weekday.format(new Date(`${iso}T12:00:00Z`));
 }
 
+const weekdayShortFmt = new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', weekday: 'short' });
+
+/** Short weekday of a `YYYY-MM-DD` date („pá“, „po“). */
+export function weekdayShort(iso: string): string {
+  return weekdayShortFmt.format(new Date(`${iso}T12:00:00Z`));
+}
+
 /** `2026-11-20` → `20. 11.` */
 export function dayMonth(iso: string): string {
   const [, m, d] = iso.split('-');

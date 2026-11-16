@@ -163,6 +163,7 @@ export function TopBar({
   subtitle,
   size = 'h1',
   hidePeriod = false,
+  monthOnly = false,
 }: {
   title: string;
   subtitle?: string;
@@ -170,6 +171,8 @@ export function TopBar({
   size?: 'h1' | 'display';
   /** Leaves out the month and cycle pickers, for screens that filter by them in their own way. */
   hidePeriod?: boolean;
+  /** Month switcher only (no cycle), defaulting to the month of the next shooting day. */
+  monthOnly?: boolean;
 }) {
   const shell = useShell();
   const showPeriod = !hidePeriod && !shell.leadership;
@@ -177,7 +180,7 @@ export function TopBar({
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const month = parseMonthParam(params.get('mesic'), shell.currentMonth);
+  const month = parseMonthParam(params.get('mesic'), monthOnly ? (shell.defaultMonth ?? shell.currentMonth) : shell.currentMonth);
   const cycle = parseCycleParam(params.get('cyklus'), shell.cycleIds, shell.defaultCycleId);
 
   const months = monthsAround(shell.currentMonth);
@@ -206,13 +209,15 @@ export function TopBar({
             options={months.map((m) => ({ value: m, label: monthLabel(m) }))}
             onSelect={(v) => update('mesic', v)}
           />
-          <Segment
-            label="Cyklus"
-            align="right"
-            value={cycle ?? ''}
-            options={cycleIds.map((id) => ({ value: id, label: shell.cycleLabels?.[id] ?? cycleLabel(id) }))}
-            onSelect={(v) => update('cyklus', v)}
-          />
+          {!monthOnly && (
+            <Segment
+              label="Cyklus"
+              align="right"
+              value={cycle ?? ''}
+              options={cycleIds.map((id) => ({ value: id, label: shell.cycleLabels?.[id] ?? cycleLabel(id) }))}
+              onSelect={(v) => update('cyklus', v)}
+            />
+          )}
         </div>
       )}
 

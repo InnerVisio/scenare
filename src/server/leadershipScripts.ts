@@ -4,6 +4,11 @@ import * as s from "@/db/schema";
 import { monthLabel } from "@/ui/monthParams";
 import { cycleLabel, daysUntil } from "@/domain/format/date";
 import {
+  nextShootingDay,
+  scriptMonth,
+  sortCycles,
+} from "@/domain/shooting/month";
+import {
   APPROVAL_STATUSES,
   isAwaitingDecision,
 } from "@/domain/workflow/approval";
@@ -127,9 +132,9 @@ export async function getLeadershipScripts(
   ]);
 
   const daysBefore = cycleRows[0]?.daysBefore ?? 7;
-  const cycles = cycleRows.map((r) => r.cycle);
+  const cycles = sortCycles(cycleRows.map((r) => r.cycle));
   const nextCycle =
-    cycles.find((c) => c.shootDate !== null && c.shootDate >= today) ??
+    nextShootingDay(cycles, today) ??
     [...cycles].sort((a, b) => b.id.localeCompare(a.id))[0];
 
   const cycleDate = new Map(cycles.map((c) => [c.id, c.shootDate]));
@@ -168,10 +173,10 @@ export async function getLeadershipScripts(
       categoryKey: v.categoryKey,
       cast: castOf(v.castInitials),
       cycleId: v.cycleId,
-      month:
-        (v.cycleId ? cycleDate.get(v.cycleId)?.slice(0, 7) : null) ??
-        v.plannedMonth ??
-        null,
+      month: scriptMonth(
+        v.cycleId ? cycleDate.get(v.cycleId) : null,
+        v.plannedMonth,
+      ),
       status: leadershipStatus(v, actor.id, decided, otherName),
       dot: leadershipDot(v, actor.id, decided, otherName),
     };
@@ -406,11 +411,7 @@ export async function getLeadershipHome(
     if (c.shootDate && m && !shoots.has(m))
       shoots.set(m, { shootDate: c.shootDate, daysToShoot: c.daysToShoot });
   }
-  const upcoming = data.sections
-    .filter((c) => c.shootDate && c.shootDate >= today)
-    .sort((a, b) =>
-      (a.shootDate as string).localeCompare(b.shootDate as string),
-    )[0];
+  const upcoming = nextShootingDay(data.sections, today);
   const month = upcoming?.shootDate?.slice(0, 7) ?? today.slice(0, 7);
   const shoot = shoots.get(month);
   const name = monthLabel(month);

@@ -25,6 +25,8 @@ export interface ShellState {
   defaultCycleId: string | null;
   /** Current month in Prague, `YYYY-MM`. */
   currentMonth: string;
+  /** Month of the next shooting day, else the current month. */
+  defaultMonth?: string;
 }
 
 const ShellContext = createContext<ShellState | null>(null);

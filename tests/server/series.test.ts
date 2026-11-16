@@ -38,9 +38,10 @@ describe('createSeries', () => {
 });
 
 describe('updateSeries', () => {
-  it('requires a reason to change the planned episodes and keeps the original plan', async () => {
+  it('changes the planned episodes with an optional reason and keeps the original plan', async () => {
     const { id } = await createSeries(w.db, w.admin, { name: 'Rozsah', plannedEpisodes: 3 }, NOW);
-    await expectDomainError(updateSeries(w.db, w.admin, id, { plannedEpisodes: 5 }, NOW), 'VALIDATION', 'Zadej důvod změny rozsahu.');
+    await updateSeries(w.db, w.admin, id, { plannedEpisodes: 4 }, NOW);
+    expect(await getSeries(id)).toMatchObject({ plannedEpisodes: 4, originalPlannedEpisodes: 3, scopeChangeReason: '' });
     await updateSeries(w.db, w.admin, id, { plannedEpisodes: 5, scopeChangeReason: 'Přidány dva díly' }, NOW);
     expect(await getSeries(id)).toMatchObject({ plannedEpisodes: 5, originalPlannedEpisodes: 3, scopeChangeReason: 'Přidány dva díly' });
     await updateSeries(w.db, w.admin, id, { name: 'Přejmenováno', goal: 'Cíl', status: 'paused' }, NOW);

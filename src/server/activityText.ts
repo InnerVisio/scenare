@@ -89,6 +89,9 @@ export function describeActivity(
     case 'video.unlocked':
       text = `${who} odemkl schválený scénář ${code} k úpravám`;
       break;
+    case 'video.moved_to_shooting_day':
+      text = `${who} přesunul ${code} ${typeof after?.shootDate === 'string' ? `na natáčení ${after.shootDate}` : 'mimo natáčecí den'}`;
+      break;
     case 'video.postponed':
       text = `${who} odložil ${code}`;
       break;

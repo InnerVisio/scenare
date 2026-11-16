@@ -51,7 +51,7 @@ test.describe('app shell', () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Dobr/);
     await expect(page.getByRole('button', { name: /Měsíc/ })).toContainText(/\d{4}/);
-    await expect(page.getByRole('button', { name: /Cyklus/ })).toContainText('Natáčení 20. 11.');
+    await expect(page.getByRole('button', { name: /Cyklus/ })).toHaveCount(0);
   });
 
   test('avatar menu opens, Escape closes it and focus returns to the avatar', async ({ page }) => {

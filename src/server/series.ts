@@ -125,9 +125,7 @@ export async function updateSeries(db: Db, actor: Actor, id: string, patch: Seri
       if (current.originalPlannedEpisodes == null) {
         set.originalPlannedEpisodes = patch.plannedEpisodes;
       } else if (patch.plannedEpisodes !== current.originalPlannedEpisodes) {
-        const reason = patch.scopeChangeReason?.trim() ?? '';
-        if (!reason) throw new DomainError('VALIDATION', 'Zadej důvod změny rozsahu.');
-        set.scopeChangeReason = reason;
+        set.scopeChangeReason = patch.scopeChangeReason?.trim() ?? '';
       }
     }
 

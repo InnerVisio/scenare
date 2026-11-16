@@ -20,6 +20,8 @@ export interface ShellData {
   defaultCycleId: string | null;
   /** Current month in Prague, `YYYY-MM`. */
   currentMonth: string;
+  /** Month of the next shooting day, else the current month (the admin dashboard's default). */
+  defaultMonth: string;
 }
 
 const pragueDay = new Intl.DateTimeFormat('en-CA', {
@@ -55,5 +57,6 @@ export async function loadShellData(db: Db, actor: Actor, now: Date): Promise<Sh
     cycleLabels: Object.fromEntries(ids.map((id, i) => [id, cycleLabel({ id, shootDate: dates[i] ?? null })])),
     defaultCycleId: (upcoming >= 0 ? ids[upcoming] : latest) ?? null,
     currentMonth: today.slice(0, 7),
+    defaultMonth: (upcoming >= 0 ? dates[upcoming]?.slice(0, 7) : undefined) ?? today.slice(0, 7),
   };
 }

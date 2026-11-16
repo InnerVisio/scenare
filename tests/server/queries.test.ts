@@ -103,6 +103,8 @@ describe('getReviewQueue', () => {
   });
 });
 
+import { nextShootingDay, scriptMonth } from '@/domain/shooting/month';
+
 describe('getDashboard', () => {
   it('computes cycle numbers, counters, kanban and latest open comments for Honza', async () => {
     const world = await setupWorld(); // fresh, undecided
@@ -145,13 +147,48 @@ describe('getDashboard', () => {
 
   it('picks the latest cycle when all shoots are in the past and null without cycles', async () => {
     const world = await setupWorld();
-    const d = await getDashboard(world.db, world.honza, new Date('2027-01-10T10:00:00+01:00'));
+    const d = await getDashboard(world.db, world.honza, new Date('2027-01-10T10:00:00+01:00'), '2026-11');
     expect(d.cycle).toMatchObject({ id: '2026-11', daysToShoot: -51 });
     await world.db.update(s.videos).set({ cycleId: null });
     await world.db.delete(s.shootingCycles);
     const none = await getDashboard(world.db, world.honza, NOW);
     expect(none.cycle).toBeNull();
     expect(none.kanban.draft).toEqual([]);
+  });
+});
+
+describe('getDashboard by month', () => {
+  it('counts scripts of every shooting day in the month and falls back to planned month', async () => {
+    const world = await setupWorld();
+    const now = new Date('2026-10-29T10:00:00+01:00');
+    await world.db.insert(s.shootingCycles).values({ id: '2026-11-23', shootDate: '2026-11-23', plannedVideos: 16, coversMonths: ['2026-11'] });
+    const base = await getDashboard(world.db, world.admin, now);
+    const total = (d: typeof base) => Object.values(d.kanban).flat().length;
+    const before = total(base);
+    await world.db.update(s.videos).set({ cycleId: '2026-11-23' }).where(eq(s.videos.code, 'V036'));
+    await world.db.update(s.videos).set({ cycleId: null, plannedMonth: '2026-11' }).where(eq(s.videos.code, 'V020'));
+    const d = await getDashboard(world.db, world.admin, now);
+    expect(d.month).toBe('2026-11');
+    expect(total(d)).toBe(before);
+    expect(d.shootDays.map((x) => x.shootDate)).toEqual(['2026-11-20', '2026-11-23']);
+    expect(d.shootDays[1].scriptCount).toBe(1);
+    expect(d.mix.plan).toBe(16);
+    expect(d.kanban.draft.map((v) => v.code)).toContain('V036');
+    expect((await getDashboard(world.db, world.admin, now, '2026-12')).shootDays).toEqual([]);
+  });
+
+  it('picks the next shooting day whatever the order of the cycles', () => {
+    const unsorted = [
+      { id: 'b', shootDate: '2026-12-01' },
+      { id: 'a', shootDate: '2026-11-23' },
+      { id: 'c', shootDate: null },
+      { id: 'd', shootDate: '2026-11-20' },
+    ];
+    expect(nextShootingDay(unsorted, '2026-11-21')?.id).toBe('a');
+    expect(nextShootingDay(unsorted, '2027-01-01')).toBeUndefined();
+    expect(scriptMonth('2026-11-23', '2026-12')).toBe('2026-11');
+    expect(scriptMonth(null, '2026-12')).toBe('2026-12');
+    expect(scriptMonth(null, null)).toBeNull();
   });
 });
 

@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
         cycleLabels: shell.cycleLabels,
         defaultCycleId: shell.defaultCycleId,
         currentMonth: shell.currentMonth,
+        defaultMonth: shell.defaultMonth,
       }}
     >
       <Sidebar queueCount={shell.queueCount} leadership={shell.user.role === 'leadership'} />

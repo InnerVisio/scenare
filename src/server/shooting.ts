@@ -5,6 +5,7 @@ import { daysUntil } from '@/domain/format/date';
 import { buildCycleMix, countsTowardsMix } from '@/domain/metrics/mix';
 import { can } from '@/domain/policy/can';
 import type { ScriptBody } from '@/domain/script/types';
+import { nextShootingDay } from '@/domain/shooting/month';
 import { crewView, groupForShooting, shootingWarnings, type CrewView, type LocationGroup, type ShootingVideo } from '@/domain/shooting/plan';
 import { checkProductionChange } from '@/domain/workflow/production';
 import { logActivity } from './activity';
@@ -45,7 +46,7 @@ type CycleRow = Awaited<ReturnType<typeof cycleRows>>[number];
 function pickCycle(rows: CycleRow[], param: string | undefined, today: string): CycleRow | undefined {
   const named = param ? rows.find((r) => r.id === param) : undefined;
   if (named) return named;
-  const upcoming = rows.find((r) => r.shootDate !== null && r.shootDate >= today);
+  const upcoming = nextShootingDay(rows, today);
   return upcoming ?? [...rows].sort((a, b) => b.id.localeCompare(a.id))[0];
 }
 

@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
+import { dayMonthOf } from '@/domain/format/date';
 import { remapAnchor } from '@/domain/anchors/remap';
 import { newId } from '@/domain/ids';
 import { can } from '@/domain/policy/can';
@@ -455,14 +456,14 @@ export async function setLifecycle(
   db: Db,
   actor: Actor,
   videoId: string,
-  input: { action: 'postpone' | 'cancel' | 'restore'; reason: string },
+  input: { action: 'postpone' | 'cancel' | 'restore'; reason?: string },
   now: Date,
 ): Promise<void> {
   await db.transaction(async (tx) => {
     const video = await loadVideo(tx, videoId, { lock: true });
     if (!can(actor, 'script.lifecycle', { ownerId: video.ownerId })) throw forbidden();
     const status = statusOf(video);
-    const reason = input.reason.trim();
+    const reason = input.reason?.trim() ?? '';
 
     let next: 'postponed' | 'cancelled' | 'draft';
     let action: string;
@@ -475,7 +476,6 @@ export async function setLifecycle(
     } else {
       next = input.action === 'postpone' ? 'postponed' : 'cancelled';
       action = input.action === 'postpone' ? 'video.postponed' : 'video.cancelled';
-      if (!reason) throw new DomainError('VALIDATION', 'Napiš důvod.');
       if (status === next) throw new DomainError('INVALID_TRANSITION', 'Scénář už v tomto stavu je.');
     }
 
@@ -497,7 +497,7 @@ export async function setLifecycle(
         entityId: videoId,
         action,
         before: { status },
-        after: next === 'draft' ? { status: next } : { status: next, reason },
+        after: next === 'draft' || !reason ? { status: next } : { status: next, reason },
       },
       now,
     );
@@ -603,4 +603,41 @@ export async function deleteManyVideos(db: Db, actor: Actor, videoIds: string[],
     }
   }
   return result;
+}
+
+/**
+ * Admin only: puts the scripts on a shooting day (`cycleId`) or takes them off it (null), in one transaction.
+ * Taking a script off its day keeps its month: the old day's month becomes `plannedMonth` when none is set.
+ */
+export async function moveToShootingDay(db: Db, actor: Actor, videoIds: string[], cycleId: string | null, now: Date): Promise<void> {
+  if (actor.role !== 'admin') throw forbidden();
+  await db.transaction(async (tx) => {
+    let day: { shootDate: string | null } | undefined;
+    if (cycleId) {
+      [day] = await tx.select({ shootDate: s.shootingCycles.shootDate }).from(s.shootingCycles).where(eq(s.shootingCycles.id, cycleId));
+      if (!day) throw new DomainError('NOT_FOUND', 'Natáčecí den nenalezen.');
+    }
+    const rows = await tx
+      .select({ id: s.videos.id, cycleId: s.videos.cycleId, plannedMonth: s.videos.plannedMonth, shootDate: s.shootingCycles.shootDate })
+      .from(s.videos)
+      .leftJoin(s.shootingCycles, eq(s.shootingCycles.id, s.videos.cycleId))
+      .where(inArray(s.videos.id, videoIds));
+    for (const row of rows) {
+      const plannedMonth = cycleId === null && !row.plannedMonth && row.shootDate ? row.shootDate.slice(0, 7) : row.plannedMonth;
+      await tx.update(s.videos).set({ cycleId, plannedMonth, updatedAt: now }).where(eq(s.videos.id, row.id));
+      await logActivity(
+        tx,
+        {
+          actorId: actor.id,
+          videoId: row.id,
+          entity: 'video',
+          entityId: row.id,
+          action: 'video.moved_to_shooting_day',
+          before: { cycleId: row.cycleId },
+          after: { cycleId, ...(day?.shootDate ? { shootDate: dayMonthOf(day.shootDate) } : {}) },
+        },
+        now,
+      );
+    }
+  });
 }

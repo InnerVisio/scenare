@@ -6,8 +6,8 @@ import { cn, focusRing } from '@/ui/cn';
 import { ReviewDialog } from './ReviewDialog';
 
 /**
- * „Odeslat připomínky“ (the return action) with the note for the author. The note is required unless the actor has
- * already commented on this version (those comments travel with the return).
+ * „Odeslat připomínky“ (the return action) with the note for the author. The note is optional;
+ * the actor's comments on this version travel with the return.
  */
 export function ReturnDialog({
   open,
@@ -25,26 +25,24 @@ export function ReturnDialog({
   onCancel: () => void;
 }) {
   const [note, setNote] = useState('');
-  const missing = !hasOwnComments && note.trim() === '';
 
   return (
     <ReviewDialog open={open} onClose={onCancel} title="Odeslat připomínky Adminovi">
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          if (!missing) onSubmit(note.trim());
+          onSubmit(note.trim());
         }}
         className="flex flex-col gap-3"
       >
         <label htmlFor="return-note" className="font-semibold">
-          Co je potřeba upravit?
+          Co je potřeba upravit? (nepovinné)
         </label>
         <textarea
           id="return-note"
           value={note}
           onChange={(event) => setNote(event.target.value)}
           rows={4}
-          required={!hasOwnComments}
           className={cn('w-full resize-none rounded-inner bg-nest p-4 text-base', focusRing)}
         />
         {hasOwnComments && <p className="text-sm text-text2">Tvoje komentáře k této verzi se pošlou spolu s připomínkami.</p>}
@@ -57,7 +55,7 @@ export function ReturnDialog({
           <Button variant="outline" onClick={onCancel} pending={busy}>
             Zrušit
           </Button>
-          <Button type="submit" variant="danger" pending={busy} disabled={missing}>
+          <Button type="submit" variant="danger" pending={busy}>
             Odeslat připomínky
           </Button>
         </div>

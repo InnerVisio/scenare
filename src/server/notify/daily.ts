@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { daysUntil, formatDayMonth, pragueDay, pragueHour } from '@/domain/format/date';
+import { nextShootingDay, sortCycles } from '@/domain/shooting/month';
 import { isAwaitingDecision, type ApprovalStatus } from '@/domain/workflow/approval';
 import { sendMail } from '../mail/send';
 import { getCycleMix } from '../mix';
@@ -67,7 +68,7 @@ export async function sendDailyIfDue(db: Db, now: Date): Promise<DailyResult> {
   ]);
 
   // Same rule as the dashboard: the next shoot, otherwise the latest cycle.
-  const cycle = cycles.find((c) => c.shootDate !== null && c.shootDate >= today) ?? cycles.at(-1);
+  const cycle = nextShootingDay(cycles, today) ?? sortCycles(cycles).at(-1);
   const mix = cycle ? await getCycleMix(db, cycle.id) : null;
   const daysLeft = cycle?.shootDate ? daysUntil(approvalDeadline(cycle.shootDate, settings.approvalDaysBefore), now) : null;
   const deadline = cycle?.shootDate ? approvalDeadline(cycle.shootDate, settings.approvalDaysBefore) : null;

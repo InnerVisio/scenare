@@ -110,7 +110,7 @@ export function SeriesEditForm({
         </Field>
       </div>
       {scopeChanged && (
-        <Field label="Důvod změny rozsahu" hint={`Původní plán: ${value.plannedEpisodes} dílů.`}>
+        <Field label="Důvod změny rozsahu (nepovinné)" hint={`Původní plán: ${value.plannedEpisodes} dílů.`}>
           <TextInput value={form.reason} onChange={(e) => set({ reason: e.target.value })} />
         </Field>
       )}

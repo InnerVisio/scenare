@@ -161,19 +161,8 @@ describe('draft edited during review', () => {
 });
 
 describe('return', () => {
-  it('requires a note or a comment by the actor on that version', async () => {
+  it('needs neither a note nor a comment', async () => {
     const { videoId, versionId } = await createSubmitted(w);
-    await expectDomainError(
-      decide(w.db, w.honza, { videoId, versionId, decision: 'return', note: '   ' }, NOW),
-      'VALIDATION',
-      'Napiš, co je potřeba upravit.',
-    );
-    await expectDomainError(decide(w.db, w.honza, { videoId, versionId, decision: 'return' }, NOW), 'VALIDATION');
-    // someone else's comment does not count
-    await createComment(w.db, w.radek, { videoId, versionId, type: 'remark', body: 'Radkova poznámka' }, NOW);
-    await expectDomainError(decide(w.db, w.honza, { videoId, versionId, decision: 'return' }, NOW), 'VALIDATION');
-    expect(await decisionsOf(versionId)).toHaveLength(0);
-
     await createComment(w.db, w.honza, { videoId, versionId, type: 'change_request', body: 'Změnit začátek' }, NOW);
     const res = await decide(w.db, w.honza, { videoId, versionId, decision: 'return' }, NOW);
     expect(res.state).toBe('returned');

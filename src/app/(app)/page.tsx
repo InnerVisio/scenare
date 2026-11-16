@@ -1,4 +1,4 @@
-import { cycleLabel } from '@/domain/format/date';
+import { monthLabel } from '@/ui/monthParams';
 import { getDb } from '@/db/client';
 import { requireActor } from '@/server/auth/session';
 import { getLeadershipHome } from '@/server/leadershipScripts';
@@ -21,18 +21,20 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const home = await getLeadershipHome(db, actor, { all: one(sp.zobrazit) === 'vse' }, now);
     return <LeadershipHomeView home={home} name={actor.name} openKey={one(sp.kategorie) ?? null} />;
   }
-  const data = await getDashboard(db, actor, now);
+  const sp = await searchParams;
+  const mesic = Array.isArray(sp.mesic) ? sp.mesic[0] : sp.mesic;
+  const data = await getDashboard(db, actor, now, mesic);
   return (
     <>
-      <TopBar title={greeting(now, actor.name)} subtitle={dateLine(now, data.cycle?.daysToShoot ?? null)} size="display" />
+      <TopBar title={greeting(now, actor.name)} subtitle={dateLine(now, data.cycle?.daysToShoot ?? null)} size="display" monthOnly />
       <div className="flex flex-col gap-4 md:gap-6">
         <div className="grid gap-4 md:grid-cols-3 md:gap-6">
           <ActionCard data={data} role={actor.role} />
-          <ShootCard cycle={data.cycle} />
+          <ShootCard days={data.shootDays} />
           <CommentsCard data={data} />
         </div>
-        {data.cycle && data.mix && <MixCard cycleId={data.cycle.id} cycleTitle={cycleLabel(data.cycle)} mix={data.mix} categories={data.categories} />}
-        <Kanban data={data} categories={data.categories} />
+        <MixCard month={data.month} monthTitle={monthLabel(data.month)} mix={data.mix} categories={data.categories} />
+        <Kanban data={data} monthTitle={monthLabel(data.month)} categories={data.categories} />
       </div>
     </>
   );

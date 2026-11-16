@@ -73,20 +73,6 @@ export async function decide(db: Db, actor: Actor, input: DecideInput, now: Date
     const note = input.note?.trim() ?? '';
 
     if (input.decision === 'return') {
-      if (!note) {
-        const [{ own }] = await tx
-          .select({ own: sql<number>`count(*)::int` })
-          .from(s.comments)
-          .where(
-            and(
-              eq(s.comments.videoId, video.id),
-              eq(s.comments.versionId, version.id),
-              eq(s.comments.authorId, actor.id),
-              sql`${s.comments.parentId} is null`,
-            ),
-          );
-        if (own === 0) throw new DomainError('VALIDATION', 'Napiš, co je potřeba upravit.');
-      }
       await tx.insert(s.approvalDecisions).values({
         id: decisionId,
         versionId: version.id,

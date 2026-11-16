@@ -6,7 +6,7 @@ import { Button } from '@/ui/Button';
 import { ShareReviewCard } from '../_components/ShareReview';
 import { useReviewToast } from '../_components/review/ReviewToast';
 import { ReviewDialog } from '../_components/review/ReviewDialog';
-import { bulkDeleteAction, bulkSubmitAction, bulkWithdrawAction } from './actions';
+import { moveToShootingDayAction, bulkDeleteAction, bulkSubmitAction, bulkWithdrawAction } from './actions';
 
 const Ctx = createContext<{ selected: Map<string, string>; toggle: (id: string, status: string) => void } | null>(null);
 
@@ -26,7 +26,7 @@ export function RowCheck({ id, label, status }: { id: string; label: string; sta
 }
 
 /** Selection state, sticky „Odeslat ke kontrole (N)“ bar and the „Dej vědět“ card afterwards. */
-export function BulkSubmitProvider({ children }: { children: ReactNode }) {
+export function BulkSubmitProvider({ children, days = [] }: { children: ReactNode; /** Upcoming shooting days for „Přesunout na natáčecí den“. */ days?: { id: string; label: string }[] }) {
   const router = useRouter();
   const toast = useReviewToast();
   const [selected, setSelected] = useState<Map<string, string>>(new Map());
@@ -43,6 +43,18 @@ export function BulkSubmitProvider({ children }: { children: ReactNode }) {
   const sendIds = [...selected].filter(([, st]) => st === 'draft' || st === 'returned').map(([id]) => id);
   const withdrawIds = [...selected].filter(([, st]) => st === 'in_review' || st === 'final_review').map(([id]) => id);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [target, setTarget] = useState('');
+
+  const move = () =>
+    start(async () => {
+      const result = await moveToShootingDayAction({ videoIds: [...selected.keys()], cycleId: target || null });
+      setMoveOpen(false);
+      if (!result.ok) return toast(result.message, 'error');
+      setSelected(new Map());
+      toast(`Přesunuto scénářů: ${selected.size}`);
+      router.refresh();
+    });
 
   const withdraw = () =>
     start(async () => {
@@ -105,6 +117,11 @@ export function BulkSubmitProvider({ children }: { children: ReactNode }) {
                 Stáhnout z kontroly ({withdrawIds.length})
               </Button>
             )}
+            {(
+              <Button variant="outline" disabled={pending} onClick={() => setMoveOpen(true)}>
+                Přesunout na natáčecí den ({selected.size})
+              </Button>
+            )}
             <Button variant="danger" disabled={pending} onClick={() => setConfirmDelete(true)}>
               Smazat ({selected.size})
             </Button>
@@ -114,6 +131,27 @@ export function BulkSubmitProvider({ children }: { children: ReactNode }) {
           </Button>
         </div>
       )}
+      <ReviewDialog open={moveOpen} onClose={() => setMoveOpen(false)} title={`Přesunout na natáčecí den (${selected.size})`}>
+        <label htmlFor="move-day" className="font-semibold">
+          Natáčecí den
+        </label>
+        <select id="move-day" value={target} onChange={(e) => setTarget(e.target.value)} className="mt-2 w-full rounded-inner bg-nest p-4 text-base">
+          <option value="">Bez natáčecího dne</option>
+          {days.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => setMoveOpen(false)} pending={pending}>
+            Zpět
+          </Button>
+          <Button variant="primary" onClick={move} pending={pending}>
+            Přesunout
+          </Button>
+        </div>
+      </ReviewDialog>
       <ReviewDialog
         open={confirmWithdraw}
         onClose={() => setConfirmWithdraw(false)}

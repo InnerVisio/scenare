@@ -9,8 +9,7 @@ import { ButtonLink } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { CategoryTag } from '@/ui/CategoryTag';
 import { cn, focusRing } from '@/ui/cn';
-import { cycleLabel as cycleLabelOf } from '@/domain/format/date';
-import { dayMonth, inDays, scriptsLabel, weekdayOf } from './model';
+import { dayMonth, inDays, scriptsLabel, weekdayShort } from './model';
 
 const COLUMN_DOT: Record<ApprovalStatus, string> = {
   draft: 'bg-grey-dot',
@@ -77,42 +76,17 @@ export function ActionCard({ data, role }: { data: DashboardData; role: string }
   );
 }
 
-export function ShootCard({ cycle }: { cycle: DashboardData['cycle'] }) {
-  if (!cycle || !cycle.shootDate) {
-    return (
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-h2">Natáčecí den</h2>
-        <p className="text-text2">Termín natáčení zatím není stanovený.</p>
-      </Card>
-    );
-  }
+export function ShootCard({ days }: { days: DashboardData['shootDays'] }) {
   return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-h2">Natáčecí den</h2>
-        {cycle.daysToShoot !== null && <span className="rounded-pill bg-violet-soft px-3 py-1.5 text-sm font-semibold text-violet-ink">{inDays(cycle.daysToShoot)}</span>}
-      </div>
-      <p className="flex items-baseline gap-3">
-        <span className="text-display leading-none">{dayMonth(cycle.shootDate)}</span>
-        <span className="text-h2 text-text2">{weekdayOf(cycle.shootDate)}</span>
-      </p>
-      <dl className="grid grid-cols-2 gap-3">
-        <div className="rounded-inner bg-nest p-3">
-          <dt className="text-sm text-text2">Cíl klipů</dt>
-          <dd className="text-h2">{cycle.clipTarget}</dd>
-        </div>
-        <div className="rounded-inner bg-nest p-3">
-          <dt className="text-sm text-text2">Připraveno</dt>
-          <dd className="text-h2">
-            {cycle.approvedCount} {scriptsLabel(cycle.approvedCount)}
-          </dd>
-        </div>
-      </dl>
-      {cycle.locations.length > 0 && (
-        <ul className="flex list-none flex-wrap gap-2">
-          {cycle.locations.map((l) => (
-            <li key={l} className="rounded-pill border border-ink/15 px-3 py-1.5 text-sm">
-              {l}
+    <Card className="flex flex-col gap-3">
+      <h2 className="text-h2">Natáčecí den</h2>
+      {days.length === 0 ? (
+        <p className="text-text2">natáčecí den zatím není určen</p>
+      ) : (
+        <ul className="flex list-none flex-col gap-2">
+          {days.map((d) => (
+            <li key={d.id} className="rounded-inner bg-nest p-3 font-semibold">
+              {weekdayShort(d.shootDate)} {dayMonth(d.shootDate)} · {d.scriptCount} {scriptsLabel(d.scriptCount)}
             </li>
           ))}
         </ul>
@@ -187,14 +161,14 @@ function MixRowView({ row, href, color }: { row: MixRow; href: string; color?: s
   );
 }
 
-export function MixCard({ cycleId, cycleTitle, mix, categories }: { cycleId: string; cycleTitle: string; mix: CycleMix; categories: EditorOptions['categories'] }) {
-  const cycleHref = `/scenare?cyklus=${cycleId}`;
+export function MixCard({ month, monthTitle, mix, categories }: { month: string; monthTitle: string; mix: CycleMix; categories: EditorOptions['categories'] }) {
+  const cycleHref = `/scenare?mesic=${month}`;
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-h2">Rozdělení cyklu · {cycleTitle}</h2>
+        <h2 className="text-h2">Rozdělení · {monthTitle}</h2>
         <p className="text-sm text-text2">plán {mix.plan} {scriptsLabel(mix.plan)}</p>
-        <Link href={`/prehled?cyklus=${cycleId}`} className={cn('inline-flex min-h-12 items-center font-semibold text-violet underline', focusRing)}>
+        <Link href={`/prehled?mesic=${month}`} className={cn('inline-flex min-h-12 items-center font-semibold text-violet underline', focusRing)}>
           Celý přehled →
         </Link>
       </div>
@@ -212,9 +186,7 @@ export function MixCard({ cycleId, cycleTitle, mix, categories }: { cycleId: str
   );
 }
 
-export function Kanban({ data, categories }: { data: DashboardData; categories: EditorOptions['categories'] }) {
-  const cycle = data.cycle;
-  if (!cycle) return null;
+export function Kanban({ data, monthTitle, categories }: { data: DashboardData; monthTitle: string; categories: EditorOptions['categories'] }) {
   const columns = (Object.keys(data.kanban) as ApprovalStatus[]).filter(
     (status) => data.kanban[status].length > 0 || !(status === 'postponed' || status === 'cancelled'),
   );
@@ -223,7 +195,7 @@ export function Kanban({ data, categories }: { data: DashboardData; categories: 
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-h2">{cycleLabelOf(cycle)} · kde co vázne</h2>
+        <h2 className="text-h2">{monthTitle} · kde co vázne</h2>
         <p className="text-sm text-text2">
           {total} {scriptsLabel(total)}
         </p>
@@ -253,7 +225,7 @@ export function Kanban({ data, categories }: { data: DashboardData; categories: 
                 );
               })}
               {rest > 0 && (
-                <Link href={`/scenare?cyklus=${cycle.id}&stav=${status}`} className={cn('inline-flex min-h-12 items-center font-semibold text-violet underline', focusRing)}>
+                <Link href={`/scenare?mesic=${data.month}&stav=${status}`} className={cn('inline-flex min-h-12 items-center font-semibold text-violet underline', focusRing)}>
                   +{rest} {rest === 1 ? 'další' : rest <= 4 ? 'další' : 'dalších'}
                 </Link>
               )}

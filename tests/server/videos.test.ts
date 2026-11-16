@@ -14,6 +14,7 @@ import {
   submitForReview,
   unlockForEdit,
   updateVideoMeta,
+  moveToShootingDay,
 } from '@/server/videos';
 import {
   activityFor,
@@ -335,9 +336,10 @@ describe('setLifecycle', () => {
     });
   });
 
-  it('requires a reason, valid source status and permission', async () => {
+  it('needs no reason, but a valid source status and permission', async () => {
     const { id } = await newVideo();
-    await expectDomainError(setLifecycle(w.db, w.admin, id, { action: 'postpone', reason: '  ' }, NOW), 'VALIDATION', 'Napiš důvod.');
+    await setLifecycle(w.db, w.admin, id, { action: 'postpone' }, NOW);
+    await setLifecycle(w.db, w.admin, id, { action: 'restore' }, NOW);
     await expectDomainError(setLifecycle(w.db, w.admin, id, { action: 'restore', reason: '' }, NOW), 'INVALID_TRANSITION');
     await setLifecycle(w.db, w.admin, id, { action: 'postpone', reason: 'x' }, NOW);
     await expectDomainError(setLifecycle(w.db, w.admin, id, { action: 'postpone', reason: 'y' }, NOW), 'INVALID_TRANSITION');
@@ -486,5 +488,18 @@ describe('duplicateAsEpisode', () => {
     expect((await getVideo(w.db, copy.id)).draft!.hooks[0].text).toBe('Ruka s propiskou');
     await expectDomainError(duplicateAsEpisode(w.db, w.honza, id, NOW), 'FORBIDDEN');
     await expectDomainError(duplicateAsEpisode(w.db, w.admin, 'nope', NOW), 'NOT_FOUND');
+  });
+});
+
+describe('moveToShootingDay', () => {
+  it('is admin only, moves in one go and keeps the month when taking scripts off the day', async () => {
+    const { id } = await newVideo();
+    await w.db.insert(s.shootingCycles).values({ id: 'move-day', shootDate: '2026-12-05', plannedVideos: 16, coversMonths: ['2026-12'] }).onConflictDoNothing();
+    await expectDomainError(moveToShootingDay(w.db, w.honza, [id], 'move-day', NOW), 'FORBIDDEN');
+    await moveToShootingDay(w.db, w.admin, [id], 'move-day', NOW);
+    expect(await getVideo(w.db, id)).toMatchObject({ cycleId: 'move-day' });
+    await moveToShootingDay(w.db, w.admin, [id], null, NOW);
+    expect(await getVideo(w.db, id)).toMatchObject({ cycleId: null, plannedMonth: '2026-12' });
+    expect(await activityFor(w.db, id, 'video.moved_to_shooting_day')).toHaveLength(2);
   });
 });

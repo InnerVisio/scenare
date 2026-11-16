@@ -40,6 +40,7 @@ export function DetailActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reason, setReason] = useState('');
+  const [noteOpen, setNoteOpen] = useState(false);
 
   async function perform<T extends object>(promise: Promise<ActionResult<T>>): Promise<Extract<ActionResult<T>, { ok: true }> | null> {
     setBusy(true);
@@ -61,6 +62,7 @@ export function DetailActions({
     setDialog(null);
     setError(null);
     setReason('');
+    setNoteOpen(false);
   };
 
   const [shared, setShared] = useState<{ titles: string[]; shareUrl: string | null } | null>(null);
@@ -74,7 +76,6 @@ export function DetailActions({
   }
 
   async function pause(action: 'postpone' | 'cancel') {
-    if (!reason.trim()) return setError('Napiš důvod.');
     const result = await perform(lifecycleAction({ videoId, action, reason: reason.trim() }));
     if (!result) return;
     close();
@@ -304,9 +305,15 @@ export function DetailActions({
           }}
           className="flex flex-col gap-4"
         >
-          <Field label="Důvod">
-            <Textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} className="min-h-24" />
-          </Field>
+          {noteOpen ? (
+            <Field label="Poznámka">
+              <Textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} className="min-h-24" autoFocus />
+            </Field>
+          ) : (
+            <button type="button" onClick={() => setNoteOpen(true)} className="self-start font-semibold text-violet underline">
+              Přidat poznámku
+            </button>
+          )}
           {error && (
             <p role="alert" className="rounded-inner bg-danger-bg px-4 py-3 font-semibold text-danger-text">
               {error}

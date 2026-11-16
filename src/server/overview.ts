@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { pragueDay } from '@/domain/format/date';
+import { nextShootingDay } from '@/domain/shooting/month';
 import {
   buildCycleStatus,
   buildHistory,
@@ -108,8 +109,7 @@ export async function getOverview(db: Db, input: { month: string; cycleId: strin
   const month = { kind: 'month' as const, month: input.month };
 
   // Same default as the top bar: the cycle asked for, else the next shoot, else the latest cycle.
-  const sorted = [...cycles].sort((a, b) => (a.shootDate ?? '9999').localeCompare(b.shootDate ?? '9999') || a.id.localeCompare(b.id));
-  const fallback = sorted.find((c) => c.shootDate !== null && c.shootDate >= today) ?? [...cycles].sort((a, b) => b.id.localeCompare(a.id))[0] ?? null;
+  const fallback = nextShootingDay(cycles, today) ?? [...cycles].sort((a, b) => b.id.localeCompare(a.id))[0] ?? null;
   const selected = cycles.find((c) => c.id === input.cycleId) ?? fallback;
   const plan = selected?.plannedVideos || monthlyTarget;
   const approvalDeadline = selected ? (deadlineOf.get(selected.id) ?? null) : null;
