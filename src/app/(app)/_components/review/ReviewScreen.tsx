@@ -527,6 +527,7 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
                 busy={busy}
                 error={composerError}
                 focusToken={focusToken}
+                showTypeSelect={!leadership}
                 onCancelTarget={() => setTarget({ kind: 'general' })}
                 onSubmit={submitComment}
                 onActiveChange={onComposerActive}
