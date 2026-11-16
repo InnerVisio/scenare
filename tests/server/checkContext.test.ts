@@ -1,3 +1,4 @@
+import { enableCheckRules } from './helpers';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb } from '@/db/client';
@@ -49,6 +50,7 @@ describe('buildCheckContext', () => {
 describe('loadRules', () => {
   it('maps non-archived check_rule lookups', async () => {
     const w = await setupWorld();
+    await enableCheckRules(w.db);
     const rules = await loadRules(w.db);
     expect(rules).toHaveLength(13);
     const length = rules.find((r) => r.code === 'LENGTH')!;

@@ -203,7 +203,7 @@ const checkRules = rows(
     data: {
       severity: rule.severity,
       mode: rule.mode,
-      enabled: rule.enabled,
+      enabled: false,
       ...(rule.params ? { params: rule.params } : {}),
     },
   })),

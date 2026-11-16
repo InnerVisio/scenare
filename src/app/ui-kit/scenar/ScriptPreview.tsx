@@ -62,10 +62,8 @@ export function ScriptPreview({
         <SelectionToolbar
           rect={selection.rect}
           canSuggest
-          canNumber
           onComment={() => log('komentovat')}
           onSuggest={() => log('navrhnout')}
-          onNumber={() => log('číslo')}
         />
       )}
     </main>

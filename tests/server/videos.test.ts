@@ -1,3 +1,4 @@
+import { enableCheckRules } from './helpers';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as s from '@/db/schema';
@@ -199,18 +200,12 @@ describe('submitForReview', () => {
     const err = await expectDomainError(
       submitForReview(w.db, w.admin, id, {}, NOW),
       'VALIDATION',
-      'Před odesláním doplň: kategorii, typ zpracování, cyklus, profil.',
+      'Před odesláním doplň: kategorii, natáčecí den.',
     );
-    expect(err.details).toEqual(['kategorii', 'typ zpracování', 'cyklus', 'profil']);
+    expect(err.details).toEqual(['kategorii', 'natáčecí den']);
     expect((await getVideo(w.db, id)).approvalStatus).toBe('draft');
 
-    await updateVideoMeta(w.db, w.admin, id, { ...COMPLETE_META, characterKey: null }, NOW);
-    await expectDomainError(
-      submitForReview(w.db, w.admin, id, {}, NOW),
-      'VALIDATION',
-      'Před odesláním doplň: charakter (osobní / pracovní).',
-    );
-    await updateVideoMeta(w.db, w.admin, id, { profileKey: 'gta-partners' }, NOW); // not a personal profile
+    await updateVideoMeta(w.db, w.admin, id, { categoryKey: COMPLETE_META.categoryKey, cycleId: COMPLETE_META.cycleId }, NOW);
     await expect(submitForReview(w.db, w.admin, id, {}, NOW)).resolves.toMatchObject({ versionNo: 1 });
   });
 
@@ -353,6 +348,7 @@ describe('setLifecycle', () => {
 
 describe('setManualCheck', () => {
   it('lets leadership tick and untick a manual check on the latest version, without activity', async () => {
+    await enableCheckRules(w.db);
     const { videoId, versionId } = await createSubmitted(w);
     const before = (await activityFor(w.db, videoId)).length;
 
@@ -366,6 +362,7 @@ describe('setManualCheck', () => {
   });
 
   it('lets the owner (admin) tick a manual check', async () => {
+    await enableCheckRules(w.db);
     const { videoId, versionId } = await createSubmitted(w);
     await setManualCheck(w.db, w.admin, { videoId, versionId, code: 'PILLAR', checked: true }, NOW);
     expect((await getVideo(w.db, videoId)).manualChecks[versionId]).toEqual({ PILLAR: true });
@@ -416,6 +413,7 @@ describe('setManualCheck', () => {
   });
 
   it('feeds the check results', async () => {
+    await enableCheckRules(w.db);
     const { videoId, versionId } = await createSubmitted(w);
     await setManualCheck(w.db, w.radek, { videoId, versionId, code: 'GDPR', checked: true }, NOW);
     const detail = await getVideoDetail(w.db, w.radek, videoId);

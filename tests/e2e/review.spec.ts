@@ -135,6 +135,7 @@ test.describe('review queue', () => {
     await loginAs(page, 'Radek');
     await page.goto('/kontrola/V033');
     await expect(page.getByRole('heading', { level: 1, name: /Hot take/ })).toBeVisible();
+    await page.screenshot({ path: `test-results/review-${info.project.name}.png` });
     const before = await page.locator('article[data-comment-id]').count();
 
     await selectPhrase(page, comment.field, comment.phrase);
@@ -171,25 +172,6 @@ test.describe('review queue', () => {
     // The replacement follows the struck text inside the field (split in two spans so the badge can stay with the last word).
     await expect(page.locator(`[data-field-id="${suggest.field}"]`)).toContainText(replacement);
     await expectNoHorizontalScroll(page);
-  });
-
-  test('flag a number and confirm it in the Kontrola tab', async ({ page }, info) => {
-    const project = info.project.name;
-    const phrase = planOf(project).number;
-    await loginAs(page, 'Radek');
-    await page.goto('/kontrola/V033');
-    await expect(page.getByRole('heading', { level: 1, name: /Hot take/ })).toBeVisible();
-
-    await selectPhrase(page, 'line:v033-s3-l1:text', phrase);
-    await toolbar(page).getByRole('button', { name: 'Číslo' }).click();
-    await expect(toast(page)).toContainText('Číslo označeno ke kontrole');
-
-    await openComments(page);
-    await page.getByRole('tab', { name: 'Kontrolní body' }).click();
-    const item = page.getByRole('listitem').filter({ hasText: `„${phrase}“` });
-    await expect(item).toContainText('Čeká');
-    await item.getByRole('button', { name: 'Potvrdit' }).click();
-    await expect(item).toContainText('Potvrzeno');
   });
 
   test('admin accepts the suggestion and the script text changes', async ({ page }, info) => {

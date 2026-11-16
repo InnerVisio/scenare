@@ -45,15 +45,27 @@ export function LineRow({
           list={speakerListId}
           value={line.speaker}
           maxLength={80}
-          onChange={(event) => dispatch({ type: 'line', lineId: line.id, patch: { speaker: event.target.value } })}
+          onChange={(event) =>
+            dispatch({
+              type: 'line',
+              lineId: line.id,
+              patch: { speaker: event.target.value },
+            })
+          }
           className="bg-card"
         />
         <TextInput
-          aria-label="Poznámka k hraní"
-          placeholder="Poznámka k hraní, např. do kamery"
+          aria-label="Pokyn"
+          placeholder="(pokyn)"
           value={line.direction}
           maxLength={120}
-          onChange={(event) => dispatch({ type: 'line', lineId: line.id, patch: { direction: event.target.value } })}
+          onChange={(event) =>
+            dispatch({
+              type: 'line',
+              lineId: line.id,
+              patch: { direction: event.target.value },
+            })
+          }
           className="bg-card"
         />
       </div>
@@ -62,28 +74,43 @@ export function LineRow({
         placeholder="Co řekne"
         value={line.text}
         maxLength={2000}
-        onChange={(event) => dispatch({ type: 'line', lineId: line.id, patch: { text: event.target.value } })}
+        onChange={(event) =>
+          dispatch({
+            type: 'line',
+            lineId: line.id,
+            patch: { text: event.target.value },
+          })
+        }
         className="bg-card text-script"
       />
       <FieldThreads threads={threads} onOpen={onOpenThread} />
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          aria-pressed={cta !== null}
-          onClick={() => dispatch({ type: 'toggleCta', lineId: line.id, defaultType: defaultCtaType })}
-          className={cn(
-            'min-h-12 rounded-pill px-5 font-semibold',
-            focusRing,
-            cta ? 'bg-lime-soft text-lime-ink' : 'bg-card text-ink hover:bg-ink/5',
-          )}
-        >
-          Výzva
-        </button>
+        {cta && (
+          <button
+            type="button"
+            aria-pressed
+            onClick={() =>
+              dispatch({
+                type: 'toggleCta',
+                lineId: line.id,
+                defaultType: defaultCtaType,
+              })
+            }
+            className={cn('min-h-12 rounded-pill bg-lime-soft px-5 font-semibold text-lime-ink', focusRing)}
+          >
+            Výzva
+          </button>
+        )}
         {cta && (
           <Select
             aria-label="Typ výzvy"
             value={cta.ctaType}
-            onChange={(event) => dispatch({ type: 'ctaType', ctaType: event.target.value as Cta['ctaType'] })}
+            onChange={(event) =>
+              dispatch({
+                type: 'ctaType',
+                ctaType: event.target.value as Cta['ctaType'],
+              })
+            }
             pill
             className="w-auto bg-card"
           >

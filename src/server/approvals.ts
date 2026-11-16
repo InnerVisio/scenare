@@ -4,11 +4,9 @@ import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { newId } from '@/domain/ids';
 import { can } from '@/domain/policy/can';
-import { runChecks } from '@/domain/checks/runChecks';
 import { evaluateDecisions, isAwaitingDecision } from '@/domain/workflow/approval';
 import { logActivity } from './activity';
 import type { Actor } from './actor';
-import { buildCheckContext, loadRules } from './checkContext';
 import { DomainError } from './errors';
 import { approvalSetup, latestVersion, leadershipUsers, loadVideo, statusOf, type Executor, type VideoRow, type VersionRow } from './loaders';
 
@@ -35,27 +33,15 @@ function plural(n: number, one: string, few: string, many: string): string {
 async function findBlockers(tx: Executor, video: VideoRow, version: VersionRow): Promise<string[]> {
   const blockers: string[] = [];
 
-  const [{ openComments, pendingNumbers }] = await tx
+  const [{ openComments }] = await tx
     .select({
       openComments: sql<number>`(select count(*)::int from comments where video_id = ${video.id} and parent_id is null and status = 'open')`,
-      pendingNumbers: sql<number>`(select count(*)::int from number_checks where video_id = ${video.id} and status = 'pending')`,
     })
     .from(sql`(select 1) as one`);
   if (openComments > 0) {
     blockers.push(plural(openComments, 'nevyřešený komentář', 'nevyřešené komentáře', 'nevyřešených komentářů'));
   }
 
-  if (pendingNumbers > 0) {
-    blockers.push(plural(pendingNumbers, 'nepotvrzené číslo', 'nepotvrzená čísla', 'nepotvrzených čísel'));
-  }
-
-  const results = runChecks(await buildCheckContext(tx, video, version), await loadRules(tx));
-  for (const r of results) {
-    // NUMBERS is already reported above as a count.
-    if (r.severity === 'reject' && r.status === 'fail' && r.code !== 'NUMBERS') {
-      blockers.push(r.detail ? `${r.label} – ${r.detail}` : r.label);
-    }
-  }
   return blockers;
 }
 

@@ -1,3 +1,4 @@
+import { enableCheckRules } from './helpers';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as s from '@/db/schema';
@@ -235,7 +236,8 @@ describe('warnings and override', () => {
     expect((await decisionsOf(versionId))[0]).toMatchObject({ overrodeWarnings: false });
   });
 
-  it('closed and addressed comments and replies do not block; pending numbers and failing reject rules do', async () => {
+  it('closed and addressed comments and replies do not block; neither do pending numbers or enabled failing rules', async () => {
+    await enableCheckRules(w.db);
     const { videoId, versionId } = await createSubmitted(w);
     const { id: c1 } = await createComment(w.db, w.radek, { videoId, versionId, type: 'remark', body: 'a' }, NOW);
     await w.db.update(s.comments).set({ status: 'addressed' }).where(eq(s.comments.id, c1));
@@ -243,23 +245,16 @@ describe('warnings and override', () => {
     await createComment(w.db, w.radek, { videoId, versionId, type: 'approval', body: 'Souhlasím' }, NOW);
     await flagNumber(w.db, w.honza, { videoId, fieldId: 'hook:A:text', quotedText: 'autu' }, NOW);
 
-    const err = await expectDomainError(
-      decide(w.db, w.honza, { videoId, versionId, decision: 'approve' }, NOW),
-      'VALIDATION',
-      'Scénář má nevyřešené body. Schválit i tak?',
-    );
-    expect(err.details).toEqual(['1 nepotvrzené číslo']);
+    await expect(decide(w.db, w.honza, { videoId, versionId, decision: 'approve' }, NOW)).resolves.toBeDefined();
   });
 
-  it('lists failing auto "reject" rules by label; manual pending rules do not block', async () => {
+  it('failing rules never block an approval', async () => {
+    await enableCheckRules(w.db);
     const { id: videoId } = await createVideo(w.db, w.admin, { title: 'Prázdný hook', ...COMPLETE_META }, NOW);
     const body = w.cleanBody();
     await saveDraft(w.db, w.admin, videoId, { ...body, hooks: body.hooks.map((h) => (h.id === 'A' ? { ...h, text: '' } : h)), source: '' }, NOW);
     const { versionId } = await submitForReview(w.db, w.admin, videoId, {}, NOW);
-    const err = await expectDomainError(decide(w.db, w.honza, { videoId, versionId, decision: 'approve' }, NOW), 'VALIDATION');
-    expect(err.details.some((d) => d.startsWith('Hook do 2 s, bez představování'))).toBe(true);
-    expect(err.details.some((d) => d.startsWith('Přidaná hodnota + zdroj'))).toBe(true);
-    expect(err.details.some((d) => d.includes('Logický dialog'))).toBe(false);
+    await expect(decide(w.db, w.honza, { videoId, versionId, decision: 'approve' }, NOW)).resolves.toBeDefined();
   });
 });
 

@@ -217,7 +217,7 @@ export async function loadScriptPage(
       mainIdea: video.mainIdea,
     },
     references: toReferenceVMs(video.references, actor, userName),
-    submitMissing: missingForSubmit(video, lookups.some((l) => l.kind === 'profile' && l.key === video.profileKey && l.data.personal === true)),
+    submitMissing: missingForSubmit(video),
     publications: publicationBlock(head.publications, video, lookups),
     options: extra ? buildEditorOptions(lookups, detail.refs.users, extra) : undefined,
     checkInput: { rules, personHashtags, formatStatuses, manualChecks: latest ? (video.manualChecks?.[latest.id] ?? {}) : {} },

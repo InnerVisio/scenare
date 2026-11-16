@@ -6,7 +6,7 @@ import { cn, focusRing } from '@/ui/cn';
 import { Tabs } from '@/ui/Tabs';
 import { unresolvedLabel } from './model';
 
-export type SidebarTab = 'comments' | 'checks' | 'versions';
+export type SidebarTab = 'comments' | 'versions';
 
 // Space the collapsed sheet needs above the fixed action bar; the approval line adds one row to the bar.
 const PEEK_HEIGHT = 'h-[calc(244px+env(safe-area-inset-bottom))]';
@@ -85,7 +85,6 @@ export function ReviewSidebar({
 
   const tabs = [
     { id: 'comments', label: `Komentáře · ${commentCount}` },
-    { id: 'checks', label: simple ? 'Kontrolní body' : 'Kontrola' },
     { id: 'versions', label: simple ? 'Změny' : 'Verze' },
   ];
 

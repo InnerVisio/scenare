@@ -16,7 +16,7 @@ import { ReferenceBlock } from '../../_components/references/ReferenceList';
 import { ScriptView } from '../../_components/script-view/ScriptView';
 import { DetailActions } from './DetailActions';
 import { ProductionStatus } from './ProductionStatus';
-import { failingChecks, progressLine } from './detailModel';
+import { progressLine } from './detailModel';
 
 const sceneNumbers = (body: ScriptPageData['body']) => Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]));
 
@@ -86,7 +86,7 @@ export function ScriptDetail({ data }: { data: ScriptPageData }) {
           code={video.code}
           actions={actions}
           hasPreviousVersion={latestNo !== null}
-          warnings={failingChecks(data.checks)}
+          warnings={[]}
           missing={data.submitMissing}
         />
         {video.status === 'approved' && <ProductionStatus videoId={video.id} value={video.productionStatus} editable={actions.production} />}

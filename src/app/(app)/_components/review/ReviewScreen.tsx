@@ -6,16 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   closeCommentAction,
-  confirmNumberAction,
   createCommentAction,
   decideAction,
   decideSuggestionAction,
-  flagNumberAction,
   markAddressedAction,
   markSeenAction,
   reopenCommentAction,
   replyToCommentAction,
-  setManualCheckAction,
 } from '@/app/(app)/kontrola/actions';
 import { formatDayMonth, shootDayLabel } from '@/domain/format/date';
 import type { ActionResult } from '@/server/actionResult';
@@ -29,7 +26,6 @@ import { ScriptView } from '../script-view/ScriptView';
 import { SelectionToolbar } from '../script-view/SelectionToolbar';
 import type { AnchoredThread, NewAnchor, ScriptViewMode } from '../script-view/types';
 import { ActionBar } from './ActionBar';
-import { ChecksPanel } from './ChecksPanel';
 import { CommentPreview, type CommentActions } from './CommentCard';
 import { CommentsPanel } from './CommentsPanel';
 import { Composer, type ComposerSubmit, type ComposerTarget } from './Composer';
@@ -42,7 +38,6 @@ import { useReviewToast } from './ReviewToast';
 import { VersionsPanel } from './VersionsPanel';
 import {
   approvalLine,
-  checkSummary,
   decisionToast,
   defaultCenterView,
   newVersionNotice,
@@ -229,16 +224,6 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
     openComposer({ kind: 'suggestion', anchor: selectionRef.current.anchor });
   };
 
-  async function flagSelectedNumber() {
-    const current = selectionRef.current;
-    if (!current) return;
-    clearSelection();
-    const result = await perform(
-      flagNumberAction({ videoId: video.id, fieldId: current.anchor.fieldId, quotedText: current.anchor.quotedText }),
-    );
-    if (result.ok) toast('Číslo označeno ke kontrole');
-  }
-
   async function submitComment(input: ComposerSubmit): Promise<boolean> {
     setComposerError(null);
     const result = await perform(
@@ -328,7 +313,6 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
     [data.threads],
   );
   const unresolved = unresolvedCount(data.threads);
-  const { passed, total } = checkSummary(data.checks);
   const peekThread = data.threads.find((t) => t.id === activeId) ?? data.threads.find((t) => t.status === 'open') ?? data.threads[0];
   const nextHref = data.nextCode ? `/kontrola/${data.nextCode}${query}` : null;
   const selectable = perms.comment && mode === 'read' && !notice;
@@ -415,17 +399,6 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
             )}
           </div>
           {leadership && <HelpButton onClick={() => setHelpOpen(true)} />}
-          <button
-            type="button"
-            aria-label={`Kontrolní seznam, splněno ${passed} z ${total}`}
-            onClick={() => {
-              setTab('checks');
-              setSheetOpen(true);
-            }}
-            className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-ink font-semibold text-lime', focusRing)}
-          >
-            {passed}/{total}
-          </button>
         </div>
         {data.position !== null && (
           <ol aria-label="Fronta" className="flex gap-1.5">
@@ -571,20 +544,6 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
               onActivate={activate}
             />
           )}
-          {tab === 'checks' && leadership && (
-            <p className="mb-3 text-text2">Automatická kontrola scénáře. Čísla potvrď, jen když sedí.</p>
-          )}
-          {tab === 'checks' && (
-            <ChecksPanel
-              checks={data.checks}
-              numberChecks={data.numberChecks}
-              perms={perms}
-              onToggleManual={async (code, checked) =>
-                latest ? (await perform(setManualCheckAction({ videoId: video.id, versionId: latest.id, code, checked }))).ok : false
-              }
-              onConfirmNumber={async (id) => (await perform(confirmNumberAction({ numberCheckId: id }))).ok}
-            />
-          )}
           {tab === 'versions' && (
             <VersionsPanel
               versions={data.versions}
@@ -607,10 +566,8 @@ export function ReviewScreen({ data, query, leadership = false }: { data: Review
         <SelectionToolbar
           rect={selection.rect}
           canSuggest={perms.suggest}
-          canNumber={perms.flagNumber}
           onComment={startComment}
           onSuggest={startSuggestion}
-          onNumber={() => void flagSelectedNumber()}
         />
       )}
 

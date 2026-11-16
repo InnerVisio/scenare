@@ -1,3 +1,4 @@
+import { enableCheckRules } from './helpers';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as s from '@/db/schema';
@@ -13,6 +14,7 @@ beforeAll(async () => {
 
 describe('loadReview', () => {
   it('loads V031 for Radek with queue position, cycle deadline, threads and versions', async () => {
+    await enableCheckRules(w.db);
     const data = await loadReview(w.db, w.radek, 'V031', {}, NOW);
     expect(data.video).toMatchObject({ code: 'V031', status: 'final_review' });
     expect(data.latest?.no).toBe(2);

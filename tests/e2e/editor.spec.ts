@@ -90,60 +90,30 @@ test.describe('script editor', () => {
     await expectNoHorizontalScroll(page);
 
     await page.getByLabel('Název', { exact: true }).fill(title);
-    if (project === 'mobile') await page.getByRole('button', { name: 'Detaily videa' }).click();
     await page.getByLabel('Kategorie').selectOption('trendy');
-    await page.getByLabel('Typ zpracování').selectOption('odborne');
-    await page.getByLabel('Profil', { exact: true }).selectOption('gta-partners');
-    await page.getByLabel('Cyklus', { exact: true }).selectOption('2026-11');
-    await page.getByLabel('Cíl videa').selectOption('shares');
-
-    await page.getByLabel('Co se divák dozví').fill('Fixace jde ukončit bez poplatku.');
-    await page.getByLabel('Zdroj', { exact: true }).fill('Zákon č. 257/2016 Sb.');
-
-    await page.getByRole('group', { name: 'Hook A' }).getByLabel('Text hooku').fill('Tak. Podepíšu a mám klid.');
-    await page.getByRole('group', { name: 'Hook B' }).getByLabel('Text hooku').fill('Kolik platíš za fixaci?');
+    await page.getByRole('region', { name: 'Údaje o videu' }).getByLabel('Natáčecí den').selectOption('2026-11');
 
     const scene = (n: number) => page.getByRole('region', { name: `Scéna ${n}` });
-    const times: [number, string, string, string][] = [
-      [1, '0', '2', 'Radek'],
-      [2, '2', '12', 'Klient'],
-      [3, '12', '20', 'Honza'],
+    const scenes: [number, string, string][] = [
+      [1, 'Radek', 'Podepsal jsem fixaci.'],
+      [2, 'Klient', 'Fixaci jde ukončit bez poplatku.'],
     ];
-    for (const [n, from, to, speaker] of times) {
-      await scene(n).getByLabel('Od (s)').fill(from);
-      await scene(n).getByLabel('Do (s)').fill(to);
+    for (const [n, speaker, text] of scenes) {
+      await scene(n).getByLabel('Co se děje').fill(`Co se děje ve scéně ${n}.`);
       await scene(n).getByLabel('Mluví').first().fill(speaker);
-      await scene(n).getByLabel('Text repliky').first().fill(`Replika ${n} od ${speaker}.`);
+      await scene(n).getByLabel('Text repliky').first().fill(text);
     }
-    await scene(3).getByRole('button', { name: 'Výzva' }).click();
-    await expect(scene(3).getByLabel('Typ výzvy')).toHaveValue('share');
-
-    const hashtags = page.getByRole('textbox', { name: 'Hashtagy' });
-    await hashtags.fill('Hypotéka');
-    await hashtags.press('Enter');
-    await expect(page.getByText('#hypotéka', { exact: true })).toBeVisible();
 
     await expect(saved(page)).toBeVisible({ timeout: 15_000 });
     await expectNoHorizontalScroll(page);
-    await page.screenshot({ path: `test-results/editor-${project}.png`, fullPage: true });
-
     // Everything is on the server: a fresh load shows the same values.
     await page.reload();
     await expect(page.getByLabel('Název', { exact: true })).toHaveValue(title);
     await expect(page.getByLabel('Kategorie')).toHaveValue('trendy');
-    await expect(page.getByRole('group', { name: 'Hook B' }).getByLabel('Text hooku')).toHaveValue('Kolik platíš za fixaci?');
-    await expect(scene(2).getByLabel('Do (s)')).toHaveValue('12');
-    await expect(scene(3).getByLabel('Text repliky').first()).toHaveValue('Replika 3 od Honza.');
-    await expect(scene(3).getByRole('button', { name: 'Výzva' })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByText('#hypotéka', { exact: true })).toBeVisible();
-    await expect(page.getByText('#vaskonzultant', { exact: true })).toBeVisible();
-
-    // Live checks: the length is 20 s.
-    if (project === 'mobile') await page.getByRole('button', { name: /Kontrolní seznam/ }).click();
-    const length = page.getByRole('listitem').filter({ hasText: /^Délka 12–25 s/ });
-    await expect(length).toContainText('20 s');
-    await page.screenshot({ path: `test-results/editor-checks-${project}.png` });
-    if (project === 'mobile') await page.keyboard.press('Escape');
+    await expect(scene(2).getByLabel('Co se děje')).toHaveValue('Co se děje ve scéně 2.');
+    await expect(scene(2).getByLabel('Text repliky').first()).toHaveValue('Fixaci jde ukončit bez poplatku.');
+    await expect(page.getByRole('button', { name: /Kontrolní seznam/ })).toHaveCount(0);
+    await page.screenshot({ path: `test-results/editor-${project}.png`, fullPage: true });
 
     // Submit with a note.
     await page.getByRole('button', { name: 'Odeslat ke kontrole' }).filter({ visible: true }).click();

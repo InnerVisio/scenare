@@ -56,8 +56,8 @@ describe('basicParse', () => {
     expect(body.scenes).toHaveLength(3);
     expect(body.scenes[0]!.lines.map((l) => l.text)).toEqual(['Ahoj, tady Radek.', 'A já Honza.']);
     expect(body.cta?.ctaType).toBe('save');
-    expect(body.hooks).toHaveLength(1);
-    expect(warnings.join(' ')).toContain('časy scén');
+    expect(body.hooks.every((h) => h.text === '')).toBe(true);
+    expect(warnings.join(' ')).not.toContain('časy');
   });
 
   it('parses timecodes', () => {
@@ -89,8 +89,8 @@ describe('basicParse', () => {
     expect(body.scenes[1]!.visual).toMatch(/^Bankéřka sedí u Honzy/);
     expect(body.scenes[1]!.lines).toHaveLength(4);
     expect(body.scenes[1]!.lines[3]!.text).toBe('On má jasno. Od toho tam jsme. Klientům se snažíme pomoct a poradit, ne z nich jen vydělat.');
-    expect(body.hooks[0]!.text).toBe('Počkej, tys mu tu pojistku nenabídla?');
-    expect(warnings).toContain('Doplň časy scén v editoru.');
+    expect(body.hooks.every((h) => h.text === '')).toBe(true);
+    expect(warnings).not.toContain('Doplň časy scén v editoru.');
   });
 
   it('parses real script 2 (leading spaces, directions, CTA)', () => {
@@ -111,7 +111,7 @@ describe('basicParse', () => {
     expect(title).toBe('Komu patří tví klienti, když odejdeš? Zeptej se dřív, než podepíšeš.');
     expect(body.hooks).toHaveLength(1);
     expect(body.hooks[0]).toMatchObject({ id: 'A', visual: title });
-    expect(body.hooks[0]!.text).toMatch(/^Kolego, doufám/);
+    expect(body.hooks[0]!.text).toBe('');
     expect(body.scenes[0]!.visual).toBe('Honza z VK × Radek z konkurence');
     const all = body.scenes.flatMap((s) => s.lines);
     expect(all.find((l) => l.text.startsWith('A ty, ty'))!.text).toBe('A ty, ty s takovým přístupem shoř');

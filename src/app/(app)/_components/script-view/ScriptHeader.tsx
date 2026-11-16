@@ -12,7 +12,14 @@ function Tile({ label, value }: { label: string; value: string }) {
 }
 
 export function ScriptHeader({ meta }: { meta: ScriptMeta }) {
-  const duration = meta.durationSec === null ? '—' : `${meta.durationSec} s`;
+  const tiles = (
+    [
+      ['Délka', meta.durationSec === null ? null : `${meta.durationSec} s`],
+      ['Cíl videa', meta.goalLabel],
+      ['Profil', meta.profileLabel],
+      ['Lokace', meta.locationLabels.length > 0 ? meta.locationLabels.join(', ') : null],
+    ] as [string, string | null | undefined][]
+  ).filter((t): t is [string, string] => Boolean(t[1]));
   return (
     <header className="flex flex-col gap-3">
       <p className="text-sm font-semibold tracking-[0.08em] text-text2 uppercase md:text-lg">
@@ -40,12 +47,13 @@ export function ScriptHeader({ meta }: { meta: ScriptMeta }) {
           </span>
         )}
       </div>
-      <div className="hidden grid-cols-3 gap-3 md:grid">
-        <Tile label="Délka" value={duration} />
-        <Tile label="Cíl videa" value={meta.goalLabel ?? '—'} />
-        <Tile label="Profil" value={meta.profileLabel ?? '—'} />
-        <Tile label="Lokace" value={meta.locationLabels.length > 0 ? meta.locationLabels.join(', ') : '—'} />
-      </div>
+      {tiles.length > 0 && (
+        <div className="hidden grid-cols-3 gap-3 md:grid">
+          {tiles.map(([label, value]) => (
+            <Tile key={label} label={label} value={value} />
+          ))}
+        </div>
+      )}
     </header>
   );
 }

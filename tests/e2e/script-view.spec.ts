@@ -80,7 +80,7 @@ test.describe('script view', () => {
     const toolbar = page.getByRole('toolbar', { name: 'Akce s označeným textem' });
     await expect(toolbar.getByRole('button', { name: 'Komentovat' })).toBeVisible();
     await expect(toolbar.getByRole('button', { name: 'Navrhnout' })).toBeVisible();
-    await expect(toolbar.getByRole('button', { name: 'Číslo' })).toBeVisible();
+    await expect(toolbar.getByRole('button', { name: 'Číslo' })).toHaveCount(0);
 
     const box = await toolbar.boundingBox();
     const viewport = page.viewportSize()!;

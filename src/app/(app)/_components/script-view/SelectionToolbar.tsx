@@ -16,16 +16,12 @@ export function SelectionToolbar({
   rect,
   onComment,
   onSuggest,
-  onNumber,
   canSuggest,
-  canNumber,
 }: {
   rect: DOMRect;
   onComment: () => void;
   onSuggest: () => void;
-  onNumber: () => void;
   canSuggest: boolean;
-  canNumber: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: 8, top: -1000 });
@@ -66,9 +62,6 @@ export function SelectionToolbar({
       </button>
       <button type="button" onClick={onSuggest} disabled={!canSuggest} className={cn(ACTION, focusRing)}>
         Navrhnout
-      </button>
-      <button type="button" onClick={onNumber} disabled={!canNumber} className={cn(ACTION, focusRing)}>
-        Číslo
       </button>
     </div>
   );

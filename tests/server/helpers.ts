@@ -115,3 +115,9 @@ export async function notifiedUsers(db: Db, activityId: string): Promise<string[
   const rows = await db.select().from(s.notifications).where(eq(s.notifications.activityId, activityId));
   return rows.map((r) => r.userId).sort();
 }
+
+/** Check rules are seeded disabled; tests of the checks themselves switch them on. */
+export async function enableCheckRules(db: Db): Promise<void> {
+  const rows = await db.select().from(s.lookupItems).where(eq(s.lookupItems.kind, 'check_rule'));
+  for (const row of rows) await db.update(s.lookupItems).set({ data: { ...row.data, enabled: true } }).where(eq(s.lookupItems.id, row.id));
+}

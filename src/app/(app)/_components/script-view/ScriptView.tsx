@@ -16,12 +16,10 @@ export type { AnchoredThread, NewAnchor, ScriptMeta, ScriptViewMode } from './ty
 /** Wait for the selection to stop changing (touch handles fire `selectionchange` continuously). */
 const SELECTION_SETTLE_MS = 300;
 
-function sceneTime(scene: Scene): string {
-  if (scene.fromSec === null && scene.toSec === null) return 'čas nevyplněn';
+function sceneTime(scene: Scene): string | null {
+  if (scene.fromSec === null && scene.toSec === null) return null;
   return `${scene.fromSec ?? '?'}–${scene.toSec ?? '?'} s`;
 }
-
-const EMPTY = <span className="text-text2 italic">nevyplněno</span>;
 
 export interface ScriptViewProps {
   body: ScriptBody;
@@ -151,7 +149,8 @@ export function ScriptView({
         {scenes.map((scene) => (
           <section key={scene.id} className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold text-text2">
-              Scéna {body.scenes.indexOf(scene) + 1} · {sceneTime(scene)}
+              Scéna {body.scenes.indexOf(scene) + 1}
+              {sceneTime(scene) ? ` · ${sceneTime(scene)}` : ''}
             </h2>
             {scene.lines.map(lineRow)}
           </section>
@@ -160,36 +159,37 @@ export function ScriptView({
     );
   }
 
+  const filledHooks = body.hooks.filter((h) => h.text || h.visual);
   return (
     <article ref={rootRef} className="flex flex-col gap-7" data-mode="read">
       <ScriptHeader meta={meta} />
 
-      <section aria-label="Co se divák dozví" className="rounded-inner bg-ink p-5 text-card md:p-6">
-        <h2 className="text-h2 tracking-wide text-lime uppercase">Co se divák dozví</h2>
-        <p className="text-script mt-2">
-          {body.viewerLearns ? field('viewerLearns', body.viewerLearns, { tone: 'dark' }) : EMPTY}
-        </p>
-        <p className="mt-1 text-card/60">
-          <span className="select-none">Zdroj: </span>
-          {body.source ? field('source', body.source, { tone: 'dark' }) : EMPTY}
-        </p>
-      </section>
+      {(body.viewerLearns || body.source) && (
+        <section aria-label="Co se divák dozví" className="rounded-inner bg-ink p-5 text-card md:p-6">
+          <h2 className="text-h2 tracking-wide text-lime uppercase">Co se divák dozví</h2>
+          {body.viewerLearns && <p className="text-script mt-2">{field('viewerLearns', body.viewerLearns, { tone: 'dark' })}</p>}
+          {body.source && (
+            <p className="mt-1 text-card/60">
+              <span className="select-none">Zdroj: </span>
+              {field('source', body.source, { tone: 'dark' })}
+            </p>
+          )}
+        </section>
+      )}
 
-      <section aria-label="Hook" className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <h2 className="text-h2">Hook (0–2 s)</h2>
-          {body.hooks.length > 1 && <p className="text-sm text-text2">A/B točit v jednom zátahu</p>}
-        </div>
-        {body.hooks.length === 0 ? (
-          <p className="text-text2">Hook zatím není vyplněný.</p>
-        ) : (
-          <div className={cn('grid gap-3', body.hooks.length > 2 ? 'md:grid-cols-3' : body.hooks.length > 1 && 'md:grid-cols-2')}>
-            {body.hooks.map((hook, i) => (
+      {filledHooks.length > 0 && (
+        <section aria-label="Hook" className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <h2 className="text-h2">Hook (0–2 s)</h2>
+            {filledHooks.length > 1 && <p className="text-sm text-text2">A/B točit v jednom zátahu</p>}
+          </div>
+          <div className={cn('grid gap-3', filledHooks.length > 2 ? 'md:grid-cols-3' : filledHooks.length > 1 && 'md:grid-cols-2')}>
+            {filledHooks.map((hook, i) => (
               <HookCard key={hook.id} hook={hook} primary={i === 0} typeLabel={hook.hookType ? hookTypeLabels[hook.hookType] : undefined} field={field} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section aria-label="Scény" className="flex flex-col">
         <h2 className="text-h2 mb-3">Scény</h2>
@@ -199,8 +199,8 @@ export function ScriptView({
             <li key={scene.id} className="grid gap-x-6 gap-y-2 border-t border-ink/10 py-5 md:grid-cols-[88px_1fr]">
               <div className="flex flex-col gap-1">
                 <p className="flex items-baseline justify-between text-sm font-semibold text-text2 md:block">
-                  <span className="md:hidden">Scéna {i + 1}</span>
-                  <span>{sceneTime(scene)}</span>
+                  <span>Scéna {i + 1}</span>
+                  {sceneTime(scene) && <span className="md:block">{sceneTime(scene)}</span>}
                 </p>
                 {references
                   .filter((reference) => reference.sceneId === scene.id)
@@ -217,12 +217,7 @@ export function ScriptView({
                   ))}
               </div>
               <div className="flex min-w-0 flex-col gap-3">
-                {scene.visual && (
-                  <p className="text-script break-words text-text2">
-                    <span className="select-none">Obraz: </span>
-                    {field(`scene:${scene.id}:visual`, scene.visual)}
-                  </p>
-                )}
+                {scene.visual && <p className="text-script break-words text-text2 italic">{field(`scene:${scene.id}:visual`, scene.visual)}</p>}
                 {scene.lines.map((line) => (
                   <div key={line.id} className="flex flex-col gap-2">
                     {body.cta?.lineId === line.id && (
@@ -239,11 +234,13 @@ export function ScriptView({
         </ol>
       </section>
 
-      <section aria-label="Titulek" className="border-t border-ink/10 pt-5">
-        <h2 className="text-h2">Titulek</h2>
-        <p className="text-script mt-2 break-words">{body.caption ? field('caption', body.caption) : EMPTY}</p>
-        {body.hashtags.length > 0 && <p className="mt-2 font-medium break-words text-violet">{body.hashtags.join(' ')}</p>}
-      </section>
+      {(body.caption || body.hashtags.length > 0) && (
+        <section aria-label="Titulek" className="border-t border-ink/10 pt-5">
+          <h2 className="text-h2">Titulek</h2>
+          {body.caption && <p className="text-script mt-2 break-words">{field('caption', body.caption)}</p>}
+          {body.hashtags.length > 0 && <p className="mt-2 font-medium break-words text-violet">{body.hashtags.join(' ')}</p>}
+        </section>
+      )}
 
       {body.differsFromLast3 && (
         <section aria-label="Čím se liší od posledních 3 videí" className="rounded-inner bg-nest p-4">
@@ -284,4 +281,3 @@ function HookCard({
     </div>
   );
 }
-

@@ -51,41 +51,26 @@ test('Admin → Radek → Admin → Honza → Radek: a script goes from draft to
   // 1. Admin writes the script in the editor and sends it to review.
   await loginAs(page, 'Admin');
   await page.goto('/scenare');
-  await page.getByRole('button', { name: 'Nový scénář' }).filter({ visible: true }).click();
+  await page.getByRole('link', { name: 'Nový scénář' }).filter({ visible: true }).click();
+  await page.getByRole('button', { name: 'Vyplnit ručně' }).click();
   await page.waitForURL(/\/scenare\/V\d+\/upravit$/);
   const code = /\/scenare\/(V\d+)\/upravit/.exec(page.url())![1];
   await expectNoHorizontalScroll(page);
 
   await page.getByLabel('Název', { exact: true }).fill(title);
-  if (mobile) await page.getByRole('button', { name: 'Detaily videa' }).click();
   await page.getByLabel('Kategorie').selectOption('trendy');
-  await page.getByLabel('Typ zpracování').selectOption('odborne');
-  await page.getByLabel('Profil', { exact: true }).selectOption('gta-partners');
-  await page.getByLabel('Cyklus', { exact: true }).selectOption('2026-11');
-  await page.getByLabel('Cíl videa').selectOption('shares');
-  await page.getByLabel('Co se divák dozví').fill('Fixace jde ukončit bez poplatku.');
-  await page.getByLabel('Zdroj', { exact: true }).fill('Zákon č. 257/2016 Sb.');
-  await page.getByRole('group', { name: 'Hook A' }).getByLabel('Text hooku').fill('Tak. Podepíšu a mám klid.');
-  await page.getByRole('group', { name: 'Hook B' }).getByLabel('Text hooku').fill('Kolik platíš za fixaci?');
+  await page.getByRole('region', { name: 'Údaje o videu' }).getByLabel('Natáčecí den').selectOption('2026-11');
 
   const scene = (n: number) => page.getByRole('region', { name: `Scéna ${n}` });
-  const scenes: [number, string, string, string, string][] = [
-    [1, '0', '2', 'Radek', 'Podepsal jsem fixaci.'],
-    [2, '2', '12', 'Klient', 'Fixaci jde ukončit bez poplatku kdykoliv chceš.'],
-    [3, '12', '20', 'Honza', 'Pošli to dál, ať to ví i ostatní.'],
+  const scenes: [number, string, string][] = [
+    [1, 'Radek', 'Podepsal jsem fixaci.'],
+    [2, 'Klient', 'Fixaci jde ukončit bez poplatku kdykoliv chceš.'],
   ];
-  for (const [n, from, to, speaker, text] of scenes) {
-    await scene(n).getByLabel('Od (s)').fill(from);
-    await scene(n).getByLabel('Do (s)').fill(to);
+  for (const [n, speaker, text] of scenes) {
+    await scene(n).getByLabel('Co se děje').fill(`Co se děje ve scéně ${n}.`);
     await scene(n).getByLabel('Mluví').first().fill(speaker);
     await scene(n).getByLabel('Text repliky').first().fill(text);
   }
-  await scene(3).getByRole('button', { name: 'Výzva' }).click();
-  await expect(scene(3).getByLabel('Typ výzvy')).toHaveValue('share');
-  const hashtags = page.getByRole('textbox', { name: 'Hashtagy' });
-  await hashtags.fill('Hypotéka');
-  await hashtags.press('Enter');
-  await expect(page.getByText('#hypotéka', { exact: true })).toBeVisible();
   await expect(page.getByText(/^Uloženo \d{1,2}:\d{2}$/).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
   await expectNoHorizontalScroll(page);
 
@@ -144,7 +129,6 @@ test('Admin → Radek → Admin → Honza → Radek: a script goes from draft to
   await expect(page.getByLabel('Název', { exact: true })).toHaveValue(title);
   await expectNoHorizontalScroll(page);
   if (mobile) await page.getByRole('button', { name: /^Komentáře, / }).click();
-  else await page.getByRole('tab', { name: /^Komentáře/ }).click();
 
   const suggestionCard = page.locator('article[data-comment-id]', { hasText: replacement }).filter({ visible: true });
   await suggestionCard.getByRole('button', { name: 'Přijmout' }).click();

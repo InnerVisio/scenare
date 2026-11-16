@@ -298,10 +298,7 @@ export async function submitForReview(
     }
     if (!video.draft) throw new DomainError('VALIDATION', 'Scénář je prázdný.');
 
-    const [profile] = video.profileKey
-      ? await tx.select().from(s.lookupItems).where(and(eq(s.lookupItems.kind, 'profile'), eq(s.lookupItems.key, video.profileKey)))
-      : [];
-    const missing = missingForSubmit(video, profile?.data.personal === true);
+    const missing = missingForSubmit(video);
     if (missing.length > 0) throw new DomainError('VALIDATION', submitMissingMessage(missing), missing);
 
     const previous = await latestVersion(tx, videoId);

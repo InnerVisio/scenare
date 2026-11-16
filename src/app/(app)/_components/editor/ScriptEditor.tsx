@@ -1,16 +1,10 @@
 'use client';
 
-import { ArrowLeft, ListChecks, MessageSquare, Plus, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, MessageSquare, Plus, Send, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
-import {
-  closeCommentAction,
-  decideSuggestionAction,
-  markAddressedAction,
-  reopenCommentAction,
-  replyToCommentAction,
-} from '@/app/(app)/kontrola/actions';
+import { closeCommentAction, decideSuggestionAction, markAddressedAction, reopenCommentAction, replyToCommentAction } from '@/app/(app)/kontrola/actions';
 import { remapAnchor } from '@/domain/anchors/remap';
 import { durationSec } from '@/domain/script/metrics';
 import type { Cta } from '@/domain/script/types';
@@ -24,19 +18,15 @@ import { cn, focusRing } from '@/ui/cn';
 import { Field, Select, TextInput, Textarea } from '@/ui/Field';
 import { useShell } from '@/ui/ShellContext';
 import { StatusPill } from '@/ui/StatusPill';
-import { Tabs } from '@/ui/Tabs';
 import { saveDraftAction, submitForReviewAction, updateVideoMetaAction } from '@/app/(app)/scenare/actions';
 import type { CommentActions } from '../review/CommentCard';
 import { CommentsPanel } from '../review/CommentsPanel';
-import { checkSummary } from '../review/model';
 import { useReviewToast } from '../review/ReviewToast';
 import { useIsDesktop } from '../review/useIsDesktop';
-import { failingChecks } from '@/app/(app)/scenare/[code]/detailModel';
 import { ChipInput } from './ChipInput';
 import { FieldThreads } from './FieldThreads';
 import { IconButton } from './IconButton';
-import { LiveChecks, useLiveChecks } from './LiveChecks';
-import { MetaForm } from './MetaForm';
+import { MetaExtras, MetaForm } from './MetaForm';
 import { missingForSubmit } from '@/domain/metrics/submitRequirements';
 import { ReferenceForm } from '../references/ReferenceForm';
 import { ReferenceList } from '../references/ReferenceList';
@@ -54,7 +44,11 @@ const FINAL_FAILURES = new Set(['FORBIDDEN', 'INVALID_TRANSITION', 'VALIDATION',
 function toOutcome(result: ActionResult): SaveOutcome {
   if (result.ok) return { ok: true };
   const final = FINAL_FAILURES.has(result.code);
-  return { ok: false, message: final ? result.message : RETRY_MESSAGE, retry: !final };
+  return {
+    ok: false,
+    message: final ? result.message : RETRY_MESSAGE,
+    retry: !final,
+  };
 }
 
 function SectionCard({ label, children }: { label: string; children: React.ReactNode }) {
@@ -126,10 +120,12 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
 
   // ---- derived ---------------------------------------------------------------------------------
   const duration = durationSec(body);
-  const checks = useLiveChecks(body, values, data);
-  const { passed, total } = checkSummary(checks);
   const speakers = useMemo(
-    () => speakerSuggestions(options.profiles.map((p) => p.speaker).filter((s): s is string => s !== null), body),
+    () =>
+      speakerSuggestions(
+        options.profiles.map((p) => p.speaker).filter((s): s is string => s !== null),
+        body,
+      ),
     [options.profiles, body],
   );
   const defaultCtaType: Cta['ctaType'] = (options.ctaTypes.find((c) => c.goalMetric === values.goalMetric)?.key as Cta['ctaType'] | undefined) ?? 'share';
@@ -155,7 +151,7 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
     refSection.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     refSection.current?.querySelector<HTMLInputElement>('input[type="url"]')?.focus({ preventScroll: true });
   };
-  const [tab, setTab] = useState<'checks' | 'comments'>('checks');
+  const [tab, setTab] = useState<'comments'>('comments');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | undefined>();
   const [scrollTo, setScrollTo] = useState<{ id: string } | null>(null);
@@ -208,32 +204,15 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
   };
 
   const panel = (
-    <div className="flex flex-col gap-4">
-      <Tabs
-        label="Kontrola a komentáře"
-        variant="light"
-        value={tab}
-        onChange={(id) => setTab(id as 'checks' | 'comments')}
-        items={[
-          { id: 'checks', label: `Kontrola · ${passed}/${total}` },
-          { id: 'comments', label: `Komentáře · ${data.threads.length}` },
-        ]}
-        className="w-full max-lg:bg-nest [&>button]:flex-1 [&>button]:px-2"
-      />
-      {tab === 'checks' ? (
-        <LiveChecks checks={checks} numberChecks={data.numberChecks} />
-      ) : (
-        <CommentsPanel
-          threads={data.threads}
-          activeId={activeId}
-          perms={data.perms}
-          users={data.users}
-          now={now}
-          actions={commentActions}
-          onActivate={setActiveId}
-        />
-      )}
-    </div>
+    <CommentsPanel
+      threads={data.threads}
+      activeId={activeId}
+      perms={data.perms}
+      users={data.users}
+      now={now}
+      actions={commentActions}
+      onActivate={setActiveId}
+    />
   );
 
   // ---- submit ----------------------------------------------------------------------------------
@@ -264,6 +243,28 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
     </Button>
   );
 
+  const [extrasOpen, setExtrasOpen] = useState(
+    () =>
+      data.draft.viewerLearns !== '' ||
+      data.draft.source !== '' ||
+      data.draft.caption !== '' ||
+      data.draft.differsFromLast3 !== '' ||
+      data.draft.hashtags.length > 0 ||
+      data.draft.cta !== null ||
+      data.draft.hooks.some((h) => h.text !== '' || h.visual !== '' || h.hookType !== null) ||
+      data.values.treatmentKey !== null ||
+      data.values.characterKey !== null ||
+      data.values.formatKey !== null ||
+      data.values.goalMetric !== null ||
+      data.values.isTrialReel ||
+      data.values.locationKeys.length > 0 ||
+      data.values.plannedMonth !== null ||
+      data.values.seriesId !== null ||
+      data.values.cast.length > 0 ||
+      data.values.props !== '' ||
+      data.values.intent !== '' ||
+      data.values.mainIdea !== '',
+  );
   const spoken = (id: string) => threadsByField.get(id);
   const unusedHooks = HOOK_IDS.filter((id) => !body.hooks.some((h) => h.id === id));
 
@@ -272,13 +273,18 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
       {/* On desktop the header sticks to the top; the lavender backdrop hides what scrolls beneath it. */}
       <div className="lg:sticky lg:top-0 lg:z-30 lg:-mt-8 lg:bg-lavender lg:pt-8">
         <header className="flex items-center gap-3 rounded-card bg-card p-4 lg:px-5">
-          <Link href={`/scenare/${data.video.code}`} aria-label="Zpět na detail scénáře" className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-nest', focusRing)}>
+          <Link
+            href={`/scenare/${data.video.code}`}
+            aria-label="Zpět na detail scénáře"
+            className={cn('flex size-12 shrink-0 items-center justify-center rounded-full bg-nest', focusRing)}
+          >
             <ArrowLeft aria-hidden className="size-5" />
           </Link>
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold tracking-[0.08em] text-text2 uppercase">
               <span>
-                {data.video.code} · {duration === null ? 'délka —' : `${duration} s`}
+                {data.video.code}
+                {duration !== null && ` · ${duration} s`}
               </span>
               <StatusPill status={data.video.status} className="tracking-normal normal-case" />
             </p>
@@ -291,7 +297,7 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-4">
-          <MetaForm values={values} onChange={patchValues} options={options} currentMonth={currentMonth} />
+          <MetaForm values={values} onChange={patchValues} options={options} />
           <div>
             <Button variant="outline" onClick={() => setPasteOpen(true)}>
               Vložit text znovu
@@ -315,96 +321,6 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
               if (Object.keys(fill).length > 0) patchValues(fill);
             }}
           />
-
-          <section ref={refSection} aria-label="Ukázky" className="flex flex-col gap-4 rounded-card bg-card p-5 lg:p-6">
-            <h2 className="text-h2">Ukázky</h2>
-            <p className="-mt-2 text-text2">Odkaz na vzorové video (TikTok, Instagram, YouTube), aby bylo jasné, jak to má vypadat.</p>
-            <ReferenceList
-              videoId={videoId}
-              references={data.references}
-              scenes={Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]))}
-              empty="Zatím žádná ukázka."
-            />
-            <ReferenceForm
-              videoId={videoId}
-              scenes={body.scenes.map((scene, i) => ({ id: scene.id, label: `Scéna ${i + 1}` }))}
-              sceneId={body.scenes.some((scene) => scene.id === refScene) ? refScene : ''}
-              onSceneChange={setRefScene}
-            />
-          </section>
-
-          <SectionCard label="Co divák získá">
-            <Field label="Co se divák dozví">
-              <Textarea value={body.viewerLearns} maxLength={1000} onChange={(event) => dispatch({ type: 'field', key: 'viewerLearns', value: event.target.value })} />
-            </Field>
-            <FieldThreads threads={spoken('viewerLearns')} onOpen={openThread} />
-            <Field label="Zdroj">
-              <TextInput value={body.source} maxLength={1000} onChange={(event) => dispatch({ type: 'field', key: 'source', value: event.target.value })} />
-            </Field>
-            <FieldThreads threads={spoken('source')} onOpen={openThread} />
-          </SectionCard>
-
-          <SectionCard label="Hook (0–2 s)">
-            {body.hooks.map((hook) => (
-              <div
-                key={hook.id}
-                role="group"
-                aria-label={`Hook ${hook.id}`}
-                className={cn('flex flex-col gap-3 rounded-inner p-4', hook.id === 'A' ? 'border-2 border-ink' : 'bg-nest')}
-              >
-                <div className="flex items-center gap-3">
-                  <p className="text-h2 mr-auto">Hook {hook.id}</p>
-                  {hook.id !== 'A' && (
-                    <IconButton label={`Odebrat hook ${hook.id}`} onClick={() => dispatch({ type: 'removeHook', id: hook.id })}>
-                      <Trash2 aria-hidden className="size-5" />
-                    </IconButton>
-                  )}
-                </div>
-                <Field label="Typ hooku">
-                  <Select
-                    value={hook.hookType ?? ''}
-                    onChange={(event) => dispatch({ type: 'hook', id: hook.id, patch: { hookType: event.target.value || null } })}
-                    className={hook.id === 'A' ? undefined : 'bg-card'}
-                  >
-                    <option value="">—</option>
-                    {options.hookTypes.map((t) => (
-                      <option key={t.key} value={t.key}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Text hooku">
-                  <Textarea
-                    value={hook.text}
-                    maxLength={1000}
-                    onChange={(event) => dispatch({ type: 'hook', id: hook.id, patch: { text: event.target.value } })}
-                    className={hook.id === 'A' ? undefined : 'bg-card'}
-                  />
-                </Field>
-                <FieldThreads threads={spoken(`hook:${hook.id}:text`)} onOpen={openThread} />
-                <Field label="Obraz hooku">
-                  <Textarea
-                    value={hook.visual}
-                    maxLength={1000}
-                    onChange={(event) => dispatch({ type: 'hook', id: hook.id, patch: { visual: event.target.value } })}
-                    className={hook.id === 'A' ? undefined : 'bg-card'}
-                  />
-                </Field>
-                <FieldThreads threads={spoken(`hook:${hook.id}:visual`)} onOpen={openThread} />
-              </div>
-            ))}
-            {unusedHooks.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {unusedHooks.slice(0, 1).map((id) => (
-                  <Button key={id} variant="outline" onClick={() => dispatch({ type: 'addHook' })}>
-                    <Plus aria-hidden className="size-4" />
-                    Hook {id}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </SectionCard>
 
           <datalist id={speakerListId}>
             {speakers.map((name) => (
@@ -434,28 +350,191 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
             </Button>
           </div>
 
-          <SectionCard label="Titulek a hashtagy">
-            <Field label="Titulek">
-              <Textarea value={body.caption} maxLength={2200} onChange={(event) => dispatch({ type: 'field', key: 'caption', value: event.target.value })} />
-            </Field>
-            <FieldThreads threads={spoken('caption')} onOpen={openThread} />
-            <ChipInput
-              label="Hashtagy"
-              tags={body.hashtags}
-              onChange={(value) => dispatch({ type: 'hashtags', value })}
-              add={addHashtags}
-              placeholder="Napiš hashtag a Enter"
-              hint="Doporučeno 3–5, vždy #vaskonzultant a hashtag toho, kdo hraje."
+          <section ref={refSection} aria-label="Ukázky" className="flex flex-col gap-4 rounded-card bg-card p-5 lg:p-6">
+            <h2 className="text-h2">Ukázky</h2>
+            <p className="-mt-2 text-text2">Odkaz na vzorové video (TikTok, Instagram, YouTube), aby bylo jasné, jak to má vypadat.</p>
+            <ReferenceList
+              videoId={videoId}
+              references={data.references}
+              scenes={Object.fromEntries(body.scenes.map((scene, i) => [scene.id, i + 1]))}
+              empty="Zatím žádná ukázka."
             />
-            <Field label="Čím se liší od posledních 3 videí">
-              <Textarea
-                value={body.differsFromLast3}
-                maxLength={1000}
-                onChange={(event) => dispatch({ type: 'field', key: 'differsFromLast3', value: event.target.value })}
-              />
-            </Field>
-            <FieldThreads threads={spoken('differsFromLast3')} onOpen={openThread} />
-          </SectionCard>
+            <ReferenceForm
+              videoId={videoId}
+              scenes={body.scenes.map((scene, i) => ({
+                id: scene.id,
+                label: `Scéna ${i + 1}`,
+              }))}
+              sceneId={body.scenes.some((scene) => scene.id === refScene) ? refScene : ''}
+              onSceneChange={setRefScene}
+            />
+          </section>
+
+          <section aria-label="Další údaje" className="flex flex-col gap-4 rounded-card bg-card p-5 lg:p-6">
+            <button
+              type="button"
+              aria-expanded={extrasOpen}
+              onClick={() => setExtrasOpen((v) => !v)}
+              className={cn('flex min-h-12 items-center justify-between rounded-pill bg-nest px-5 font-semibold', focusRing)}
+            >
+              Další údaje (nepovinné)
+              <ChevronDown aria-hidden className={cn('size-5 transition-transform', extrasOpen && 'rotate-180')} />
+            </button>
+            {extrasOpen && (
+              <div className="flex flex-col gap-4">
+                <MetaExtras values={values} onChange={patchValues} options={options} currentMonth={currentMonth} />
+                <SectionCard label="Co divák získá">
+                  <Field label="Co se divák dozví">
+                    <Textarea
+                      value={body.viewerLearns}
+                      maxLength={1000}
+                      onChange={(event) =>
+                        dispatch({
+                          type: 'field',
+                          key: 'viewerLearns',
+                          value: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  <FieldThreads threads={spoken('viewerLearns')} onOpen={openThread} />
+                  <Field label="Zdroj">
+                    <TextInput
+                      value={body.source}
+                      maxLength={1000}
+                      onChange={(event) =>
+                        dispatch({
+                          type: 'field',
+                          key: 'source',
+                          value: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  <FieldThreads threads={spoken('source')} onOpen={openThread} />
+                </SectionCard>
+
+                <SectionCard label="Hook (0–2 s)">
+                  {body.hooks.map((hook) => (
+                    <div
+                      key={hook.id}
+                      role="group"
+                      aria-label={`Hook ${hook.id}`}
+                      className={cn('flex flex-col gap-3 rounded-inner p-4', hook.id === 'A' ? 'border-2 border-ink' : 'bg-nest')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <p className="text-h2 mr-auto">Hook {hook.id}</p>
+                        {hook.id !== 'A' && (
+                          <IconButton label={`Odebrat hook ${hook.id}`} onClick={() => dispatch({ type: 'removeHook', id: hook.id })}>
+                            <Trash2 aria-hidden className="size-5" />
+                          </IconButton>
+                        )}
+                      </div>
+                      <Field label="Typ hooku">
+                        <Select
+                          value={hook.hookType ?? ''}
+                          onChange={(event) =>
+                            dispatch({
+                              type: 'hook',
+                              id: hook.id,
+                              patch: { hookType: event.target.value || null },
+                            })
+                          }
+                          className={hook.id === 'A' ? undefined : 'bg-card'}
+                        >
+                          <option value="">—</option>
+                          {options.hookTypes.map((t) => (
+                            <option key={t.key} value={t.key}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <Field label="Text hooku">
+                        <Textarea
+                          value={hook.text}
+                          maxLength={1000}
+                          onChange={(event) =>
+                            dispatch({
+                              type: 'hook',
+                              id: hook.id,
+                              patch: { text: event.target.value },
+                            })
+                          }
+                          className={hook.id === 'A' ? undefined : 'bg-card'}
+                        />
+                      </Field>
+                      <FieldThreads threads={spoken(`hook:${hook.id}:text`)} onOpen={openThread} />
+                      <Field label="Obraz hooku">
+                        <Textarea
+                          value={hook.visual}
+                          maxLength={1000}
+                          onChange={(event) =>
+                            dispatch({
+                              type: 'hook',
+                              id: hook.id,
+                              patch: { visual: event.target.value },
+                            })
+                          }
+                          className={hook.id === 'A' ? undefined : 'bg-card'}
+                        />
+                      </Field>
+                      <FieldThreads threads={spoken(`hook:${hook.id}:visual`)} onOpen={openThread} />
+                    </div>
+                  ))}
+                  {unusedHooks.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {unusedHooks.slice(0, 1).map((id) => (
+                        <Button key={id} variant="outline" onClick={() => dispatch({ type: 'addHook' })}>
+                          <Plus aria-hidden className="size-4" />
+                          Hook {id}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </SectionCard>
+
+                <SectionCard label="Titulek a hashtagy">
+                  <Field label="Titulek">
+                    <Textarea
+                      value={body.caption}
+                      maxLength={2200}
+                      onChange={(event) =>
+                        dispatch({
+                          type: 'field',
+                          key: 'caption',
+                          value: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  <FieldThreads threads={spoken('caption')} onOpen={openThread} />
+                  <ChipInput
+                    label="Hashtagy"
+                    tags={body.hashtags}
+                    onChange={(value) => dispatch({ type: 'hashtags', value })}
+                    add={addHashtags}
+                    placeholder="Napiš hashtag a Enter"
+                    hint="Doporučeno 3–5, vždy #vaskonzultant a hashtag toho, kdo hraje."
+                  />
+                  <Field label="Čím se liší od posledních 3 videí">
+                    <Textarea
+                      value={body.differsFromLast3}
+                      maxLength={1000}
+                      onChange={(event) =>
+                        dispatch({
+                          type: 'field',
+                          key: 'differsFromLast3',
+                          value: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  <FieldThreads threads={spoken('differsFromLast3')} onOpen={openThread} />
+                </SectionCard>
+              </div>
+            )}
+          </section>
         </div>
 
         {desktop && (
@@ -469,18 +548,6 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
       <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-1 rounded-t-card bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(23,21,31,0.14)] md:left-[100px] lg:hidden">
         <SaveIndicator state={saveState} savedAt={savedAt} message={saveMessage} onRetry={retrySave} />
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setTab('checks');
-              setSheetOpen(true);
-            }}
-            aria-label={`Kontrolní seznam, splněno ${passed} z ${total}`}
-            className={cn('flex min-h-12 shrink-0 items-center gap-2 rounded-pill bg-nest px-4 font-semibold', focusRing)}
-          >
-            <ListChecks aria-hidden className="size-5" />
-            {passed}/{total}
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -508,8 +575,8 @@ export function ScriptEditor({ data, options }: { data: ScriptPageData; options:
         open={submitOpen}
         busy={submitBusy || busyCount > 0}
         error={submitError}
-        warnings={failingChecks(checks)}
-        missing={missingForSubmit(values, options.profiles.find((p) => p.key === values.profileKey)?.personal === true)}
+        warnings={[]}
+        missing={missingForSubmit(values)}
         hasPreviousVersion={data.latest !== null}
         onSubmit={(summary) => void submit(summary)}
         onCancel={() => {

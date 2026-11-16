@@ -1,3 +1,4 @@
+import { enableCheckRules } from './helpers';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as s from '@/db/schema';
@@ -160,6 +161,7 @@ async function idOfIn(world: World, code: string) {
 
 describe('getVideoDetail', () => {
   it('returns versions, threads with replies, approval state, checks and activity', async () => {
+    await enableCheckRules(w.db);
     const detail = await getVideoDetail(w.db, w.honza, await idOf('V031'));
     expect(detail.video.code).toBe('V031');
     expect(detail.versions.map((v) => v.versionNo)).toEqual([1, 2]);
@@ -184,6 +186,7 @@ describe('getVideoDetail', () => {
   });
 
   it('flags detached threads, includes decisions for the latest version only and falls back to the draft', async () => {
+    await enableCheckRules(w.db);
     const id = await idOf('V031');
     await w.db.update(s.comments).set({ anchor: { fieldId: 'caption', from: 0, to: 3, quotedText: 'xyz', state: 'detached' } }).where(eq(s.comments.id, 'sample-v031-c1'));
     const detail = await getVideoDetail(w.db, w.radek, id);

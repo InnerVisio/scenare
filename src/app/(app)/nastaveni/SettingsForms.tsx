@@ -291,6 +291,7 @@ function LookupsSection({ lookups }: { lookups: Record<string, LookupRowValue[]>
 
 // ---------------------------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function RulesSection({ rules }: { rules: LookupRowValue[] }) {
   const [rows, setRows] = useState(rules);
   const save = useSave();
@@ -510,7 +511,7 @@ export function SettingsForms({
       <ParamsSection settings={settings} />
       <CyclesSection cycles={cycles} />
       <LookupsSection lookups={lookups} />
-      <RulesSection rules={rules} />
+      {/* Pravidla kontroly are hidden for now; RulesSection and the data stay. */}
       <UsersSection users={users} />
     </div>
   );

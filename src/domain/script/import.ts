@@ -20,8 +20,6 @@ export interface ImportResult {
 }
 
 export const MAX_SCENES = 12;
-export const NO_TIMES_WARNING = 'Doplň časy scén v editoru.';
-export const NO_HOOK_WARNING = 'Nenašel jsem hook — doplň ho v editoru.';
 
 export const emptyMeta = (title = ''): ImportMeta => ({
   title,
@@ -66,9 +64,7 @@ export function finishBody(body: ScriptBody): string[] {
   for (const scene of body.scenes) if (scene.lines.length === 0) scene.lines.push(blankLine());
   if (body.hooks.length === 0) {
     body.hooks.push({ id: 'A', hookType: null, text: '', visual: '' });
-    warnings.push(NO_HOOK_WARNING);
   }
-  if (body.scenes.length > 0 && body.scenes.every((s) => s.fromSec === null && s.toSec === null)) warnings.push(NO_TIMES_WARNING);
   return warnings;
 }
 
@@ -297,8 +293,8 @@ export function basicParse(text: string): { body: ScriptBody; title: string; war
   }
 
   const firstSpoken = scenes.flatMap((s) => s.lines).find((l) => l.text !== '');
-  if (hooks.length === 0 && (firstSpoken || titulek)) {
-    hooks.push({ id: 'A', hookType: null, text: firstSpoken?.text ?? '', visual: titulek });
+  if (hooks.length === 0 && titulek) {
+    hooks.push({ id: 'A', hookType: null, text: '', visual: titulek });
   } else if (hooks.length > 0 && titulek && !hooks[0]!.visual) {
     hooks[0]!.visual = titulek;
   }
